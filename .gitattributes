@@ -1,0 +1,8 @@
+# سطر جديد موحَّد في المستودع. الخطّافات وسكربتات الشل تُحفظ LF إلزاماً —
+# CRLF يكسرها على Linux في CI.
+* text=auto eol=lf
+.githooks/* text eol=lf
+*.sh text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+pnpm-lock.yaml text eol=lf
