@@ -7,7 +7,7 @@
 -- تحرس نفسها بشرطين: الدور نظامي، ولا مُسنَد له أحد بعد.
 -- تراجع: نعم.
 
-create or replace function public.fn_bootstrap_admin(p_user_id uuid)
+create or replace function sunan.fn_bootstrap_admin(p_user_id uuid)
 returns uuid
 language plpgsql
 security definer
@@ -18,7 +18,7 @@ declare
   v_id      uuid;
 begin
   select id into v_role_id
-  from public.roles
+  from sunan.roles
   where is_system = true and deleted_at is null
   limit 1;
 
@@ -27,7 +27,7 @@ begin
   end if;
 
   if exists (
-    select 1 from public.user_roles
+    select 1 from sunan.user_roles
     where role_id = v_role_id and deleted_at is null
   ) then
     raise exception 'المدير الأول مبذور سلفاً — الإسناد بعده يمرّ بالمسار العادي';
@@ -37,11 +37,11 @@ begin
     raise exception 'لا مستخدم بهذا المعرّف. أنشئ الحساب أولاً ثم ابذر الدور';
   end if;
 
-  insert into public.user_roles (user_id, role_id, scope_program_id)
+  insert into sunan.user_roles (user_id, role_id, scope_program_id)
   values (p_user_id, v_role_id, null)
   returning id into v_id;
 
-  insert into public.audit_log (actor_id, action, entity_table, entity_id, after)
+  insert into sunan.audit_log (actor_id, action, entity_table, entity_id, after)
   values (null, 'bootstrap_admin', 'user_roles', v_id,
           jsonb_build_object('user_id', p_user_id, 'role_id', v_role_id));
 
@@ -49,9 +49,9 @@ begin
 end;
 $$;
 
-comment on function public.fn_bootstrap_admin(uuid) is
+comment on function sunan.fn_bootstrap_admin(uuid) is
   'تُستدعى مرة واحدة بمفتاح service_role. ترفض التكرار وترفض معرّفاً بلا حساب.';
 
-revoke all on function public.fn_bootstrap_admin(uuid) from public;
-revoke all on function public.fn_bootstrap_admin(uuid) from anon;
-revoke all on function public.fn_bootstrap_admin(uuid) from authenticated;
+revoke all on function sunan.fn_bootstrap_admin(uuid) from public;
+revoke all on function sunan.fn_bootstrap_admin(uuid) from anon;
+revoke all on function sunan.fn_bootstrap_admin(uuid) from authenticated;

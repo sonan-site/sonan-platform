@@ -3,36 +3,36 @@
 -- تراجع: نعم.
 
 -- ── profiles ──
-create policy profiles_read on public.profiles
+create policy profiles_read on sunan.profiles
   for select to authenticated
-  using (user_id = (select auth.uid()) or public.fn_has_permission('users.read'));
+  using (user_id = (select auth.uid()) or sunan.fn_has_permission('users.read'));
 
-create policy profiles_insert_self on public.profiles
+create policy profiles_insert_self on sunan.profiles
   for insert to authenticated
   with check (user_id = (select auth.uid()));
 
-create policy profiles_update on public.profiles
+create policy profiles_update on sunan.profiles
   for update to authenticated
-  using (user_id = (select auth.uid()) or public.fn_has_permission('users.write'))
-  with check (user_id = (select auth.uid()) or public.fn_has_permission('users.write'));
+  using (user_id = (select auth.uid()) or sunan.fn_has_permission('users.write'))
+  with check (user_id = (select auth.uid()) or sunan.fn_has_permission('users.write'));
 
 -- ── roles ──
-create policy roles_read on public.roles
+create policy roles_read on sunan.roles
   for select to authenticated
-  using (public.fn_has_permission('roles.read'));
+  using (sunan.fn_has_permission('roles.read'));
 
-create policy roles_insert on public.roles
+create policy roles_insert on sunan.roles
   for insert to authenticated
-  with check (public.fn_has_permission('roles.write') and is_system = false);
+  with check (sunan.fn_has_permission('roles.write') and is_system = false);
 
-create policy roles_update on public.roles
+create policy roles_update on sunan.roles
   for update to authenticated
-  using (public.fn_has_permission('roles.write'))
-  with check (public.fn_has_permission('roles.write'));
+  using (sunan.fn_has_permission('roles.write'))
+  with check (sunan.fn_has_permission('roles.write'));
 
 -- حماية دور البذرة: لا يُوقَف ولا يُحوَّل لدور عادي.
 -- الاعتماد على السياسة وحدها لا يكفي — السياسة تجيز التحديث، والقيد هنا يمنع النوع الخطأ منه.
-create or replace function public.fn_guard_system_role()
+create or replace function sunan.fn_guard_system_role()
 returns trigger
 language plpgsql
 security invoker
@@ -51,34 +51,34 @@ begin
 end;
 $$;
 
-create trigger trg_roles_guard_system before update on public.roles
-  for each row execute function public.fn_guard_system_role();
+create trigger trg_roles_guard_system before update on sunan.roles
+  for each row execute function sunan.fn_guard_system_role();
 
 -- ── role_permissions ──
-create policy role_permissions_read on public.role_permissions
+create policy role_permissions_read on sunan.role_permissions
   for select to authenticated
-  using (public.fn_has_permission('roles.read'));
+  using (sunan.fn_has_permission('roles.read'));
 
-create policy role_permissions_insert on public.role_permissions
+create policy role_permissions_insert on sunan.role_permissions
   for insert to authenticated
-  with check (public.fn_has_permission('roles.write'));
+  with check (sunan.fn_has_permission('roles.write'));
 
-create policy role_permissions_update on public.role_permissions
+create policy role_permissions_update on sunan.role_permissions
   for update to authenticated
-  using (public.fn_has_permission('roles.write'))
-  with check (public.fn_has_permission('roles.write'));
+  using (sunan.fn_has_permission('roles.write'))
+  with check (sunan.fn_has_permission('roles.write'));
 
 -- ── user_roles ──
-create policy user_roles_read on public.user_roles
+create policy user_roles_read on sunan.user_roles
   for select to authenticated
-  using (user_id = (select auth.uid()) or public.fn_has_permission('roles.read'));
+  using (user_id = (select auth.uid()) or sunan.fn_has_permission('roles.read'));
 
 -- BR-ROLE-01 مفروضة هنا في الطبقة التي لا تُلتَفّ.
-create policy user_roles_insert on public.user_roles
+create policy user_roles_insert on sunan.user_roles
   for insert to authenticated
-  with check (public.fn_can_grant_role(role_id, user_id, scope_program_id));
+  with check (sunan.fn_can_grant_role(role_id, user_id, scope_program_id));
 
-create policy user_roles_update on public.user_roles
+create policy user_roles_update on sunan.user_roles
   for update to authenticated
-  using (public.fn_can_grant_role(role_id, user_id, scope_program_id))
-  with check (public.fn_can_grant_role(role_id, user_id, scope_program_id));
+  using (sunan.fn_can_grant_role(role_id, user_id, scope_program_id))
+  with check (sunan.fn_can_grant_role(role_id, user_id, scope_program_id));
