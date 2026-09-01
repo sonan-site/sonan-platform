@@ -12,6 +12,7 @@
     "dev": "next dev",
     "build": "next build",
     "test": "vitest run",
+    "test:db": "vitest run --config vitest.db.config.ts",
     "lint": "eslint .",
     "verify": "tsc --noEmit && eslint . && vitest run",
     "db:reset": "supabase db reset"
@@ -25,10 +26,13 @@
   },
   "devDependencies": {
     "@types/node": "26.3.0",
+    "@types/pg": "8.23.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.2",
+    "pg": "8.23.0",
+    "supabase": "2.115.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.68.0",
     "vitest": "4.1.11"

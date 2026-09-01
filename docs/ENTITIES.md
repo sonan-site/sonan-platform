@@ -90,12 +90,21 @@
 | `entity_table` | text | الكيان المرتبط |
 | `entity_id` | uuid | |
 
+### `notification_kinds` — أنواع الإشعارات (جدول مرجعي)
+
+| العمود | النوع | ملاحظات |
+|---|---|---|
+| `code` | text · فريد | المفتاح الثابت الذي يشير إليه `notifications.kind` |
+| `label` | text | المسمّى المعروض |
+
+**يُترَك فارغاً عمداً.** لا نوع إشعار قائم بعد، والنوع يولد مع الميزة التي ترسله — لا قبلها تخميناً. و`enum` مرفوض هنا لأن القيم غير معروفة، واختراعها الآن تخمين لا تصميم.
+
 ### `notifications` — الإشعارات
 
 | العمود | النوع | ملاحظات |
 |---|---|---|
 | `recipient_id` | uuid | |
-| `kind` | enum `notification_kind` | |
+| `kind` | text · مفتاح أجنبي | يشير إلى `notification_kinds` — **جدول مرجعي** لا `enum`، لأن القيم تولد مع الميزات ولا تُخمَّن |
 | `payload` | jsonb | |
 | `status` | enum `notification_status` | `pending` · `sent` · `failed` · `read` |
 | `sent_at` | timestamptz · قابل للإفراغ | |
