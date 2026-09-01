@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>محاكاة المنصة — الخطة والطالب والإحصائيات</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{direction:rtl}
+body{background:#f5f5f4;color:#1a1a1a;font-family:'Tajawal',sans-serif;line-height:1.7;font-size:15px}
+.bar{background:#fff;border-bottom:1px solid #e0e0dd;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:9}
+.bar .lbl{font-size:12px;color:#888}
+.bar .tabs{display:flex;gap:5px;flex-wrap:wrap}
+.bar button{font-family:inherit;font-size:12.5px;padding:6px 13px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;color:#333}
+.bar button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.stage{max-width:920px;margin:22px auto;padding:0 16px}
+.pane{display:none}.pane.on{display:block}
+.box{background:#fff;border:1px solid #e0e0dd;border-radius:11px;padding:16px 18px;margin-bottom:13px}
+.box h3{font-size:14.5px;font-weight:700;margin-bottom:3px}
+.box .hint{font-size:12px;color:#888;margin-bottom:13px}
+input,select{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;width:100%}
+.btn{font-family:inherit;font-size:13px;padding:7px 16px;border:1px solid #1a1a1a;background:#1a1a1a;color:#fff;border-radius:6px;cursor:pointer}
+.btn.g{background:#fff;color:#1a1a1a}
+.btn.xs{font-size:11.5px;padding:4px 10px}
+.mv{cursor:pointer;color:#bbb;font-size:14px;user-select:none;padding:0 3px}
+.mv:hover{color:#1a1a1a}
+
+.tpl{border:1px solid #e5e5e2;border-radius:9px;padding:11px 13px;margin-bottom:9px}
+.tpl .th{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.tpl .th input{flex:1}
+.trow{display:grid;grid-template-columns:1.3fr 1fr auto auto auto;gap:6px;align-items:center;background:#fafaf9;border-radius:7px;padding:6px 8px;margin-bottom:5px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{border:1px solid #e8e8e5;padding:6px 8px;text-align:center}
+th{background:#fafaf9;font-weight:700;font-size:11.5px}
+tr.rest td{background:#fafaf9;color:#aaa}
+tr.exam td{background:#f4f4f2}
+tr.done td{background:#f2f7f3}
+.mut{color:#ccc}
+td select,td input{font-size:12px;padding:3px 5px}
+
+.phone{max-width:430px;margin:0 auto}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+.nav button{font-family:inherit;font-size:12.5px;padding:5px 12px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer}
+.card{background:#fff;border:1px solid #e0e0dd;border-radius:11px;padding:16px 17px}
+.dh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+.dh .d{font-size:16px;font-weight:700}
+.dh .w{font-size:12px;color:#999}
+.sub{font-size:12px;color:#999;margin-bottom:13px}
+.q{border:1px solid #e8e8e5;border-radius:8px;padding:11px 12px;margin-bottom:9px}
+.q.ok{background:#f7faf8;border-color:#d8e8de}
+.qh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.qn{font-size:14px;font-weight:500}.qk{font-size:11px;color:#bbb}
+.rng{display:flex;gap:6px;align-items:center}
+.rng .lb{font-size:12px;color:#999;white-space:nowrap}
+.val{font-size:14px;color:#333;background:#fafaf9;border-radius:6px;padding:8px 11px;margin-bottom:9px;line-height:1.8}
+.val b{font-weight:700}
+.mark{display:flex;align-items:center;gap:7px;font-size:13px;color:#555;cursor:pointer}
+.cnt{display:flex;align-items:center;gap:8px}
+.cnt button{font-family:inherit;width:30px;height:30px;border:1px solid #ccc;background:#fff;border-radius:7px;font-size:15px;cursor:pointer}
+.cnt .v{font-size:15px;font-weight:700;min-width:36px;text-align:center}
+.done{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;margin-inline-start:auto}
+.empty{text-align:center;padding:22px 12px;color:#999;font-size:13.5px;border:1px dashed #ddd;border-radius:8px}
+.examb{text-align:center;padding:20px 12px;border:1px dashed #999;border-radius:8px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:13px}
+.kpi{background:#fff;border:1px solid #e0e0dd;border-radius:10px;padding:13px 15px}
+.kpi .k{font-size:11.5px;color:#999;margin-bottom:3px}
+.kpi .v{font-size:22px;font-weight:700}
+.kpi .s{font-size:11.5px;color:#aaa}
+.barw{background:#eee;border-radius:5px;height:7px;overflow:hidden;margin-top:6px}
+.barf{background:#1a1a1a;height:100%}
+.stu-pick{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.stu-pick button{font-family:inherit;font-size:12.5px;padding:6px 14px;border:1px solid #ccc;background:#fff;border-radius:20px;cursor:pointer}
+.stu-pick button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.foot{max-width:920px;margin:0 auto 34px;padding:0 16px;font-size:12px;color:#999;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="bar">
+<span class="lbl">محاكاة — قوالب الأيام، وطالبان، وإحصائيات</span>
+<div class="tabs">
+<button class="on" id="t1" onclick="go(1)">القوالب</button>
+<button id="t2" onclick="go(2)">الخطة</button>
+<button id="t3" onclick="go(3)">واجهة الطالب</button>
+<button id="t4" onclick="go(4)">الإحصائيات</button>
+</div>
+</div>
+
+<div class="stage">
+
+<div class="pane on" id="p1">
+<div class="box">
+<h3>قوالب الأيام</h3>
+<p class="hint">يُعرَّف القالب مرة، ويُطبَّق على أي عدد من الأيام. الاستثناءات تُحرَّر في الخطة فردياً.</p>
+<div id="tpls"></div>
+<button class="btn g xs" onclick="addTpl()">إضافة قالب</button>
+</div>
+<div class="box">
+<h3>المادة المرقَّمة</h3>
+<p class="hint">مرجع الحساب، ومصدر قوائم الاختيار في الواجب النصي.</p>
+<div id="mat" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:5px;font-size:12px;color:#666"></div>
+</div>
+</div>
+
+<div class="pane" id="p2">
+<div class="box">
+<h3>جدول الخطة</h3>
+<p class="hint">كل يوم يشير لقالب. المقادير تُعدَّل هنا، والقالب يحدِّد بنية الواجبات.</p>
+<div style="overflow-x:auto"><table id="plan"></table></div>
+<div style="display:flex;gap:6px;margin-top:11px;flex-wrap:wrap">
+<button class="btn g xs" onclick="addDay('normal')">يوم عادي</button>
+<button class="btn g xs" onclick="addDay('rest')">راحة</button>
+<button class="btn g xs" onclick="addDay('exam')">اختبار</button>
+</div>
+</div>
+</div>
+
+<div class="pane" id="p3">
+<div class="stu-pick" id="pick3"></div>
+<div class="phone">
+<div class="nav">
+<button onclick="step(-1)">السابق</button>
+<span id="lbl" style="font-size:12.5px;color:#888"></span>
+<button onclick="step(1)">التالي</button>
+</div>
+<div id="stu"></div>
+<div class="box" style="margin-top:12px">
+<h3 style="font-size:13.5px">التحكم بالإنجاز</h3>
+<p class="hint">لمحاكاة حالات مختلفة.</p>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn g xs" onclick="markDay(1)">أنجز هذا اليوم</button>
+<button class="btn g xs" onclick="markDay(0)">ألغِ إنجازه</button>
+<button class="btn g xs" onclick="markUpto()">أنجز حتى هنا</button>
+<button class="btn g xs" onclick="clearAll()">تصفير</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="pane" id="p4">
+<div class="stu-pick" id="pick4"></div>
+<div id="stats"></div>
+</div>
+
+</div>
+<p class="foot">الإحصائيات محسوبة فعلياً من الإنجاز — غيّرها في تبويب الطالب وارجع هنا.</p>
+
+<script>
+var WD=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+var MAT=[];for(var i=1;i<=40;i++)MAT.push([i,'حديث '+i]);
+var cur=0, curStu=0;
+
+var tpls=[
+ {id:'A',name:'يوم كامل',tasks:[{n:'حفظ',k:'num',v:2},{n:'مراجعة',k:'txt',v:3},{n:'تكرار',k:'count',v:15}]},
+ {id:'B',name:'حفظ وتكرار',tasks:[{n:'حفظ',k:'num',v:2},{n:'تكرار',k:'count',v:15}]},
+ {id:'C',name:'سرد وربط',tasks:[{n:'سرد',k:'num',v:10},{n:'ربط',k:'num',v:5}]}
+];
+
+var days=[];
+(function(){
+ var pat=['A','A','rest','B','A','exam','A','B','A','rest','C','A'];
+ pat.forEach(function(p){
+  if(p==='rest')days.push({type:'rest'});
+  else if(p==='exam')days.push({type:'exam',ex:'اختبار مرحلي — عن بعد'});
+  else days.push({type:'normal',tpl:p,mul:1});
+ });
+})();
+
+var students=[{name:'طالب منضبط',done:{}},{name:'طالب متعثّر',done:{}}];
+function allIdx(i){ return tasksOf(i).map(function(_,j){return j}); }
+days.forEach(function(d,i){
+ if(d.type!=='normal')return;
+ students[0].done[i]=allIdx(i);
+ if(i<3) students[1].done[i]=allIdx(i);
+ else if(i<6) students[1].done[i]=[0];
+});
+function isDoneTask(si,di,ti){ var a=students[si].done[di]; return !!a && a.indexOf(ti)>-1; }
+function dayFull(si,di){ var a=students[si].done[di]; return !!a && a.length===tasksOf(di).length && a.length>0; }
+function dayPartial(si,di){ var a=students[si].done[di]; return !!a && a.length>0 && a.length<tasksOf(di).length; }
+function toggleTask(di,ti){
+ var a=students[curStu].done[di]||[];
+ var k=a.indexOf(ti);
+ if(k>-1)a.splice(k,1); else a.push(ti);
+ students[curStu].done[di]=a;
+ drawStu();
+}
+
+function go(n){
+ [1,2,3,4].forEach(function(i){
+  document.getElementById('p'+i).classList.toggle('on',i===n);
+  document.getElementById('t'+i).classList.toggle('on',i===n);
+ });
+ if(n===2)drawPlan(); if(n===3){drawPick('pick3');drawStu();} if(n===4){drawPick('pick4');drawStats();}
+ window.scrollTo(0,0);
+}
+function kn(k){return k==='num'?'نطاق رقمي':(k==='txt'?'نطاق نصي':'عددي')}
+function tplOf(id){return tpls.filter(function(t){return t.id===id})[0]||tpls[0]}
+
+function drawTpls(){
+ var h='';
+ tpls.forEach(function(t,i){
+  h+='<div class="tpl"><div class="th"><strong style="font-size:12px;color:#999">'+t.id+'</strong>'
+   +'<input type="text" value="'+t.name+'" oninput="tpls['+i+'].name=this.value">'
+   +'<span class="mv" onclick="delTpl('+i+')">×</span></div>';
+  t.tasks.forEach(function(k,j){
+   h+='<div class="trow"><input type="text" value="'+k.n+'" oninput="tpls['+i+'].tasks['+j+'].n=this.value">'
+    +'<select onchange="tpls['+i+'].tasks['+j+'].k=this.value;drawTpls()">'
+    +'<option value="num"'+(k.k==='num'?' selected':'')+'>نطاق رقمي</option>'
+    +'<option value="txt"'+(k.k==='txt'?' selected':'')+'>نطاق نصي</option>'
+    +'<option value="count"'+(k.k==='count'?' selected':'')+'>عددي</option></select>'
+    +'<input type="number" style="width:60px" value="'+k.v+'" oninput="tpls['+i+'].tasks['+j+'].v=parseInt(this.value)||0">'
+    +'<span class="mv" onclick="mvTask('+i+','+j+',-1)">▲</span><span class="mv" onclick="mvTask('+i+','+j+',1)">▼</span></div>';
+  });
+  h+='<button class="btn g xs" style="margin-top:5px" onclick="addTask('+i+')">إضافة واجب</button></div>';
+ });
+ document.getElementById('tpls').innerHTML=h;
+}
+function addTpl(){var id=String.fromCharCode(65+tpls.length);tpls.push({id:id,name:'قالب '+id,tasks:[{n:'واجب',k:'num',v:1}]});drawTpls()}
+function delTpl(i){if(tpls.length<2)return;tpls.splice(i,1);drawTpls()}
+function addTask(i){tpls[i].tasks.push({n:'واجب جديد',k:'num',v:1});drawTpls()}
+function mvTask(i,j,d){var a=tpls[i].tasks,k=j+d;if(k<0||k>=a.length)return;var t=a[j];a[j]=a[k];a[k]=t;drawTpls()}
+
+function drawPlan(){
+ var h='<tr><th>اليوم</th><th>الأسبوع</th><th>النوع</th><th>القالب</th><th>مضاعف المقدار</th><th>الواجبات</th><th></th></tr>';
+ days.forEach(function(d,i){
+  var cls=d.type==='rest'?'rest':(d.type==='exam'?'exam':'');
+  h+='<tr class="'+cls+'"><td>'+(i+1)+'</td><td>'+WD[i%7]+'</td>'
+   +'<td><select onchange="setType('+i+',this.value)">'
+   +'<option value="normal"'+(d.type==='normal'?' selected':'')+'>عادي</option>'
+   +'<option value="rest"'+(d.type==='rest'?' selected':'')+'>راحة</option>'
+   +'<option value="exam"'+(d.type==='exam'?' selected':'')+'>اختبار</option></select></td>';
+  if(d.type==='normal'){
+   h+='<td><select onchange="days['+i+'].tpl=this.value;drawPlan()">'
+    +tpls.map(function(t){return '<option value="'+t.id+'"'+(d.tpl===t.id?' selected':'')+'>'+t.name+'</option>'}).join('')
+    +'</select></td><td><input type="number" step="0.5" style="width:64px" value="'+d.mul+'" oninput="days['+i+'].mul=parseFloat(this.value)||1;drawPlan()"></td>'
+    +'<td style="font-size:11.5px;color:#777">'+tplOf(d.tpl).tasks.map(function(t){return t.n+' '+Math.round(t.v*d.mul)}).join(' · ')+'</td>';
+  } else if(d.type==='exam'){
+   h+='<td colspan="3" style="font-size:11.5px">'+(d.ex||'اختبار')+'</td>';
+  } else {
+   h+='<td colspan="3" class="mut">—</td>';
+  }
+  h+='<td><span class="mv" onclick="delDay('+i+')">×</span></td></tr>';
+ });
+ document.getElementById('plan').innerHTML=h;
+}
+function setType(i,v){days[i].type=v;if(v==='normal'&&!days[i].tpl){days[i].tpl=tpls[0].id;days[i].mul=1}if(v==='exam'&&!days[i].ex)days[i].ex='اختبار مرحلي — عن بعد';drawPlan()}
+function addDay(t){days.push(t==='normal'?{type:'normal',tpl:tpls[0].id,mul:1}:(t==='exam'?{type:'exam',ex:'اختبار مرحلي — عن بعد'}:{type:'rest'}));drawPlan()}
+function delDay(i){days.splice(i,1);drawPlan()}
+
+function tasksOf(i){
+ var d=days[i]; if(d.type!=='normal')return [];
+ return tplOf(d.tpl).tasks.map(function(t){return {n:t.n,k:t.k,v:Math.max(1,Math.round(t.v*d.mul))}});
+}
+function startAt(idx,name){
+ var acc=1;
+ for(var i=0;i<idx;i++){
+  if(days[i].type!=='normal')continue;
+  tasksOf(i).forEach(function(t,j){
+   if(t.n===name && t.k!=='count' && isDoneTask(curStu,i,j)) acc+=t.v;
+  });
+ }
+ return acc;
+}
+
+function drawPick(id){
+ document.getElementById(id).innerHTML=students.map(function(s,i){
+  return '<button class="'+(i===curStu?'on':'')+'" onclick="setStu('+i+')">'+s.name+'</button>';
+ }).join('');
+}
+function setStu(i){curStu=i;drawPick('pick3');drawPick('pick4');drawStu();drawStats()}
+
+function opts(sel){return MAT.map(function(m){return '<option'+(m[0]===sel?' selected':'')+'>'+m[0]+' · '+m[1]+'</option>'}).join('')}
+
+function drawStu(){
+ if(cur>=days.length)cur=days.length-1;
+ var d=days[cur], st=students[curStu];
+ var full=d.type==='normal'&&dayFull(curStu,cur), part=d.type==='normal'&&dayPartial(curStu,cur);
+ document.getElementById('lbl').textContent='اليوم '+(cur+1)+' من '+days.length+(full?' · مُرسَل':(part?' · جزئي':''));
+ var h='<div class="card"><div class="dh"><span class="d">اليوم '+(cur+1)+'</span><span class="w">'+WD[cur%7]+'</span></div>';
+ if(d.type==='rest'){h+='<p class="sub">يوم راحة</p><div class="empty">لا مطلوب اليوم</div></div>'}
+ else if(d.type==='exam'){h+='<p class="sub">يوم اختبار</p><div class="examb"><p style="font-size:14.5px;font-weight:700;margin-bottom:4px">'+(d.ex||'اختبار')+'</p><p style="font-size:12px;color:#888;margin-bottom:12px">يستبدل واجبات اليوم</p><button class="btn">ابدأ</button></div></div>'}
+ else{
+  var ts=tasksOf(cur), n=0;
+  ts.forEach(function(_,j){ if(isDoneTask(curStu,cur,j))n++; });
+  h+='<p class="sub">'+n+' من '+ts.length+' واجبات</p>';
+  ts.forEach(function(t,j){
+   var dn=isDoneTask(curStu,cur,j);
+   var s=startAt(cur,t.n), e=s+t.v-1;
+   h+='<div class="q'+(dn?' ok':'')+'"><div class="qh"><span class="qn">'+t.n+'</span><span class="qk">'+kn(t.k)+'</span></div>';
+   if(t.k==='num'){
+    h+='<div class="val">من <b>'+s+'</b> إلى <b>'+e+'</b></div>';
+   } else if(t.k==='txt'){
+    var a=MAT[Math.min(s,MAT.length)-1], b=MAT[Math.min(e,MAT.length)-1];
+    h+='<div class="val">من قوله: <b>'+a[1]+'</b><br>إلى قوله: <b>'+b[1]+'</b></div>';
+   } else {
+    h+='<div class="val">العدد: <b>'+t.v+'</b></div>';
+   }
+   h+='<label class="mark"><input type="checkbox"'+(dn?' checked':'')+' onchange="toggleTask('+cur+','+j+')"> أتممتُ هذا الواجب</label></div>';
+  });
+  h+='<button class="btn" style="width:100%;margin-top:4px"'+(n===0?' disabled':'')+'>إرسال الإتمام</button></div>';
+ }
+ document.getElementById('stu').innerHTML=h;
+}
+function step(k){cur=Math.max(0,Math.min(days.length-1,cur+k));drawStu()}
+function inc(b){var v=b.parentNode.querySelector('.v');v.textContent=parseInt(v.textContent)+1}
+function dec(b){var v=b.parentNode.querySelector('.v');var n=parseInt(v.textContent)-1;if(n>=0)v.textContent=n}
+function markDay(on){if(days[cur].type!=='normal')return;if(on)students[curStu].done[cur]=allIdx(cur);else delete students[curStu].done[cur];drawStu()}
+function markUpto(){for(var i=0;i<=cur;i++)if(days[i].type==='normal')students[curStu].done[i]=allIdx(i);drawStu()}
+function clearAll(){students[curStu].done={};drawStu()}
+
+function drawStats(){
+ var st=students[curStu];
+ var planned={},actual={},pDays=0,dDays=0;
+ days.forEach(function(d,i){
+  if(d.type!=='normal')return;
+  pDays++;
+  if(dayFull(curStu,i))dDays++;
+  tasksOf(i).forEach(function(t,j){
+   planned[t.n]=(planned[t.n]||0)+t.v;
+   if(isDoneTask(curStu,i,j))actual[t.n]=(actual[t.n]||0)+t.v;
+  });
+ });
+ var tp=0,ta=0;
+ Object.keys(planned).forEach(function(k){tp+=planned[k];ta+=(actual[k]||0)});
+ var pct=tp?Math.round(ta/tp*100):0;
+ var dpct=pDays?Math.round(dDays/pDays*100):0;
+
+ var h='<div class="kpis">'
+  +'<div class="kpi"><div class="k">نسبة الإنجاز</div><div class="v">'+pct+'%</div><div class="barw"><div class="barf" style="width:'+pct+'%"></div></div></div>'
+  +'<div class="kpi"><div class="k">الأيام المكتملة</div><div class="v">'+dDays+'</div><div class="s">من '+pDays+' يوم عمل</div></div>'
+  +'<div class="kpi"><div class="k">الالتزام</div><div class="v">'+dpct+'%</div><div class="barw"><div class="barf" style="width:'+dpct+'%"></div></div></div>'
+  +'<div class="kpi"><div class="k">إجمالي الوحدات</div><div class="v">'+ta+'</div><div class="s">من '+tp+' مخطَّطة</div></div>'
+  +'</div>';
+
+ h+='<div class="box"><h3>التفصيل حسب الواجب</h3><p class="hint">مجمَّع بالمسمّى عبر كل الأيام، مهما اختلفت قوالبها.</p><div style="overflow-x:auto"><table>'
+  +'<tr><th>الواجب</th><th>المخطَّط</th><th>المنجَز</th><th>النسبة</th></tr>';
+ Object.keys(planned).forEach(function(k){
+  var a=actual[k]||0, p=Math.round(a/planned[k]*100);
+  h+='<tr><td style="text-align:right">'+k+'</td><td>'+planned[k]+'</td><td>'+a+'</td><td>'+p+'%</td></tr>';
+ });
+ h+='</table></div></div>';
+
+ h+='<div class="box"><h3>الأيام</h3><div style="overflow-x:auto"><table><tr><th>اليوم</th><th>النوع</th><th>الحالة</th><th>المنجَز / المخطَّط</th></tr>';
+ days.forEach(function(d,i){
+  var full=dayFull(curStu,i), part=dayPartial(curStu,i);
+  var ts=d.type==='normal'?tasksOf(i):[];
+  var u=ts.reduce(function(s,t,j){return s+(isDoneTask(curStu,i,j)?t.v:0)},0);
+  var up=ts.reduce(function(s,t){return s+t.v},0);
+  h+='<tr class="'+(d.type==='rest'?'rest':(d.type==='exam'?'exam':(full?'done':'')))+'"><td>'+(i+1)+'</td>'
+   +'<td>'+(d.type==='rest'?'راحة':(d.type==='exam'?'اختبار':'عادي'))+'</td>'
+   +'<td>'+(d.type!=='normal'?'<span class="mut">—</span>':(full?'مكتمل':(part?'جزئي':'لم يبدأ')))+'</td>'
+   +'<td>'+(d.type==='normal'?(u+' / '+up):'<span class="mut">—</span>')+'</td></tr>';
+ });
+ h+='</table></div></div>';
+ document.getElementById('stats').innerHTML=h;
+}
+
+document.getElementById('mat').innerHTML=MAT.slice(0,12).map(function(m){return '<span>'+m[0]+' · '+m[1]+'</span>'}).join('');
+drawTpls();
+</script>
+</body>
+</html>

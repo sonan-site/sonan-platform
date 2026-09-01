@@ -1,0 +1,25 @@
+# اعتماديات ومخرجات بناء
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# أسرار — قائمة منع شاملة، ويُستثنى المثال
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.*
+service-account*.json
+
+# محلي
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+coverage/

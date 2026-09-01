@@ -1,0 +1,11 @@
+#!/bin/sh
+# بوّابة ما قبل الدفع — لا مبدأ إلزامي بلا مُشغِّل تلقائي.
+# يُثبَّت تلقائياً بأمر prepare عند pnpm install (core.hooksPath=.githooks).
+echo "▶ verify قبل الدفع…"
+if ! pnpm verify; then
+  echo ""
+  echo "✖ الدفع مرفوض: verify فشل."
+  echo "  أصلح الفشل، أو استخدم --no-verify بقرار واعٍ ومسجَّل."
+  exit 1
+fi
+echo "✔ verify نجح — يُسمح بالدفع."

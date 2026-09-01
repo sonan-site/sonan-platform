@@ -1,0 +1,19 @@
+# سكربتات التثبيت — مسموحة أو مرفوضة واحداً واحداً، لا بالجملة.
+# unrs-resolver يبني رابطاً أصلياً لمحلّل مسارات eslint، وله بديل JS يعمل —
+# فلا موجب لتشغيل سكربت تثبيت لا نحتاجه. أقلّ سكربتات = سطح هجوم أضيق.
+allowBuilds:
+  unrs-resolver: false
+
+# تثبيت الاعتماديات غير المباشرة على آخر إصدار مستقرّ فعلاً.
+# 8.69.0 نُشر قبل ساعات وترفضه سياسة عمر الإصدار في pnpm.
+overrides:
+  "@typescript-eslint/eslint-plugin": 8.68.0
+  "@typescript-eslint/parser": 8.68.0
+  "@typescript-eslint/project-service": 8.68.0
+  "@typescript-eslint/scope-manager": 8.68.0
+  "@typescript-eslint/tsconfig-utils": 8.68.0
+  "@typescript-eslint/type-utils": 8.68.0
+  "@typescript-eslint/types": 8.68.0
+  "@typescript-eslint/typescript-estree": 8.68.0
+  "@typescript-eslint/utils": 8.68.0
+  "@typescript-eslint/visitor-keys": 8.68.0

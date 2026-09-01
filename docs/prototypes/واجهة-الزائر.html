@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>محاكاة واجهة الزائر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{direction:rtl}
+  body{background:#f5f5f4;color:#1a1a1a;font-family:'Tajawal',sans-serif;line-height:1.8;font-size:16px;-webkit-font-smoothing:antialiased}
+
+  .bar{background:#fff;border-bottom:1px solid #e0e0dd;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .bar .lbl{font-size:12.5px;color:#888}
+  .bar .tabs{display:flex;gap:6px}
+  .bar button{font-family:inherit;font-size:13px;padding:7px 16px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;color:#333}
+  .bar button.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+
+  .stage{max-width:900px;margin:32px auto;padding:0 20px}
+  .screen{display:none}
+  .screen.on{display:block}
+
+  .app{background:#fff;border:1px solid #e0e0dd;border-radius:14px;overflow:hidden}
+  .topnav{padding:16px 22px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between}
+  .brand{font-size:15.5px;font-weight:700}
+  .back{font-size:13.5px;color:#666;cursor:pointer}
+  .btn{font-family:inherit;font-size:13.5px;padding:8px 18px;border:1px solid #1a1a1a;background:#fff;border-radius:7px;cursor:pointer;color:#1a1a1a}
+  .btn.pri{background:#1a1a1a;color:#fff}
+  .btn.big{padding:12px 34px;font-size:15px}
+
+  .body{padding:22px}
+  .eyebrow{font-size:12.5px;color:#888;margin-bottom:14px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .card{border:1px solid #e5e5e2;border-radius:12px;padding:16px 18px;cursor:pointer;transition:border-color .15s}
+  .card:hover{border-color:#1a1a1a}
+  .card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+  .card .nm{font-size:15px;font-weight:700}
+  .card .desc{font-size:13.5px;color:#666;line-height:1.65;margin-bottom:14px}
+  .card .ft{display:flex;justify-content:space-between;font-size:12.5px;color:#999}
+  .card .go{color:#1a1a1a}
+
+  .tag{font-size:11.5px;padding:3px 10px;border-radius:20px;white-space:nowrap;border:1px solid}
+  .tag.open{background:#f0f7f2;color:#2d6a4a;border-color:#cfe5d8}
+  .tag.full{background:#fdf6ec;color:#8a5a1f;border-color:#f0e0c8}
+  .tag.soon{background:#f4f4f2;color:#777;border-color:#e2e2df}
+
+  .block{border:1px solid #e5e5e2;border-radius:12px;padding:18px 20px;margin-bottom:14px}
+  .block .kind{font-size:11.5px;color:#aaa;margin-bottom:10px;letter-spacing:.3px}
+  .block h2{font-size:19px;font-weight:700;margin-bottom:8px}
+  .block p.n{font-size:14px;color:#555;line-height:1.75}
+
+  .rows{display:grid;gap:8px}
+  .row{display:flex;justify-content:space-between;padding:11px 14px;background:#fafaf9;border-radius:8px;font-size:14px}
+  .row .m{color:#777}
+
+  .faq{font-size:14px;padding:10px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;cursor:pointer}
+  .faq:last-child{border:none}
+  .faq .p{color:#aaa}
+
+  .cta{text-align:center;padding:26px 20px}
+  .cta .hint{font-size:12.5px;color:#999;margin-top:12px}
+
+  .foot{max-width:900px;margin:0 auto 40px;padding:0 20px;font-size:12.5px;color:#999;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="lbl">محاكاة — واجهة الزائر (بلا حساب)</span>
+  <div class="tabs">
+    <button class="on" id="t1" onclick="go(1)">دليل البرامج</button>
+    <button id="t2" onclick="go(2)">صفحة البرنامج</button>
+  </div>
+</div>
+
+<div class="stage">
+
+<div class="screen on" id="s1">
+  <div class="app">
+    <div class="topnav">
+      <span class="brand">منصة البرامج التعليمية</span>
+      <button class="btn">تسجيل الدخول</button>
+    </div>
+    <div class="body">
+      <p class="eyebrow">البرامج المتاحة</p>
+      <div class="cards">
+        <div class="card" onclick="go(2)">
+          <div class="hd"><span class="nm">اسم البرنامج</span><span class="tag open">التسجيل مفتوح</span></div>
+          <p class="desc">نبذة مختصرة تُدخلها الإدارة عند إنشاء البرنامج.</p>
+          <div class="ft"><span>يُغلق بعد ٦ أيام</span><span class="go">التفاصيل ←</span></div>
+        </div>
+        <div class="card">
+          <div class="hd"><span class="nm">برنامج آخر</span><span class="tag full">اكتمل العدد</span></div>
+          <p class="desc">نبذة مختصرة تُدخلها الإدارة عند إنشاء البرنامج.</p>
+          <div class="ft"><span>مغلق</span><span class="go">التفاصيل ←</span></div>
+        </div>
+        <div class="card">
+          <div class="hd"><span class="nm">برنامج ثالث</span><span class="tag soon">قريباً</span></div>
+          <p class="desc">نبذة مختصرة تُدخلها الإدارة عند إنشاء البرنامج.</p>
+          <div class="ft"><span>لم يبدأ</span><span class="go">التفاصيل ←</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s2">
+  <div class="app">
+    <div class="topnav">
+      <span class="back" onclick="go(1)">← دليل البرامج</span>
+      <button class="btn">تسجيل الدخول</button>
+    </div>
+    <div class="body">
+
+      <div class="block">
+        <p class="kind">عنصر: ترويسة</p>
+        <h2>اسم البرنامج</h2>
+        <p class="n">النبذة التعريفية كما تُدخلها الإدارة في منشئ الصفحات.</p>
+      </div>
+
+      <div class="block">
+        <p class="kind">عنصر: المسارات</p>
+        <div class="rows">
+          <div class="row"><span>المسار الأول</span><span class="m">وصف المسار</span></div>
+          <div class="row"><span>المسار الثاني</span><span class="m">وصف المسار</span></div>
+          <div class="row"><span>المسار الثالث</span><span class="m">وصف المسار</span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <p class="kind">عنصر: نص حر</p>
+        <p class="n">فقرة يكتبها المسؤول — شروط، تفاصيل، أو أي محتوى آخر.</p>
+      </div>
+
+      <div class="block">
+        <p class="kind">عنصر: الأسئلة الشائعة</p>
+        <div class="faq"><span>سؤال يُدخله المسؤول</span><span class="p">+</span></div>
+        <div class="faq"><span>سؤال آخر</span><span class="p">+</span></div>
+        <div class="faq"><span>سؤال ثالث</span><span class="p">+</span></div>
+      </div>
+
+      <div class="block cta">
+        <p class="kind" style="text-align:right">عنصر: زر التسجيل</p>
+        <button class="btn pri big">سجّل في البرنامج</button>
+        <p class="hint">يتطلب حساباً — يُنشأ في الخطوة التالية</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<p class="foot">محاكاة بصرية — البنية فقط، والمحتوى يُدخَل من لوحة الإدارة.</p>
+
+<script>
+function go(n){
+  document.getElementById('s1').classList.toggle('on', n===1);
+  document.getElementById('s2').classList.toggle('on', n===2);
+  document.getElementById('t1').classList.toggle('on', n===1);
+  document.getElementById('t2').classList.toggle('on', n===2);
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متطلبات منصة مسابقة سنن — نسخة أولية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --petrol:#2A3F46;
+    --petrol-deep:#1B2A2F;
+    --brown-grey:#7D7168;
+    --warm-grey:#8C847D;
+    --beige:#F3EFE9;
+    --beige-deep:#E9E1D4;
+    --card-bg:#FBF9F5;
+    --gold:#AD7A3F;
+    --gold-soft:#D9B98A;
+    --ink:#22302F;
+    --open-bg:#FBEFE4;
+    --open-border:#D9A86A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--beige); color:var(--ink);
+    font-family:'Tajawal',sans-serif; line-height:1.8;
+  }
+  .num{font-family:'JetBrains Mono',monospace;}
+
+  header{
+    background:linear-gradient(160deg, var(--petrol) 0%, var(--petrol-deep) 100%);
+    color:var(--beige); padding:48px 24px 56px; position:relative; overflow:hidden;
+  }
+  header::after{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at 85% 20%, rgba(173,122,63,0.20), transparent 45%);
+  }
+  .eyebrow{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:2px; color:var(--gold-soft); text-transform:uppercase; position:relative; z-index:1;}
+  h1{font-weight:900; font-size:clamp(24px,4.5vw,36px); margin:10px 0 8px; position:relative; z-index:1; max-width:800px;}
+  .sub{color:var(--gold-soft); font-size:15px; position:relative; z-index:1;}
+  .meta{margin-top:22px; display:flex; gap:24px; flex-wrap:wrap; font-size:13px; color:rgba(255,255,255,0.75); position:relative; z-index:1;}
+
+  main{max-width:920px; margin:0 auto; padding:44px 24px 90px;}
+
+  nav.toc{
+    background:var(--card-bg); border:1px solid var(--beige-deep); border-radius:14px;
+    padding:18px 22px; margin-bottom:40px;
+  }
+  nav.toc .t{font-weight:800; font-size:13px; color:var(--brown-grey); letter-spacing:.5px; margin-bottom:10px;}
+  nav.toc ol{margin:0; padding-inline-start:20px; columns:2; gap:20px; font-size:14px;}
+  nav.toc li{margin-bottom:6px;}
+  nav.toc a{color:var(--petrol); text-decoration:none;}
+  nav.toc a:hover{text-decoration:underline;}
+
+  section{margin-bottom:46px;}
+  .sec-num{
+    font-family:'JetBrains Mono',monospace; color:var(--gold); font-size:13px; font-weight:700;
+  }
+  h2{font-size:21px; font-weight:800; color:var(--petrol-deep); margin:4px 0 18px; display:flex; align-items:baseline; gap:10px;}
+
+  .module{
+    background:var(--card-bg); border:1px solid var(--beige-deep); border-radius:14px;
+    padding:20px 22px; margin-bottom:16px;
+  }
+  .module h3{margin:0 0 10px; font-size:16.5px; color:var(--petrol);}
+  .module ul{margin:0; padding-inline-start:20px;}
+  .module li{margin-bottom:6px; font-size:14.5px;}
+
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14px;}
+  th,td{border:1px solid var(--beige-deep); padding:9px 12px; text-align:right;}
+  th{background:var(--petrol); color:var(--beige); font-weight:700; font-size:13px;}
+  tr:nth-child(even) td{background:#fff;}
+
+  .formula{
+    background:var(--petrol-deep); color:var(--beige); border-radius:10px;
+    padding:16px 20px; font-family:'JetBrains Mono',monospace; font-size:15px;
+    text-align:center; margin:16px 0; direction:ltr;
+  }
+
+  .example{
+    background:var(--beige-deep); border-radius:10px; padding:14px 18px; font-size:14px; margin-top:10px;
+  }
+  .example .lbl{font-weight:800; color:var(--brown-grey); font-size:12px; margin-bottom:4px;}
+
+  .open-item{
+    background:var(--open-bg); border:1px solid var(--open-border); border-radius:10px;
+    padding:12px 16px; margin-bottom:10px; font-size:14px; display:flex; gap:10px; align-items:flex-start;
+  }
+  .open-item .tag{
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:#8a5a1f;
+    background:#fff; border-radius:20px; padding:2px 8px; flex-shrink:0; margin-top:2px;
+  }
+
+  .badge{
+    display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:20px; background:var(--petrol); color:var(--beige); margin-inline-start:8px;
+  }
+  .badge.dev{background:var(--gold);}
+
+  footer{max-width:920px; margin:0 auto; padding:0 24px 60px; color:var(--warm-grey); font-size:13px;}
+  footer .box{background:var(--beige-deep); border-radius:12px; padding:14px 18px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">جمعية سنن التعليمية — إدارة المشاريع التعليمية (رجال)</div>
+  <h1>متطلبات منصة مسابقة سنن</h1>
+  <div class="sub">نسخة أولية — لشرح الفكرة لطرف التطوير الخارجي، لا مواصفات تقنية نهائية</div>
+  <div class="meta">
+    <span>تاريخ الإعداد: الأحد 2 أغسطس 2026 (19 صفر 1448هـ)</span>
+    <span>إعداد: إبراهيم الحسين — راعٍ غير مبرمج، التنفيذ لدى مطوّر خارجي</span>
+  </div>
+</header>
+
+<main>
+
+<nav class="toc">
+  <div class="t">المحتويات</div>
+  <ol>
+    <li><a href="#m1">الواجهة العامة (تعريفية)</a></li>
+    <li><a href="#m2">التسجيل</a></li>
+    <li><a href="#m3">متابعة الحفظ (صفحة الطالب)</a></li>
+    <li><a href="#m4">التصفيات والاختبار</a></li>
+    <li><a href="#m5">بنك الأسئلة</a></li>
+    <li><a href="#m6">الداش بورد ولوحة الترتيب</a></li>
+    <li><a href="#m7">لوحة المدير / الفريق الإداري</a></li>
+    <li><a href="#m8">سجل العمليات</a></li>
+    <li><a href="#formula">قاعدة احتساب الإنجاز (السقف)</a></li>
+    <li><a href="#ref">بيانات مرجعية</a></li>
+    <li><a href="#open">نقاط مفتوحة تحتاج قراراً</a></li>
+  </ol>
+</nav>
+
+<section id="m1">
+  <h2><span class="sec-num">01</span> الواجهة العامة (تعريفية)</h2>
+  <div class="module">
+    <ul>
+      <li>صفحة رئيسية تعرض النبذة المعتمدة عن المسابقة</li>
+      <li>عرض المسارات الخمسة (40 واجباً يومياً لكل مسار) بوضوح</li>
+      <li>شرح آلية المشاركة الكاملة: تسجيل ← حفظ ← تصفيات ← اختبار حضوري ← نتائج</li>
+      <li>نموذج/عيّنة توضيحية لشكل الاختبار (تحريري وحضوري)</li>
+      <li>الأسئلة الشائعة</li>
+    </ul>
+  </div>
+</section>
+
+<section id="m2">
+  <h2><span class="sec-num">02</span> التسجيل</h2>
+  <div class="module">
+    <ul>
+      <li>نموذج تسجيل عام مفتوح (بلا دعوة) — تسجيل ذاتي</li>
+      <li>اختيار المسار (من 5) عند التسجيل</li>
+      <li>فتح وإغلاق التسجيل بتاريخ محدَّد من الإدارة</li>
+    </ul>
+  </div>
+</section>
+
+<section id="m3">
+  <h2><span class="sec-num">03</span> متابعة الحفظ — صفحة الطالب الخاصة</h2>
+  <div class="module">
+    <h3>يُدخلها الطالب بنفسه يومياً، على منهجية الحفظ/التكرار/الربط/المراجعة</h3>
+    <ul>
+      <li><strong>الحفظ:</strong> عرض الواجب اليومي المستحق، محسوب آلياً من معدل مسار الطالب (1–5 أحاديث/يوم حسب المسار)</li>
+      <li><strong>التكرار:</strong> عدّاد يُدخله الطالب لعدد مرات تكرار المقطع</li>
+      <li><strong>الربط:</strong> سجل مدى (من حديث كذا إلى حديث كذا) — قابل للتعديل من الطالب</li>
+      <li><strong>المراجعة:</strong> سجل مدى (من حديث كذا إلى حديث كذا) — قابل للتعديل من الطالب</li>
+    </ul>
+    <p style="font-size:13.5px;color:var(--brown-grey);margin-top:10px;">جميع القيم الأربع تخضع لقاعدة السقف الموحّدة (قسم 09 أدناه) قبل احتسابها في أي نسبة أو لوحة ترتيب.</p>
+  </div>
+</section>
+
+<section id="m4">
+  <h2><span class="sec-num">04</span> التصفيات والاختبار الحضوري</h2>
+  <div class="module">
+    <h3>التصفيات (إلكترونية، قبل الاختبار الحضوري)</h3>
+    <ul>
+      <li>نموذج إقرار ذاتي بإتمام المحفوظ وتجاوزه بنسبة 75%</li>
+      <li>خمسة أسئلة تحريرية تُسحب تلقائياً من بنك الأسئلة حسب مسار الطالب</li>
+      <li>آلية تصحيح/اعتماد النتيجة <span class="badge dev">قيد الحسم — انظر النقاط المفتوحة</span></li>
+    </ul>
+    <h3 style="margin-top:16px;">الاختبار الحضوري</h3>
+    <ul>
+      <li>واجهة مخصّصة للمحكّمين لإدخال درجات المتسابقين حضورياً أثناء الجلسة</li>
+      <li>ربط كل محكّم بلجنته (4 لجان، 3 محكّمين لكل لجنة)</li>
+      <li>توثيق الدرجة فور إدخالها في سجل معتمد</li>
+    </ul>
+  </div>
+</section>
+
+<section id="m5">
+  <h2><span class="sec-num">05</span> بنك الأسئلة</h2>
+  <div class="module">
+    <ul>
+      <li>إدارة الأسئلة التحريرية الخمس لكل مسار (5 مسارات × 5 أسئلة كحد أدنى)</li>
+      <li>إضافة/تعديل/حذف الأسئلة من لوحة الإدارة</li>
+      <li>سحب عشوائي أو ثابت للأسئلة عند دخول الطالب مرحلة التصفيات <span class="badge dev">يحتاج تحديداً</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="m6">
+  <h2><span class="sec-num">06</span> الداش بورد ولوحة الترتيب</h2>
+  <div class="module">
+    <h3>داش بورد عام — تفاعل وتحفيز (مسابقة داخل المسابقة)</h3>
+    <ul>
+      <li>لوحة ترتيب (Leaderboard) تعرض المتصدّرين بناءً على درجة الإنجاز المحتسبة</li>
+      <li>إحصائيات عامة: عدد المسجَّلين، توزيع المسارات</li>
+    </ul>
+    <h3 style="margin-top:16px;">داش بورد خاص — إداري</h3>
+    <ul>
+      <li>نسب الإنجاز التفصيلية لكل مشارك</li>
+      <li>مؤشرات تشغيلية: عدد المتعثرين/المتوافقين/السابقين للخطة</li>
+    </ul>
+  </div>
+</section>
+
+<section id="m7">
+  <h2><span class="sec-num">07</span> لوحة المدير / الفريق الإداري</h2>
+  <div class="module">
+    <ul>
+      <li>إدارة المشاركين (عرض، بحث، تعديل حالة)</li>
+      <li>إدارة اللجان (تحكيم، تنظيم، إعلام) وربط المحكّمين بلجانهم</li>
+      <li>إدارة بنك الأسئلة</li>
+      <li>اعتماد نتائج التصفيات</li>
+      <li>اعتماد النتائج النهائية</li>
+    </ul>
+  </div>
+</section>
+
+<section id="m8">
+  <h2><span class="sec-num">08</span> سجل العمليات</h2>
+  <div class="module">
+    <ul>
+      <li>تسجيل كل إجراء إداري: من نفّذه، وماذا فعل، ومتى</li>
+      <li>يشمل: إدخال الدرجات، تعديلات الحفظ/التكرار/الربط/المراجعة، اعتمادات النتائج</li>
+      <li>الغرض: مساءلة اللجان الأربع ومطابقة الدرجات لاحقاً عند أي نزاع</li>
+    </ul>
+  </div>
+</section>
+
+<section id="formula">
+  <h2><span class="sec-num">09</span> قاعدة احتساب الإنجاز — سقف 30%</h2>
+  <div class="module">
+    <p>تُطبَّق على: نسبة الإنجاز الكلية، نسبة الإنجاز اليومية، عداد التكرار، مدى الربط، مدى المراجعة — بنفس المنطق، كلٌّ بمستهدفه الخاص.</p>
+    <div class="formula">المحتسب = MIN( الفعلي , المستهدف × 1.30 )</div>
+    <div class="example">
+      <div class="lbl">مثال توضيحي</div>
+      مستهدف التكرار = 15 مرة → الحد الأقصى المحتسَب = 15 × 1.30 = 19.5<br>
+      لو كرّر الطالب فعلياً 20 مرة (تجاوز 30%) → يُحتسب له 19.5 فقط، لا 20.
+    </div>
+
+    <h3 style="margin-top:20px;">تصنيف الطالب (مُشتق بعد تطبيق السقف)</h3>
+    <table>
+      <tr><th>الفئة</th><th>نسبة الإنجاز بعد السقف</th></tr>
+      <tr><td>متعثر عن الخطة</td><td>أقل من 100%</td></tr>
+      <tr><td>متوافق مع الخطة</td><td>= 100%</td></tr>
+      <tr><td>سابق الخطة</td><td>100% – 130%</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="ref">
+  <h2><span class="sec-num">10</span> بيانات مرجعية</h2>
+  <div class="module">
+    <table>
+      <tr><th>المسار</th><th>الالتزام اليومي</th></tr>
+      <tr><td>الأول إلى الخامس</td><td class="num">40 واجباً يومياً لكل مسار (المدة موحَّدة، الحجم يختلف حسب أبواب كل مسار)</td></tr>
+    </table>
+    <p style="font-size:14px;">لجان التحكيم: <strong>4 لجان</strong>، بواقع <strong>3 محكّمين</strong> لكل لجنة. الجوائز: 5 مسارات × 10 مراكز لكل مسار.</p>
+  </div>
+</section>
+
+<section id="open">
+  <h2><span class="sec-num">11</span> نقاط مفتوحة تحتاج قراراً قبل التسليم للمطوّر</h2>
+
+  <div class="open-item">
+    <span class="tag">1</span>
+    <span><strong>تصحيح الأسئلة التحريرية الخمس (التصفيات):</strong> يدوي من لجنة، أم آلي عبر المنصة؟ يحدّد هل تحتاج المنصة واجهة تصحيح كاملة أم فقط عرض إجابات.</span>
+  </div>
+  <div class="open-item">
+    <span class="tag">2</span>
+    <span><strong>رقم التكرار المستهدف (15 في المثال):</strong> رقم ثابت لكل حديث دائماً، أم متغيّر حسب طول كل حديث؟</span>
+  </div>
+  <div class="open-item">
+    <span class="tag">3</span>
+    <span><strong>الداش بورد العام:</strong> يظهر لأي زائر غير مسجَّل (شفافية/تحفيز عام)، أم فقط للمشاركين المسجَّلين بعد الدخول؟</span>
+  </div>
+  <div class="open-item">
+    <span class="tag">4</span>
+    <span><strong>سحب أسئلة بنك الأسئلة:</strong> عشوائي (تختلف الأسئلة بين طالبين في نفس المسار) أم ثابت (نفس الأسئلة للجميع)؟</span>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="box">
+    هذه نسخة أولية لشرح الفكرة العامة، لا مواصفات تقنية نهائية (لا تتضمن قاعدة بيانات أو بنية واجهات برمجية). المطوّر الخارجي مسؤول عن الترجمة التقنية الكاملة.
+  </div>
+</footer>
+
+</body>
+</html>
