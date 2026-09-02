@@ -5,7 +5,7 @@ import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatDateBoth, formatPercent } from "@/lib/format";
+import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
 import {
   decideTrackChange,
   requestTrackChange,
@@ -19,6 +19,10 @@ export type ParticipantRow = {
   status: string;
   joinedAt: string;
   baseline: number | null;
+  /** أيام أُرسلت — متابعة تشغيلية لا إحصاء. */
+  submittedDays: number;
+  /** أيام العمل في خطة مساره. صفر = لا خطة بعد. */
+  workDays: number;
 };
 
 export type ChangeRow = {
@@ -74,6 +78,16 @@ export function ParticipantsView({
   const columns: Column<ParticipantRow>[] = [
     { key: "name", header: "المشارك", sortable: true, primary: true, render: (p) => p.name },
     { key: "track", header: "المسار", sortable: true, render: (p) => p.trackName },
+    {
+      key: "progress",
+      header: "الإرسال",
+      align: "end",
+      sortable: true,
+      render: (p) =>
+        p.workDays === 0
+          ? "لا خطة"
+          : `${formatNumber(p.submittedDays)} من ${formatNumber(p.workDays)}`,
+    },
     {
       key: "status",
       header: "الحالة",

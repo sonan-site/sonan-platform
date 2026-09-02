@@ -63,6 +63,16 @@ export const NAVIGATION: readonly NavItem[] = [
     permission: "roles.read",
     primary: true,
   },
+  {
+    key: "journey",
+    title: "رحلتي",
+    href: "/journey",
+    icon: "CalendarDays",
+    // بلا رمز: المشارك ليس له صلاحية إدارية واحدة، ورحلته له لا لغيره.
+    // ومن ليس مشاركاً يجد صفحةً تقول ذلك — أهون من مدخل يظهر ويختفي.
+    permission: null,
+    primary: true,
+  },
   // الإعدادات: لا شاشة لها بعد، فلا مدخل. مدخلٌ يفتح 404 وعدٌ كاذب.
   {
     key: "audit",

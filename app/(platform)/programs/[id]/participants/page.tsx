@@ -66,6 +66,39 @@ export default async function ParticipantsPage({
   const nameByUser = new Map((profiles ?? []).map((p) => [p.user_id, p.full_name]));
   const trackName = new Map((tracksResult.data ?? []).map((t) => [t.id, t.name]));
 
+  // ══ متابعة الإرسال ══
+  // عدّ الأيام المُرسَلة لكل مشارك، وأيام العمل في خطة مساره. متابعة تشغيلية
+  // لا إحصاء: الإحصائيات `س١٢` من المرحلة الثانية (adr/0022). وهي المستهلِك
+  // الوحيد لسياسة `achievements_read_admin` — سياسةٌ بلا مستهلك لا تُتحقَّق.
+  const participantIds = (participantsResult.data ?? []).map((p) => p.id);
+  const noRows = ["00000000-0000-0000-0000-000000000000"];
+
+  const [achievementsResult, planDaysResult] = await Promise.all([
+    db
+      .from("achievements")
+      .select("participant_id, plan_day_id")
+      .in("participant_id", participantIds.length > 0 ? participantIds : noRows)
+      .is("deleted_at", null),
+    db
+      .from("plan_days")
+      .select("id, day_type, plans!inner(track_id)")
+      .eq("day_type", "normal")
+      .is("deleted_at", null),
+  ]);
+
+  const submittedByParticipant = new Map<string, Set<string>>();
+  for (const row of achievementsResult.data ?? []) {
+    const set = submittedByParticipant.get(row.participant_id) ?? new Set<string>();
+    set.add(row.plan_day_id);
+    submittedByParticipant.set(row.participant_id, set);
+  }
+
+  const workDaysByTrack = new Map<string, number>();
+  for (const row of planDaysResult.data ?? []) {
+    const plan = row.plans as unknown as { track_id: string };
+    workDaysByTrack.set(plan.track_id, (workDaysByTrack.get(plan.track_id) ?? 0) + 1);
+  }
+
   const participants: ParticipantRow[] = (participantsResult.data ?? []).map((p) => ({
     id: p.id,
     name: nameByUser.get(p.user_id) ?? p.user_id.slice(0, 8),
@@ -73,6 +106,8 @@ export default async function ParticipantsPage({
     status: p.status,
     joinedAt: p.joined_at,
     baseline: p.baseline_percentage === null ? null : Number(p.baseline_percentage),
+    submittedDays: submittedByParticipant.get(p.id)?.size ?? 0,
+    workDays: p.track_id ? (workDaysByTrack.get(p.track_id) ?? 0) : 0,
   }));
 
   const nameByParticipant = new Map(participants.map((p) => [p.id, p.name]));

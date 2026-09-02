@@ -39,6 +39,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          amount: number | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_done: boolean
+          ordinal_end: number | null
+          ordinal_start: number | null
+          participant_id: string
+          plan_day_id: string
+          range_end: number | null
+          range_start: number | null
+          submitted_at: string
+          task_field_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_done?: boolean
+          ordinal_end?: number | null
+          ordinal_start?: number | null
+          participant_id: string
+          plan_day_id: string
+          range_end?: number | null
+          range_start?: number | null
+          submitted_at?: string
+          task_field_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_done?: boolean
+          ordinal_end?: number | null
+          ordinal_start?: number | null
+          participant_id?: string
+          plan_day_id?: string
+          range_end?: number | null
+          range_start?: number | null
+          submitted_at?: string
+          task_field_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievements_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievements_plan_day_id_fkey"
+            columns: ["plan_day_id"]
+            isOneToOne: false
+            referencedRelation: "plan_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievements_task_field_id_fkey"
+            columns: ["task_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admission_answers: {
         Row: {
           answer: string
@@ -597,6 +670,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_participants_track_program"
+            columns: ["track_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
           {
             foreignKeyName: "participants_program_id_fkey"
             columns: ["program_id"]
@@ -1226,6 +1306,10 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: string
       }
+      fn_follows_plan: {
+        Args: { p_status: Database["public"]["Enums"]["participant_status"] }
+        Returns: boolean
+      }
       fn_has_permission: {
         Args: { p_code: string; p_program_id?: string }
         Returns: boolean
@@ -1235,11 +1319,36 @@ export type Database = {
         Returns: boolean
       }
       fn_is_active: { Args: never; Returns: boolean }
+      fn_my_participant: { Args: { p_program_id: string }; Returns: string }
       fn_my_permissions: {
         Args: never
         Returns: {
           permission_code: string
           scope_program_id: string
+        }[]
+      }
+      fn_participant_plan_id: {
+        Args: { p_participant_id: string }
+        Returns: string
+      }
+      fn_participant_track_id: {
+        Args: { p_participant_id: string }
+        Returns: string
+      }
+      fn_plan_day_tasks: {
+        Args: { p_participant_id: string; p_plan_day_id: string }
+        Returns: {
+          amount: number
+          is_done: boolean
+          kind: Database["public"]["Enums"]["field_kind"]
+          label: string
+          ordinal_end: number
+          ordinal_start: number
+          range_end: number
+          range_start: number
+          sort_order: number
+          submitted: boolean
+          task_field_id: string
         }[]
       }
       fn_plan_insert_day: {
@@ -1265,9 +1374,21 @@ export type Database = {
         Returns: boolean
       }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
+      fn_submit_day: {
+        Args: { p_done_fields: string[]; p_plan_day_id: string }
+        Returns: number
+      }
       fn_track_ordinal_of: {
         Args: { p_sequence: number; p_track_id: string }
         Returns: number
+      }
+      fn_track_ordinal_span: {
+        Args: { p_from: number; p_to: number; p_track_id: string }
+        Returns: {
+          from_sequence: number
+          part_order: number
+          to_sequence: number
+        }[]
       }
       fn_track_program_id: { Args: { p_track_id: string }; Returns: string }
       fn_track_unit_at: {
