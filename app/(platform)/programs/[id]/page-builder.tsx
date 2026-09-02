@@ -6,6 +6,10 @@ import { Button, Field, FormActions, Input, Select, Textarea } from "@/component
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { BLOCK_CATEGORY, BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
 import {
+  addAdmissionQuestion,
+  removeAdmissionQuestion,
+} from "./participant-actions";
+import {
   addBlock,
   addHelpEntry,
   moveBlock,
@@ -15,6 +19,12 @@ import {
 
 export type BlockRow = { id: string; type: BlockType; summary: string };
 export type HelpRow = { id: string; question: string; published: boolean };
+export type AdmissionRow = {
+  id: string;
+  question: string;
+  required: boolean;
+  trackName: string | null;
+};
 
 const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-6)" } as const;
 const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
@@ -40,13 +50,21 @@ export function PageBuilder({
   programId,
   blocks,
   help,
+  admission,
+  tracks,
 }: {
   programId: string;
   blocks: BlockRow[];
   help: HelpRow[];
+  admission: AdmissionRow[];
+  tracks: { id: string; name: string }[];
 }) {
   const [blockState, blockAction, blockPending] = useActionState(addBlock, EMPTY_FORM_STATE);
   const [helpState, helpAction, helpPending] = useActionState(addHelpEntry, EMPTY_FORM_STATE);
+  const [admState, admAction, admPending] = useActionState(
+    addAdmissionQuestion,
+    EMPTY_FORM_STATE,
+  );
   const [type, setType] = useState<BlockType>("header");
   const [busy, startTransition] = useTransition();
 
@@ -221,6 +239,75 @@ export function PageBuilder({
           ))
         )}
       </div>
+
+      <h2 style={H2}>أسئلة القبول التلقائي</h2>
+      <p style={META}>
+        كيان منفصل تماماً عن بنك الأسئلة. إكمال الإلزامية منها = قبول فوري بلا مراجعة.
+      </p>
+
+      <div style={LIST}>
+        {admission.length === 0 ? (
+          <p style={META}>لا أسئلة قبول — التسجيل يمرّ بلا شروط.</p>
+        ) : (
+          admission.map((q) => (
+            <div key={q.id} style={ITEM}>
+              <span>{q.question}</span>
+              <span style={META}>
+                {q.required ? "إلزامي" : "اختياري"}
+                {q.trackName ? ` · ${q.trackName}` : " · عام للبرنامج"}
+              </span>
+              <div style={SPACER}>
+                <Button
+                  variant="danger"
+                  pending={busy}
+                  onClick={() =>
+                    startTransition(
+                      async () => void (await removeAdmissionQuestion(q.id, programId)),
+                    )
+                  }
+                >
+                  <Trash2 size={ICON} aria-hidden />
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <section style={PANEL}>
+        {admState.error ? <p style={ERR}>{admState.error}</p> : null}
+        {admState.notice ? <p style={OK}>{admState.notice}</p> : null}
+
+        <form action={admAction}>
+          <input type="hidden" name="programId" value={programId} />
+          <Field
+            id="admQuestion"
+            label="نصّ السؤال"
+            required
+            error={admState.fieldErrors?.["question"]}
+          >
+            <Input id="admQuestion" name="question" required />
+          </Field>
+          <Field id="admTrack" label="خاص بمسار" hint="اتركه فارغاً لسؤال عام للبرنامج">
+            <Select id="admTrack" name="trackId" defaultValue="">
+              <option value="">عام للبرنامج</option>
+              {tracks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field id="admRequired" label="إلزامي" hint="الإلزامي وحده شرط القبول">
+            <input id="admRequired" name="isRequired" type="checkbox" defaultChecked />
+          </Field>
+          <FormActions>
+            <Button type="submit" variant="primary" pending={admPending}>
+              إضافة سؤال قبول
+            </Button>
+          </FormActions>
+        </form>
+      </section>
 
       <section style={PANEL}>
         {helpState.error ? <p style={ERR}>{helpState.error}</p> : null}

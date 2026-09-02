@@ -18,7 +18,8 @@ cross join (values
   ('attachments.read'), ('attachments.write'),
   ('audit.read'),
   ('sections.read'), ('sections.write'),
-  ('programs.read'), ('programs.write')
+  ('programs.read'), ('programs.write'),
+  ('participants.read'), ('participants.write')
 ) as codes(code)
 where r.is_system = true and r.deleted_at is null
 on conflict do nothing;

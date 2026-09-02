@@ -87,19 +87,41 @@ describe("حدّ المعدل", () => {
 });
 
 describe("إعدادات دورة الحياة مبذورة بقيم افتراضية", () => {
-  it("كل إعداد له قيمة — لا إعداد بانتظار إدخال يدوي", async () => {
+  /**
+   * الفحص **بنيوي لا بقائمة مثبَّتة**: القائمة تنحرف مع كل إعداد جديد،
+   * فينكسر الاختبار على إضافة صحيحة. والقاعدة المفحوصة ليست «هذه الستة موجودة»
+   * بل «كل إعداد قابل للتخصيص يُبنى بقيمة افتراضية» — وهذا ما يُفحَص هنا.
+   */
+  it("لا إعداد مصادقة بلا قيمة", async () => {
     const { rows } = await db.query<{ key: string }>(
       `select key from public.settings
-        where key like 'auth.%' and deleted_at is null order by key`,
+        where key like 'auth.%' and deleted_at is null
+          and (value is null or value::text in ('null', '""'))`,
     );
-    expect(rows.map((r) => r.key)).toEqual([
-      "auth.invite.max_attempts",
-      "auth.invite.window_seconds",
-      "auth.login.max_attempts",
-      "auth.login.window_seconds",
-      "auth.recovery.max_attempts",
-      "auth.recovery.window_seconds",
-    ]);
+    expect(rows.map((r) => r.key)).toEqual([]);
+  });
+
+  it("كل حدّ معدل له نافذته — حدٌّ بلا نافذة إعداد ناقص", async () => {
+    const { rows } = await db.query<{ prefix: string }>(
+      `select replace(key, '.max_attempts', '') as prefix
+         from public.settings
+        where key like 'auth.%.max_attempts' and deleted_at is null
+          and not exists (
+            select 1 from public.settings w
+            where w.key = replace(settings.key, '.max_attempts', '.window_seconds')
+              and w.deleted_at is null
+          )`,
+    );
+    expect(rows.map((r) => r.prefix)).toEqual([]);
+  });
+
+  it("كل حدّ معدل رقم موجب", async () => {
+    const { rows } = await db.query<{ key: string }>(
+      `select key from public.settings
+        where key like 'auth.%' and deleted_at is null
+          and (value #>> '{}') ~ '^[0-9]+$' = false`,
+    );
+    expect(rows.map((r) => r.key)).toEqual([]);
   });
 });
 

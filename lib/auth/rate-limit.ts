@@ -10,7 +10,7 @@ import { createClient } from "@/lib/db/server";
  * لدائرة من يرى بيانات شخصية بلا موجب.
  */
 export async function withinRateLimit(
-  action: "auth.login" | "auth.recovery" | "auth.invite",
+  action: "auth.login" | "auth.recovery" | "auth.invite" | "auth.register",
   identifier: string,
 ): Promise<boolean> {
   const digest = createHash("sha256").update(identifier.toLowerCase()).digest("hex").slice(0, 32);

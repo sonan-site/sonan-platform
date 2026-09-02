@@ -61,6 +61,7 @@ export default async function ProgramLandingPage({
     .map((b) => ({ id: b.id, type: b.block_type, content: b.content }));
 
   const data: BlockData = {
+    slug,
     programName: program.name,
     programSummary: program.summary,
     participantLabel: program.participant_label,

@@ -21,6 +21,7 @@ export type PageBlock = {
 };
 
 export type BlockData = {
+  slug: string;
   programName: string;
   programSummary: string;
   participantLabel: string;
@@ -123,7 +124,7 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
         <div className={styles.cta}>
           {c["heading"] ? <h2 className={styles.heading}>{String(c["heading"])}</h2> : null}
           {open ? (
-            <Link href="/sign-in" className={styles.ctaButton}>
+            <Link href={`/p/${data.slug}/register`} className={styles.ctaButton}>
               {String(c["buttonLabel"])}
             </Link>
           ) : (

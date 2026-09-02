@@ -14,6 +14,7 @@ export const PERMISSION_SECTIONS = {
   audit: "سجل التدقيق",
   sections: "الأقسام",
   programs: "البرامج",
+  participants: "المشاركون",
 } as const;
 
 export type PermissionSection = keyof typeof PERMISSION_SECTIONS;
@@ -41,6 +42,12 @@ export const PERMISSIONS = {
 
   "programs.read": { section: "programs", label: "عرض البرامج غير المنشورة" },
   "programs.write": { section: "programs", label: "إنشاء البرامج والمسارات وتعديلها" },
+
+  "participants.read": { section: "participants", label: "عرض المشاركين وإجاباتهم" },
+  "participants.write": {
+    section: "participants",
+    label: "تعديل المشاركين والبتّ في طلبات تغيير المسار",
+  },
 } as const satisfies Record<string, Entry>;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

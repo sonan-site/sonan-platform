@@ -4,7 +4,7 @@ import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { registrationState } from "@/lib/programs/registration";
 import { isBlockType, BLOCK_LABEL } from "@/lib/programs/blocks";
-import { PageBuilder, type BlockRow, type HelpRow } from "./page-builder";
+import { PageBuilder, type AdmissionRow, type BlockRow, type HelpRow } from "./page-builder";
 import { ProgramView, type ProgramDetail, type TrackRow } from "./program-view";
 
 export default async function ProgramPage({
@@ -31,7 +31,8 @@ export default async function ProgramPage({
   ).ok;
 
   const db = await createClient();
-  const [programResult, tracksResult, blocksResult, helpResult] = await Promise.all([
+  const [programResult, tracksResult, blocksResult, helpResult, admissionResult] =
+    await Promise.all([
     db
       .from("programs")
       .select(
@@ -55,6 +56,12 @@ export default async function ProgramPage({
     db
       .from("help_entries")
       .select("id, question, status")
+      .eq("program_id", id)
+      .is("deleted_at", null)
+      .order("sort_order"),
+    db
+      .from("admission_questions")
+      .select("id, question, is_required, track_id")
       .eq("program_id", id)
       .is("deleted_at", null)
       .order("sort_order"),
@@ -114,10 +121,26 @@ export default async function ProgramPage({
     published: h.status === "published",
   }));
 
+  const trackNames = new Map(tracks.map((t) => [t.id, t.name]));
+  const admission: AdmissionRow[] = (admissionResult.data ?? []).map((q) => ({
+    id: q.id,
+    question: q.question,
+    required: q.is_required,
+    trackName: q.track_id ? (trackNames.get(q.track_id) ?? null) : null,
+  }));
+
   return (
     <>
       <ProgramView program={program} tracks={tracks} canWrite={canWrite} />
-      {canWrite ? <PageBuilder programId={id} blocks={blocks} help={help} /> : null}
+      {canWrite ? (
+        <PageBuilder
+          programId={id}
+          blocks={blocks}
+          help={help}
+          admission={admission}
+          tracks={tracks.map((t) => ({ id: t.id, name: t.name }))}
+        />
+      ) : null}
     </>
   );
 }

@@ -86,8 +86,9 @@ export function ProgramView({
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)" }}>
+      <p style={{ fontSize: "var(--text-sm)", display: "flex", gap: "var(--space-4)" }}>
         <Link href="/programs">البرامج</Link>
+        <Link href={`/programs/${program.id}/participants`}>المشاركون</Link>
       </p>
       <h1>{program.name}</h1>
 
