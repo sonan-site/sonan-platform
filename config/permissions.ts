@@ -12,6 +12,8 @@ export const PERMISSION_SECTIONS = {
   settings: "الإعدادات",
   attachments: "المرفقات",
   audit: "سجل التدقيق",
+  sections: "الأقسام",
+  programs: "البرامج",
 } as const;
 
 export type PermissionSection = keyof typeof PERMISSION_SECTIONS;
@@ -33,6 +35,12 @@ export const PERMISSIONS = {
   "attachments.write": { section: "attachments", label: "تعديل مرفقات الآخرين" },
 
   "audit.read": { section: "audit", label: "قراءة سجل التدقيق" },
+
+  "sections.read": { section: "sections", label: "عرض الأقسام" },
+  "sections.write": { section: "sections", label: "إنشاء الأقسام وتعديلها" },
+
+  "programs.read": { section: "programs", label: "عرض البرامج غير المنشورة" },
+  "programs.write": { section: "programs", label: "إنشاء البرامج والمسارات وتعديلها" },
 } as const satisfies Record<string, Entry>;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

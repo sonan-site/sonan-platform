@@ -152,29 +152,9 @@ describe("البذرة", () => {
     expect(rows[0]?.count).toBe("1");
   });
 
-  it("دور النظام يحمل رموز أقسام النواة الخمسة", async () => {
-    const { rows } = await db.query<{ permission_code: string }>(
-      `select rp.permission_code
-         from public.role_permissions rp
-         join public.roles r on r.id = rp.role_id
-        where r.is_system = true and rp.deleted_at is null`,
-    );
-    const codes = rows.map((r) => r.permission_code).sort();
-    expect(codes).toEqual(
-      [
-        "attachments.read",
-        "attachments.write",
-        "audit.read",
-        "roles.assign",
-        "roles.read",
-        "roles.write",
-        "settings.read",
-        "settings.write",
-        "users.read",
-        "users.write",
-      ].sort(),
-    );
-  });
+  // فحص محتوى صلاحيات دور النظام يعيش في lib/permissions/catalog.db-test.ts،
+  // ويقابل **الكتالوج الحيّ** لا قائمة مثبَّتة. قائمة مثبَّتة هنا انحرفت فعلاً
+  // بمجرد إضافة أقسام جديدة — ومكرَّرٌ ينحرف أسوأ من غير موجود.
 
   it("دور النظام لا يُوقَف", async () => {
     await expect(

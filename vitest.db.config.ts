@@ -1,4 +1,8 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+
+// اختصار @/ نفسه المعرَّف في tsconfig — فالاستيراد واحد في الكود والاختبار.
+const root = fileURLToPath(new URL(".", import.meta.url)).replace(/[\/]$/, "");
 
 /**
  * اختبارات القاعدة — منفصلة عن اختبارات التطبيق.
@@ -6,6 +10,7 @@ import { defineConfig } from "vitest/config";
  * لا عبر REST، ليُفحَص ما لا تكشفه الواجهة — السياسات وRLS وامتيازات الدوال.
  */
 export default defineConfig({
+  resolve: { alias: { "@": root } },
   test: {
     include: ["**/*.db-test.ts"],
     exclude: ["node_modules/**", ".next/**"],

@@ -48,6 +48,14 @@ export const NAVIGATION: readonly NavItem[] = [
     primary: true,
   },
   {
+    key: "programs",
+    title: "البرامج",
+    href: "/programs",
+    icon: "BookOpen",
+    permission: "programs.read",
+    primary: true,
+  },
+  {
     key: "roles",
     title: "الأدوار والصلاحيات",
     href: "/roles",

@@ -116,14 +116,24 @@ export const guardCompleteness: Guard = {
     if (navigation) {
       for (const file of files) {
         if (!/^app\/\(platform\)\/.+\/page\.tsx$/.test(file.path)) continue;
-        const route =
+        const full =
           "/" + file.path.replace(/^app\/\(platform\)\//, "").replace(/\/page\.tsx$/, "");
+
+        // المسار الديناميكي يُفتح من أبيه لا من التنقّل. المطلوب أن يكون
+        // **لأقرب جدّ ساكن** مدخلٌ — فالوصول إليه مضمون، والتحقّق باقٍ.
+        const dynamicAt = full.indexOf("/[");
+        const route = dynamicAt === -1 ? full : full.slice(0, dynamicAt);
+        if (route === "") continue;
+
         if (!navigation.text.includes(`"${route}"`)) {
           findings.push({
             rule: "page-without-nav-entry",
             file: file.path,
             line: 1,
-            message: `الصفحة «${route}» بلا مدخل في config/navigation.ts ولا تصريح باستثنائها.`,
+            message:
+              dynamicAt === -1
+                ? `الصفحة «${route}» بلا مدخل في config/navigation.ts ولا تصريح باستثنائها.`
+                : `المسار الديناميكي «${full}» جدّه الساكن «${route}» بلا مدخل في التنقّل.`,
           });
         }
       }

@@ -218,6 +218,71 @@ export type Database = {
         }
         Relationships: []
       }
+      programs: {
+        Row: {
+          award_percentage: number
+          capacity: number | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["program_kind"]
+          name: string
+          participant_label: string
+          passing_percentage: number
+          registration_closes_at: string | null
+          registration_opens_at: string | null
+          section_id: string
+          slug: string
+          status: Database["public"]["Enums"]["program_status"]
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          award_percentage?: number
+          capacity?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["program_kind"]
+          name: string
+          participant_label?: string
+          passing_percentage?: number
+          registration_closes_at?: string | null
+          registration_opens_at?: string | null
+          section_id: string
+          slug: string
+          status?: Database["public"]["Enums"]["program_status"]
+          summary?: string
+          updated_at?: string
+        }
+        Update: {
+          award_percentage?: number
+          capacity?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["program_kind"]
+          name?: string
+          participant_label?: string
+          passing_percentage?: number
+          registration_closes_at?: string | null
+          registration_opens_at?: string | null
+          section_id?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["program_status"]
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programs_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limit_events: {
         Row: {
           bucket: string
@@ -310,6 +375,44 @@ export type Database = {
         }
         Relationships: []
       }
+      sections: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sections_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           created_at: string
@@ -343,6 +446,50 @@ export type Database = {
         }
         Relationships: []
       }
+      tracks: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          deleted_at: string | null
+          description: string
+          id: string
+          name: string
+          program_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          name: string
+          program_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          id?: string
+          name?: string
+          program_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracks_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -372,6 +519,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_user_roles_scope_program"
+            columns: ["scope_program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_roles_role_id_fkey"
             columns: ["role_id"]
@@ -428,6 +582,8 @@ export type Database = {
     }
     Enums: {
       notification_status: "pending" | "sent" | "failed" | "read"
+      program_kind: "competition" | "weekly_followup" | "remote_memorization"
+      program_status: "draft" | "published" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -559,6 +715,8 @@ export const Constants = {
   public: {
     Enums: {
       notification_status: ["pending", "sent", "failed", "read"],
+      program_kind: ["competition", "weekly_followup", "remote_memorization"],
+      program_status: ["draft", "published", "closed"],
     },
   },
 } as const
