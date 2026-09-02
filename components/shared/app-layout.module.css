@@ -1,0 +1,230 @@
+.shell {
+  display: flex;
+  min-block-size: 100dvh;
+  background: var(--color-bg);
+}
+
+/* ══ الشريط الجانبي — جهة البداية (§١١.٣) ══ */
+.sidebar {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  inline-size: var(--sidebar-width);
+  background: var(--color-brand);
+  color: var(--color-text-on-brand);
+  transition: inline-size var(--motion-base) var(--ease-out);
+}
+
+.collapsed {
+  inline-size: var(--sidebar-collapsed);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--header-height);
+  padding-inline: var(--space-4);
+  border-block-end: 1px solid rgb(255 255 255 / 10%);
+}
+
+.brandName {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.collapsed .brandName {
+  display: none;
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-3);
+  margin: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-3);
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease-out);
+}
+
+.navLink:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+.navCurrent {
+  background: rgb(255 255 255 / 14%);
+  font-weight: var(--weight-medium);
+}
+
+.collapsed .navLabel {
+  display: none;
+}
+
+.sidebarFoot {
+  margin-block-start: auto;
+  padding: var(--space-3);
+  border-block-start: 1px solid rgb(255 255 255 / 10%);
+}
+
+/* ══ المحتوى ══ */
+.main {
+  flex: 1;
+  min-inline-size: 0;
+  margin-inline-start: var(--sidebar-width);
+  transition: margin-inline-start var(--motion-base) var(--ease-out);
+}
+
+.mainCollapsed {
+  margin-inline-start: var(--sidebar-collapsed);
+}
+
+.header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: var(--header-height);
+  padding-inline: var(--space-4);
+  background: var(--color-surface);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--touch-target);
+  block-size: var(--touch-target);
+  color: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  border-color: var(--color-border-strong);
+}
+
+.crumb {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.headerEnd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+.content {
+  max-inline-size: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+/* ══ الشريط السفلي — دون 1024px ══ */
+.bottomBar {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 20;
+  display: none;
+  align-items: stretch;
+  block-size: calc(var(--bottombar-height) + env(safe-area-inset-bottom));
+  padding-block-end: env(safe-area-inset-bottom);
+  background: var(--color-surface);
+  border-block-start: 1px solid var(--color-border);
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+.bottomHidden {
+  transform: translateY(100%);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tabCurrent {
+  color: var(--color-accent-hover);
+  font-weight: var(--weight-medium);
+}
+
+/* غطاء الشريط الجانبي المنزلق على الجوال */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgb(0 0 0 / 45%);
+  border: none;
+  cursor: pointer;
+}
+
+@media (max-width: 1023px) {
+  .sidebar {
+    transform: translateX(100%);
+    inline-size: var(--sidebar-width);
+    transition: transform var(--motion-base) var(--ease-out);
+  }
+
+  :global([dir="ltr"]) .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .drawerOpen {
+    transform: translateX(0);
+  }
+
+  .main,
+  .mainCollapsed {
+    margin-inline-start: 0;
+  }
+
+  .content {
+    padding-block-end: calc(var(--bottombar-height) + var(--space-8));
+  }
+
+  .bottomBar {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .scrim {
+    display: none;
+  }
+}
