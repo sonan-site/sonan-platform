@@ -117,6 +117,50 @@ export type Database = {
         }
         Relationships: []
       }
+      help_entries: {
+        Row: {
+          answer: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          program_id: string
+          question: string
+          sort_order: number
+          status: Database["public"]["Enums"]["publish_status"]
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          program_id: string
+          question: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["publish_status"]
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          program_id?: string
+          question?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["publish_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_entries_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_kinds: {
         Row: {
           code: string
@@ -185,6 +229,47 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "notification_kinds"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      page_blocks: {
+        Row: {
+          block_type: Database["public"]["Enums"]["block_type"]
+          content: Json
+          created_at: string
+          deleted_at: string | null
+          id: string
+          program_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          block_type: Database["public"]["Enums"]["block_type"]
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          program_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          block_type?: Database["public"]["Enums"]["block_type"]
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          program_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_blocks_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -581,9 +666,17 @@ export type Database = {
       }
     }
     Enums: {
+      block_type:
+        | "header"
+        | "free_text"
+        | "image"
+        | "tracks"
+        | "faq"
+        | "registration"
       notification_status: "pending" | "sent" | "failed" | "read"
       program_kind: "competition" | "weekly_followup" | "remote_memorization"
       program_status: "draft" | "published" | "closed"
+      publish_status: "draft" | "published"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -714,9 +807,18 @@ export const Constants = {
   },
   public: {
     Enums: {
+      block_type: [
+        "header",
+        "free_text",
+        "image",
+        "tracks",
+        "faq",
+        "registration",
+      ],
       notification_status: ["pending", "sent", "failed", "read"],
       program_kind: ["competition", "weekly_followup", "remote_memorization"],
       program_status: ["draft", "published", "closed"],
+      publish_status: ["draft", "published"],
     },
   },
 } as const

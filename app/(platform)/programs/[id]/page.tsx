@@ -3,6 +3,8 @@ import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { registrationState } from "@/lib/programs/registration";
+import { isBlockType, BLOCK_LABEL } from "@/lib/programs/blocks";
+import { PageBuilder, type BlockRow, type HelpRow } from "./page-builder";
 import { ProgramView, type ProgramDetail, type TrackRow } from "./program-view";
 
 export default async function ProgramPage({
@@ -29,7 +31,7 @@ export default async function ProgramPage({
   ).ok;
 
   const db = await createClient();
-  const [programResult, tracksResult] = await Promise.all([
+  const [programResult, tracksResult, blocksResult, helpResult] = await Promise.all([
     db
       .from("programs")
       .select(
@@ -41,6 +43,18 @@ export default async function ProgramPage({
     db
       .from("tracks")
       .select("id, name, description, capacity")
+      .eq("program_id", id)
+      .is("deleted_at", null)
+      .order("sort_order"),
+    db
+      .from("page_blocks")
+      .select("id, block_type, content")
+      .eq("program_id", id)
+      .is("deleted_at", null)
+      .order("sort_order"),
+    db
+      .from("help_entries")
+      .select("id, question, status")
       .eq("program_id", id)
       .is("deleted_at", null)
       .order("sort_order"),
@@ -82,5 +96,28 @@ export default async function ProgramPage({
     capacity: t.capacity,
   }));
 
-  return <ProgramView program={program} tracks={tracks} canWrite={canWrite} />;
+  const blocks: BlockRow[] = (blocksResult.data ?? [])
+    .filter((b) => isBlockType(b.block_type))
+    .map((b) => {
+      const c = (b.content ?? {}) as Record<string, unknown>;
+      const first = String(c["title"] ?? c["heading"] ?? c["text"] ?? "");
+      return {
+        id: b.id,
+        type: b.block_type,
+        summary: first.slice(0, 60) || BLOCK_LABEL[b.block_type],
+      };
+    });
+
+  const help: HelpRow[] = (helpResult.data ?? []).map((h) => ({
+    id: h.id,
+    question: h.question,
+    published: h.status === "published",
+  }));
+
+  return (
+    <>
+      <ProgramView program={program} tracks={tracks} canWrite={canWrite} />
+      {canWrite ? <PageBuilder programId={id} blocks={blocks} help={help} /> : null}
+    </>
+  );
 }

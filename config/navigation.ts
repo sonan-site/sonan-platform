@@ -34,7 +34,7 @@ export const NAVIGATION: readonly NavItem[] = [
   {
     key: "dashboard",
     title: "لوحة المتابعة",
-    href: "/",
+    href: "/dashboard",
     icon: "LayoutDashboard",
     permission: null,
     primary: true,

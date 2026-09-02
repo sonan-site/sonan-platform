@@ -7,7 +7,10 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 /** مسارات عامة لا تشترط جلسة. ما عداها محمي. */
-const PUBLIC_PREFIXES = ["/sign-in", "/recover", "/activate", "/auth"];
+const PUBLIC_PREFIXES = ["/sign-in", "/recover", "/activate", "/auth", "/p/"];
+
+/** الجذر هو المتجر العام: طبقة تسويقية لا تشترط حساباً (adr/0004). */
+const PUBLIC_EXACT = new Set(["/"]);
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
@@ -35,7 +38,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PREFIXES.some((p) => path.startsWith(p));
+  const isPublic = PUBLIC_EXACT.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
@@ -44,9 +47,10 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublic && path !== "/auth/callback") {
+  const isAuthScreen = ["/sign-in", "/recover"].includes(path);
+  if (user && isAuthScreen) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     url.search = "";
     return NextResponse.redirect(url);
   }

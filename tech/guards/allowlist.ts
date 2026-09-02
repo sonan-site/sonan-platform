@@ -56,6 +56,15 @@ export const EXCEPTIONS: ListEntry[] = [
     until: "لا ينقضي — بحكم اختلاف السياق.",
   },
   {
+    guard: "guard-structure",
+    rule: "local-layout",
+    path: "app/(public)/layout.tsx",
+    reason:
+      "المتجر وصفحات البرامج المعلنة طبقة تسويقية لا تشترط حساباً (adr/0004)، " +
+      "فلا شريط جانبي ولا تنقّل داخلي. سياق مختلف بقصد، لا نسخة ثانية من الجامع.",
+    until: "لا ينقضي — بحكم اختلاف السياق.",
+  },
+  {
     guard: "guard-completeness",
     rule: "page-without-nav-entry",
     path: "app/(platform)/showcase",
