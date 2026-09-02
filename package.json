@@ -1,5 +1,5 @@
 {
-  "name": "sunan-platform",
+  "name": "sonan-platform",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,9 +15,9 @@
     "test:db": "vitest run --config vitest.db.config.ts",
     "lint": "eslint .",
     "verify": "tsc --noEmit && eslint . && vitest run",
-    "db:reset": "node --env-file-if-exists=.env tech/db/migrate.ts --reset",
-    "db:migrate": "node --env-file-if-exists=.env tech/db/migrate.ts",
-    "db:types": "supabase gen types typescript --db-url \"$SUPABASE_DB_URL\" --schema sunan > lib/db/database.types.ts"
+    "db:reset": "supabase db reset --db-url \"$SUPABASE_DB_URL\"",
+    "db:types": "supabase gen types typescript --db-url \"$SUPABASE_DB_URL\" > lib/db/database.types.ts",
+    "db:push": "supabase db push --db-url \"$SUPABASE_DB_URL\""
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",

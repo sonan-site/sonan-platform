@@ -50,12 +50,12 @@ afterAll(async () => {
 });
 
 describe("حماية الصفوف — منع افتراضي", () => {
-  it("RLS مفعَّل على كل جدول في مخطط sunan بلا استثناء", async () => {
+  it("RLS مفعَّل على كل جدول في public بلا استثناء", async () => {
     const { rows } = await db.query<{ tablename: string }>(
       `select c.relname as tablename
          from pg_class c
          join pg_namespace n on n.oid = c.relnamespace
-        where n.nspname = 'sunan'
+        where n.nspname = 'public'
           and c.relkind = 'r'
           and c.relrowsecurity = false`,
     );
@@ -66,7 +66,7 @@ describe("حماية الصفوف — منع افتراضي", () => {
     const { rows } = await db.query<{ tablename: string; policyname: string }>(
       `select tablename, policyname
          from pg_policies
-        where schemaname = 'sunan'
+        where schemaname = 'public'
           and cmd in ('DELETE', 'ALL')`,
     );
     expect(rows).toEqual([]);
@@ -75,7 +75,7 @@ describe("حماية الصفوف — منع افتراضي", () => {
   it("كل جدول نواة يحمل سياسة قراءة واحدة على الأقل", async () => {
     const { rows } = await db.query<{ tablename: string }>(
       `select tablename from pg_policies
-        where schemaname = 'sunan' and cmd = 'SELECT'
+        where schemaname = 'public' and cmd = 'SELECT'
         group by tablename`,
     );
     const withRead = new Set(rows.map((r) => r.tablename));
@@ -84,33 +84,11 @@ describe("حماية الصفوف — منع افتراضي", () => {
   });
 });
 
-describe("عزل المخطط", () => {
-  it("لا جدول من جداولنا يظهر في public", async () => {
-    const { rows } = await db.query<{ table_name: string }>(
-      `select table_name from information_schema.tables
-        where table_schema = 'public' and table_name = any($1)`,
-      [[...CORE_TABLES, "schema_migrations"]],
-    );
-    expect(rows.map((r) => r.table_name)).toEqual([]);
-  });
-
-  it("لا دالة من دوالنا تظهر في public", async () => {
-    const { rows } = await db.query<{ proname: string }>(
-      `select p.proname
-         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'public'
-          and p.proname = any($1)`,
-      [[...SECURITY_DEFINER_FUNCTIONS, "fn_set_updated_at", "fn_guard_system_role"]],
-    );
-    expect(rows.map((r) => r.proname)).toEqual([]);
-  });
-});
-
 describe("أعمدة النواة", () => {
   it.each(CORE_TABLES)("%s يحمل الأعمدة الأربعة", async (table) => {
     const { rows } = await db.query<{ column_name: string }>(
       `select column_name from information_schema.columns
-        where table_schema = 'sunan' and table_name = $1`,
+        where table_schema = 'public' and table_name = $1`,
       [table],
     );
     const present = new Set(rows.map((r) => r.column_name));
@@ -134,7 +112,7 @@ describe("الدوال مرتفعة الامتياز", () => {
     const { rows } = await db.query<{ proconfig: string[] | null }>(
       `select p.proconfig
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'sunan' and p.proname = $1`,
+        where n.nspname = 'public' and p.proname = $1`,
       [fn],
     );
     expect(rows).toHaveLength(1);
@@ -145,7 +123,7 @@ describe("الدوال مرتفعة الامتياز", () => {
     const { rows } = await db.query<{ granted: boolean }>(
       `select has_function_privilege('anon', p.oid, 'EXECUTE') as granted
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'sunan' and p.proname = $1`,
+        where n.nspname = 'public' and p.proname = $1`,
       [fn],
     );
     expect(rows[0]?.granted).toBe(false);
@@ -155,7 +133,7 @@ describe("الدوال مرتفعة الامتياز", () => {
     const { rows } = await db.query<{ granted: boolean }>(
       `select has_function_privilege('authenticated', p.oid, 'EXECUTE') as granted
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'sunan' and p.proname = 'fn_bootstrap_admin'`,
+        where n.nspname = 'public' and p.proname = 'fn_bootstrap_admin'`,
     );
     expect(rows[0]?.granted).toBe(false);
   });
@@ -164,7 +142,7 @@ describe("الدوال مرتفعة الامتياز", () => {
 describe("البذرة", () => {
   it("دور نظام واحد لا أكثر", async () => {
     const { rows } = await db.query<{ count: string }>(
-      `select count(*)::text as count from sunan.roles
+      `select count(*)::text as count from public.roles
         where is_system = true and deleted_at is null`,
     );
     expect(rows[0]?.count).toBe("1");
@@ -173,8 +151,8 @@ describe("البذرة", () => {
   it("دور النظام يحمل رموز أقسام النواة الخمسة", async () => {
     const { rows } = await db.query<{ permission_code: string }>(
       `select rp.permission_code
-         from sunan.role_permissions rp
-         join sunan.roles r on r.id = rp.role_id
+         from public.role_permissions rp
+         join public.roles r on r.id = rp.role_id
         where r.is_system = true and rp.deleted_at is null`,
     );
     const codes = rows.map((r) => r.permission_code).sort();
@@ -197,7 +175,7 @@ describe("البذرة", () => {
   it("دور النظام لا يُوقَف", async () => {
     await expect(
       db.query(
-        `update sunan.roles set deleted_at = now() where is_system = true`,
+        `update public.roles set deleted_at = now() where is_system = true`,
       ),
     ).rejects.toThrow(/دور النظام لا يُوقَف/);
   });
@@ -207,7 +185,7 @@ describe("بذر المدير الأول", () => {
   it("ترفض معرّفاً بلا حساب مصادقة", async () => {
     await expect(
       db.query(
-        `select sunan.fn_bootstrap_admin('00000000-0000-0000-0000-000000000000'::uuid)`,
+        `select public.fn_bootstrap_admin('00000000-0000-0000-0000-000000000000'::uuid)`,
       ),
     ).rejects.toThrow(/لا مستخدم بهذا المعرّف/);
   });

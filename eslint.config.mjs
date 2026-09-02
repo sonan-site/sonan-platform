@@ -12,7 +12,7 @@ const config = [
   },
   ...next,
   {
-    name: "sunan/strict",
+    name: "sonan/strict",
     files: ["**/*.ts", "**/*.tsx", "**/*.mts"],
     plugins: { "@typescript-eslint": tseslint.plugin },
     rules: {
