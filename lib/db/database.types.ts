@@ -213,6 +213,127 @@ export type Database = {
         }
         Relationships: []
       }
+      content_units: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          program_id: string
+          sequence: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label: string
+          program_id: string
+          sequence: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label?: string
+          program_id?: string
+          sequence?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_units_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      day_template_fields: {
+        Row: {
+          base_amount: number
+          created_at: string
+          day_template_id: string
+          deleted_at: string | null
+          id: string
+          sort_order: number
+          task_field_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_amount: number
+          created_at?: string
+          day_template_id: string
+          deleted_at?: string | null
+          id?: string
+          sort_order?: number
+          task_field_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          day_template_id?: string
+          deleted_at?: string | null
+          id?: string
+          sort_order?: number
+          task_field_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_template_fields_day_template_id_fkey"
+            columns: ["day_template_id"]
+            isOneToOne: false
+            referencedRelation: "day_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_template_fields_task_field_id_fkey"
+            columns: ["task_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      day_templates: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          program_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          program_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          program_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_templates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_entries: {
         Row: {
           answer: string
@@ -681,6 +802,47 @@ export type Database = {
         }
         Relationships: []
       }
+      task_fields: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["field_kind"]
+          label: string
+          program_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["field_kind"]
+          label: string
+          program_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["field_kind"]
+          label?: string
+          program_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_fields_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       track_change_requests: {
         Row: {
           baseline_percentage: number
@@ -745,6 +907,47 @@ export type Database = {
           {
             foreignKeyName: "track_change_requests_to_track_id_fkey"
             columns: ["to_track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      track_content_ranges: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          from_sequence: number
+          id: string
+          sort_order: number
+          to_sequence: number
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          from_sequence: number
+          id?: string
+          sort_order?: number
+          to_sequence: number
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          from_sequence?: number
+          id?: string
+          sort_order?: number
+          to_sequence?: number
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_content_ranges_track_id_fkey"
+            columns: ["track_id"]
             isOneToOne: false
             referencedRelation: "tracks"
             referencedColumns: ["id"]
@@ -875,6 +1078,15 @@ export type Database = {
         Returns: boolean
       }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
+      fn_track_ordinal_of: {
+        Args: { p_sequence: number; p_track_id: string }
+        Returns: number
+      }
+      fn_track_unit_at: {
+        Args: { p_ordinal: number; p_track_id: string }
+        Returns: number
+      }
+      fn_track_unit_count: { Args: { p_track_id: string }; Returns: number }
       fn_write_audit: {
         Args: {
           p_action: string
@@ -895,6 +1107,7 @@ export type Database = {
         | "faq"
         | "registration"
       change_direction: "up" | "down"
+      field_kind: "ranged" | "counted"
       notification_status: "pending" | "sent" | "failed" | "read"
       participant_status:
         | "registered"
@@ -1046,6 +1259,7 @@ export const Constants = {
         "registration",
       ],
       change_direction: ["up", "down"],
+      field_kind: ["ranged", "counted"],
       notification_status: ["pending", "sent", "failed", "read"],
       participant_status: [
         "registered",
