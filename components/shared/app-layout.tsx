@@ -4,6 +4,7 @@ import {
   BookOpen,
   CalendarDays,
   LayoutDashboard,
+  LogOut,
   Menu,
   MoonStar,
   ScrollText,
@@ -52,12 +53,15 @@ export function AppLayout({
   items,
   brand = "منصة سنن",
   crumb,
+  onSignOut,
   children,
 }: {
   /** مرشَّحة بصلاحيات المستخدم قبل الوصول هنا — المحجوب **يُخفى لا يُعطَّل**. */
   items: NavItem[];
   brand?: string;
   crumb?: string;
+  /** إجراء خادم — يُمرَّر من التخطيط لا يُستدعى هنا. */
+  onSignOut?: () => Promise<void>;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -160,7 +164,15 @@ export function AppLayout({
             <Menu size={ICON_SIZE} aria-hidden />
           </button>
           {crumb ? <span className={styles.crumb}>{crumb}</span> : null}
-          <div className={styles.headerEnd} />
+          <div className={styles.headerEnd}>
+            {onSignOut ? (
+              <form action={onSignOut}>
+                <button type="submit" className={styles.iconButton} aria-label="تسجيل الخروج">
+                  <LogOut size={ICON_SIZE} aria-hidden />
+                </button>
+              </form>
+            ) : null}
+          </div>
         </header>
 
         <main className={styles.content}>{children}</main>

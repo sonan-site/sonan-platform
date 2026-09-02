@@ -55,14 +55,7 @@ export const NAVIGATION: readonly NavItem[] = [
     permission: "roles.read",
     primary: true,
   },
-  {
-    key: "settings",
-    title: "الإعدادات",
-    href: "/settings",
-    icon: "Settings",
-    permission: "settings.read",
-    primary: false,
-  },
+  // الإعدادات: لا شاشة لها بعد، فلا مدخل. مدخلٌ يفتح 404 وعدٌ كاذب.
   {
     key: "audit",
     title: "سجل التدقيق",

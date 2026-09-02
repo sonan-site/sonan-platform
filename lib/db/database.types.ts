@@ -218,6 +218,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_events: {
+        Row: {
+          bucket: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          occurred_at: string
+          updated_at: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          occurred_at?: string
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          occurred_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -370,6 +397,22 @@ export type Database = {
       }
       fn_has_permission: {
         Args: { p_code: string; p_program_id?: string }
+        Returns: boolean
+      }
+      fn_hit_rate_limit: {
+        Args: { p_bucket: string; p_max: number; p_seconds: number }
+        Returns: boolean
+      }
+      fn_is_active: { Args: never; Returns: boolean }
+      fn_my_permissions: {
+        Args: never
+        Returns: {
+          permission_code: string
+          scope_program_id: string
+        }[]
+      }
+      fn_rate_limit: {
+        Args: { p_bucket: string; p_setting_prefix: string }
         Returns: boolean
       }
       fn_write_audit: {

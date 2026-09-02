@@ -47,6 +47,15 @@ export const EXCEPTIONS: ListEntry[] = [
     until: "لا ينقضي — بحكم تعريف المكوّن.",
   },
   {
+    guard: "guard-structure",
+    rule: "local-layout",
+    path: "app/(auth)/layout.tsx",
+    reason:
+      "شاشات ما قبل المصادقة لا شريط جانبي فيها ولا تنقّل: إظهار أقسام لا تُفتح " +
+      "إعلانٌ عن قدرة غير موجودة. تخطيط مختلف بقصد، لا نسخة ثانية من الجامع.",
+    until: "لا ينقضي — بحكم اختلاف السياق.",
+  },
+  {
     guard: "guard-completeness",
     rule: "page-without-nav-entry",
     path: "app/(platform)/showcase",

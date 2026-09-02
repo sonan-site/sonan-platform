@@ -15,6 +15,11 @@ export function now(): Date {
   return new Date();
 }
 
+/** «الآن» بصيغة ISO — لأعمدة `timestamptz` في القاعدة. */
+export function nowIso(): string {
+  return now().toISOString();
+}
+
 /** يبني تاريخاً من قيمة القاعدة. يقبل النصّ ISO أو التاريخ نفسه. */
 export function toDate(value: string | Date): Date {
   return typeof value === "string" ? new Date(value) : value;
