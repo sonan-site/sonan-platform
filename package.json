@@ -12,12 +12,12 @@
     "dev": "next dev",
     "build": "next build",
     "test": "vitest run",
-    "test:db": "vitest run --config vitest.db.config.ts",
+    "test:db": "dotenv -e .env -- vitest run --config vitest.db.config.ts",
     "lint": "eslint .",
-    "verify": "tsc --noEmit && eslint . && vitest run",
-    "db:reset": "supabase db reset --db-url \"$SUPABASE_DB_URL\"",
-    "db:types": "supabase gen types typescript --db-url \"$SUPABASE_DB_URL\" > lib/db/database.types.ts",
-    "db:push": "supabase db push --db-url \"$SUPABASE_DB_URL\""
+    "verify": "tsc --noEmit && eslint . && vitest run && pnpm test:db",
+    "db:reset": "dotenv -e .env -- sh -c 'supabase db reset --db-url \"$SUPABASE_DB_URL\" --yes'",
+    "db:types": "dotenv -e .env -- sh -c 'supabase gen types typescript --project-id \"$SUPABASE_PROJECT_ID\" > lib/db/database.types.ts'",
+    "db:push": "dotenv -e .env -- sh -c 'supabase db push --db-url \"$SUPABASE_DB_URL\"'"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.4",
@@ -31,6 +31,7 @@
     "@types/pg": "8.23.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "dotenv-cli": "11.0.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.2",
     "pg": "8.23.0",

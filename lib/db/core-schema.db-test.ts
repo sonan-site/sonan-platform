@@ -116,7 +116,11 @@ describe("الدوال مرتفعة الامتياز", () => {
       [fn],
     );
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.proconfig ?? []).toContain("search_path=");
+    // Postgres يسلسله `search_path=""`. المطلوب تثبيته **وأن يكون فارغاً** —
+    // مسار مثبَّت على قيمة متساهلة (مثل public) أضعف من لا شيء لأنه يوهم بالحماية.
+    const pinned = (rows[0]?.proconfig ?? []).find((c) => c.startsWith("search_path="));
+    expect(pinned, "مسار البحث غير مثبَّت").toBeDefined();
+    expect(pinned!.replace(/"/g, "")).toBe("search_path=");
   });
 
   it.each(SECURITY_DEFINER_FUNCTIONS)("%s لا ينفّذها anon", async (fn) => {

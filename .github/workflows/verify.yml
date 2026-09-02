@@ -9,9 +9,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      # أسرار المستودع. تُضاف من: Settings > Secrets and variables > Actions
+      # قاعدة التطوير لا الإنتاج — verify يشغّل اختبارات قاعدة حقيقية.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +29,15 @@ jobs:
 
       - name: تثبيت الاعتماديات
         run: pnpm install --frozen-lockfile
+
+      # dotenv-cli يقرأ .env، وهو غير موجود في CI — تُمرَّر القيم من الأسرار.
+      - name: تجهيز البيئة
+        run: |
+          printf '%s\n' \
+            "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" \
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+            "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
+            "SUPABASE_DB_URL=$SUPABASE_DB_URL" > .env
 
       - name: verify
         run: pnpm verify
