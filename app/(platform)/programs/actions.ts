@@ -157,13 +157,38 @@ export async function archiveTrack(trackId: string, programId: string): Promise<
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
-  const { error } = await db.from("tracks").update({ deleted_at: nowIso() }).eq("id", trackId);
+  const { data, error } = await db
+    .from("tracks")
+    .update({ deleted_at: nowIso() })
+    .eq("id", trackId)
+    .is("deleted_at", null)
+    .select("id");
   if (error) return { error: "تعذّر أرشفة المسار." };
+  if ((data?.length ?? 0) === 0) return { error: "لم يُؤرشَف المسار — تحقّق من صلاحيتك." };
+
+  // **خطة المسار تُؤرشَف معه.** الخطة تُقرأ عبر مسارها في الشاشات كلها، فمسارٌ
+  // مؤرشَف يترك خطته حيّة لا تُرى ولا تُحذف — أيتاماً في القاعدة.
+  const stamp = nowIso();
+  const { data: orphans } = await db
+    .from("plans")
+    .update({ deleted_at: stamp })
+    .eq("track_id", trackId)
+    .is("deleted_at", null)
+    .select("id");
+
+  for (const plan of orphans ?? []) {
+    await db
+      .from("plan_days")
+      .update({ deleted_at: stamp })
+      .eq("plan_id", plan.id)
+      .is("deleted_at", null);
+  }
 
   await db.rpc("fn_write_audit", {
     p_action: "track_archived",
     p_entity_table: "tracks",
     p_entity_id: trackId,
+    p_after: { archived_plans: (orphans ?? []).length },
   });
 
   revalidatePath(`/programs/${programId}`);

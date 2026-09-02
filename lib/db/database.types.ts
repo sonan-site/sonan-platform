@@ -334,6 +334,75 @@ export type Database = {
           },
         ]
       }
+      exams: {
+        Row: {
+          award_percentage: number | null
+          created_at: string
+          deleted_at: string | null
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          id: string
+          judge_count: number | null
+          max_skips: number | null
+          name: string
+          pass_percentage: number
+          program_id: string
+          question_count: number
+          seconds_per_question: number | null
+          stage: Database["public"]["Enums"]["exam_stage"]
+          track_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          award_percentage?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          id?: string
+          judge_count?: number | null
+          max_skips?: number | null
+          name: string
+          pass_percentage: number
+          program_id: string
+          question_count: number
+          seconds_per_question?: number | null
+          stage: Database["public"]["Enums"]["exam_stage"]
+          track_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          award_percentage?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          exam_type?: Database["public"]["Enums"]["exam_type"]
+          id?: string
+          judge_count?: number | null
+          max_skips?: number | null
+          name?: string
+          pass_percentage?: number
+          program_id?: string
+          question_count?: number
+          seconds_per_question?: number | null
+          stage?: Database["public"]["Enums"]["exam_stage"]
+          track_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_track_id_program_id_fkey"
+            columns: ["track_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
+        ]
+      }
       help_entries: {
         Row: {
           answer: string
@@ -537,6 +606,102 @@ export type Database = {
           },
           {
             foreignKeyName: "participants_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_days: {
+        Row: {
+          amount_multiplier: number
+          created_at: string
+          day_number: number
+          day_template_id: string | null
+          day_type: Database["public"]["Enums"]["day_type"]
+          deleted_at: string | null
+          exam_id: string | null
+          id: string
+          plan_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_multiplier?: number
+          created_at?: string
+          day_number: number
+          day_template_id?: string | null
+          day_type: Database["public"]["Enums"]["day_type"]
+          deleted_at?: string | null
+          exam_id?: string | null
+          id?: string
+          plan_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_multiplier?: number
+          created_at?: string
+          day_number?: number
+          day_template_id?: string | null
+          day_type?: Database["public"]["Enums"]["day_type"]
+          deleted_at?: string | null
+          exam_id?: string | null
+          id?: string
+          plan_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_days_day_template_id_fkey"
+            columns: ["day_template_id"]
+            isOneToOne: false
+            referencedRelation: "day_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_days_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_days_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plans_track_id_fkey"
             columns: ["track_id"]
             isOneToOne: false
             referencedRelation: "tracks"
@@ -1057,6 +1222,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      fn_day_template_program_id: {
+        Args: { p_template_id: string }
+        Returns: string
+      }
       fn_has_permission: {
         Args: { p_code: string; p_program_id?: string }
         Returns: boolean
@@ -1073,6 +1242,24 @@ export type Database = {
           scope_program_id: string
         }[]
       }
+      fn_plan_insert_day: {
+        Args: {
+          p_amount_multiplier?: number
+          p_at_number: number
+          p_day_template_id?: string
+          p_day_type: Database["public"]["Enums"]["day_type"]
+          p_exam_id?: string
+          p_plan_id: string
+        }
+        Returns: string
+      }
+      fn_plan_max_days: { Args: never; Returns: number }
+      fn_plan_move_day: {
+        Args: { p_plan_day_id: string; p_to_number: number }
+        Returns: number
+      }
+      fn_plan_program_id: { Args: { p_plan_id: string }; Returns: string }
+      fn_plan_remove_day: { Args: { p_plan_day_id: string }; Returns: number }
       fn_rate_limit: {
         Args: { p_bucket: string; p_setting_prefix: string }
         Returns: boolean
@@ -1082,6 +1269,7 @@ export type Database = {
         Args: { p_sequence: number; p_track_id: string }
         Returns: number
       }
+      fn_track_program_id: { Args: { p_track_id: string }; Returns: string }
       fn_track_unit_at: {
         Args: { p_ordinal: number; p_track_id: string }
         Returns: number
@@ -1107,6 +1295,9 @@ export type Database = {
         | "faq"
         | "registration"
       change_direction: "up" | "down"
+      day_type: "normal" | "rest" | "exam"
+      exam_stage: "interim" | "final"
+      exam_type: "remote" | "oral"
       field_kind: "ranged" | "counted"
       notification_status: "pending" | "sent" | "failed" | "read"
       participant_status:
@@ -1259,6 +1450,9 @@ export const Constants = {
         "registration",
       ],
       change_direction: ["up", "down"],
+      day_type: ["normal", "rest", "exam"],
+      exam_stage: ["interim", "final"],
+      exam_type: ["remote", "oral"],
       field_kind: ["ranged", "counted"],
       notification_status: ["pending", "sent", "failed", "read"],
       participant_status: [
