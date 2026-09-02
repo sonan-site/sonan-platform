@@ -64,6 +64,11 @@
   /* العلامة — الترويسة والشريط الجانبي */
   --color-brand: var(--_petrol);
   --color-brand-deep: var(--_petrol-deep);
+  /* طبقات فوق لون العلامة — بيضاء شفافة تعمل على الفاتح والداكن معاً */
+  --color-brand-divider: rgb(255 255 255 / 10%);
+  --color-brand-hover: rgb(255 255 255 / 8%);
+  --color-brand-active: rgb(255 255 255 / 14%);
+  --color-scrim: rgb(0 0 0 / 45%);
 
   /* الإجراء الأساسي */
   --color-accent: var(--_gold);

@@ -28,7 +28,7 @@
   gap: var(--space-3);
   min-block-size: var(--header-height);
   padding-inline: var(--space-4);
-  border-block-end: 1px solid rgb(255 255 255 / 10%);
+  border-block-end: 1px solid var(--color-brand-divider);
 }
 
 .brandName {
@@ -66,11 +66,11 @@
 }
 
 .navLink:hover {
-  background: rgb(255 255 255 / 8%);
+  background: var(--color-brand-hover);
 }
 
 .navCurrent {
-  background: rgb(255 255 255 / 14%);
+  background: var(--color-brand-active);
   font-weight: var(--weight-medium);
 }
 
@@ -81,7 +81,7 @@
 .sidebarFoot {
   margin-block-start: auto;
   padding: var(--space-3);
-  border-block-start: 1px solid rgb(255 255 255 / 10%);
+  border-block-start: 1px solid var(--color-brand-divider);
 }
 
 /* ══ المحتوى ══ */
@@ -189,7 +189,7 @@
   position: fixed;
   inset: 0;
   z-index: 19;
-  background: rgb(0 0 0 / 45%);
+  background: var(--color-scrim);
   border: none;
   cursor: pointer;
 }
