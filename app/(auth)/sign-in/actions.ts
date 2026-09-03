@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";
 import { signInSchema } from "@/lib/validation/auth";
@@ -30,4 +30,3 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
   redirect(next.startsWith("/") ? next : "/");
 }
 
-export const initialState = EMPTY_FORM_STATE;

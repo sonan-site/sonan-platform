@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
+import { type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
@@ -109,4 +109,3 @@ export async function registerInProgram(
   redirect(`/p/${slug}?registered=1`);
 }
 
-export const initialState = EMPTY_FORM_STATE;

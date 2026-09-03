@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
 
@@ -41,4 +41,3 @@ export async function setPassword(_prev: FormState, form: FormData): Promise<For
   redirect("/");
 }
 
-export const initialState = EMPTY_FORM_STATE;

@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { sendRecovery } from "@/lib/mail";
 import { recoverySchema } from "@/lib/validation/auth";
@@ -25,4 +25,3 @@ export async function requestRecovery(_prev: FormState, form: FormData): Promise
   return { notice: SAME_ANSWER };
 }
 
-export const initialState = EMPTY_FORM_STATE;

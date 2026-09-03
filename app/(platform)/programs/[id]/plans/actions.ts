@@ -5,18 +5,9 @@ import { z } from "zod";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
+import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
 import { generateDays, MAX_PLAN_DAYS, parseUploadedPlan, planIssues } from "@/lib/plans/build";
 import { authorizeRequest } from "@/lib/permissions/server";
-
-/** افتراضات الاختبار في موضع واحد — كانت مبثوثة في الفعل وفي الشاشة فتنحرف. */
-export const EXAM_DEFAULTS = {
-  passPercentage: 80,
-  questionCount: 20,
-  secondsPerQuestion: 60,
-  maxSkips: 0,
-  judgeCount: 3,
-  awardPercentage: 90,
-} as const;
 
 /**
  * الخطة إعداد برنامج: صلاحيتها `programs.write` بنطاق البرنامج — لا رمز

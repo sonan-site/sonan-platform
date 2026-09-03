@@ -7,11 +7,11 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
+import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
 import {
   addPlanDay,
   clearPlanDays,
   createExam,
-  EXAM_DEFAULTS,
   generatePlan,
   movePlanDay,
   removePlanDay,
