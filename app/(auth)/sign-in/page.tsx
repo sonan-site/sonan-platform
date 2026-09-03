@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { DEFAULT_LANDING } from "@/lib/auth/safe-next";
 import { Suspense, useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -28,7 +29,7 @@ function SignInForm() {
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 
       <form action={action}>
-        <input type="hidden" name="next" value={params.get("next") ?? "/"} />
+        <input type="hidden" name="next" value={params.get("next") ?? DEFAULT_LANDING} />
 
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
           <Input

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { safeNext } from "@/lib/auth/safe-next";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";
@@ -26,7 +27,6 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
   // أي البُرد مسجَّلة عندنا، وهو تسريب لا يخدم أحداً إلا من يعدّ الحسابات.
   if (error) return { error: "بيانات الدخول غير صحيحة." };
 
-  const next = String(form.get("next") ?? "/");
-  redirect(next.startsWith("/") ? next : "/");
+  redirect(safeNext(form.get("next")));
 }
 
