@@ -166,11 +166,76 @@ describe("البذرة", () => {
 });
 
 describe("بذر المدير الأول", () => {
+  /**
+   * الفحوص داخل معاملة تُلغى، وتُخفي إسناد المدير القائم أولاً.
+   *
+   * بلا ذلك يكون الاختبار رهين حالة القاعدة: على قاعدة مبذورة يفشل عند
+   * «مبذور سلفاً» قبل بلوغ الفرع المقصود، وعلى قاعدة نظيفة يمرّ. واختبارٌ
+   * نتيجته تتبع ترتيب التشغيل لا يفحص شيئاً.
+   */
+  async function onUnseeded<T>(work: () => Promise<T>): Promise<T> {
+    await db.query("begin");
+    try {
+      await db.query(
+        `update public.user_roles set deleted_at = now()
+         where role_id in (select id from public.roles where is_system = true)
+           and deleted_at is null`,
+      );
+      return await work();
+    } finally {
+      await db.query("rollback");
+    }
+  }
+
   it("ترفض معرّفاً بلا حساب مصادقة", async () => {
     await expect(
-      db.query(
-        `select public.fn_bootstrap_admin('00000000-0000-0000-0000-000000000000'::uuid)`,
+      onUnseeded(async () =>
+        db.query(
+          `select public.fn_bootstrap_admin(
+             '00000000-0000-0000-0000-000000000000'::uuid, 'اسم', '0500000000')`,
+        ),
       ),
     ).rejects.toThrow(/لا مستخدم بهذا المعرّف/);
+  });
+
+  it("**ترفض بذر مدير ثانٍ** — الإسناد بعده يمرّ بالمسار العادي", async () => {
+    const { rows } = await db.query<{ n: string }>(
+      `select count(*)::text as n from public.user_roles ur
+       join public.roles r on r.id = ur.role_id
+       where r.is_system = true and ur.deleted_at is null`,
+    );
+    if (Number(rows[0]!.n) === 0) return; // قاعدة لم تُبذَر بعد: لا شيء يُرفض
+
+    await expect(
+      db.query(
+        `select public.fn_bootstrap_admin(
+           '00000000-0000-0000-0000-000000000000'::uuid, 'اسم', '0500000000')`,
+      ),
+    ).rejects.toThrow(/مبذور سلفاً/);
+  });
+
+  it("**الاسم والجوال إلزاميان** — البذر يُنتج حساباً يعمل أو لا شيء", async () => {
+    // بمعرّف حسابٍ قائم: الدالة تفحص وجود المستخدم قبل المدخلات، فمعرّفٌ
+    // وهمي يُردّ قبل بلوغ الفرع المقصود.
+    const { rows } = await db.query<{ id: string }>(`select id from auth.users limit 1`);
+    if (rows.length === 0) return; // قاعدة بلا حسابات: لا شيء يُفحَص
+
+    await expect(
+      onUnseeded(async () =>
+        db.query(`select public.fn_bootstrap_admin($1::uuid, '  ', '0500000000')`, [
+          rows[0]!.id,
+        ]),
+      ),
+    ).rejects.toThrow(/الاسم والجوال مطلوبان/);
+  });
+
+  it("التوقيع يشترط الثلاثة — لا صيغة تُنتج حساباً بلا ملف تعريف", async () => {
+    const { rows } = await db.query<{ args: string }>(
+      `select pg_get_function_identity_arguments(p.oid) as args
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.proname = 'fn_bootstrap_admin'`,
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.args).toBe("p_user_id uuid, p_full_name text, p_phone text");
   });
 });

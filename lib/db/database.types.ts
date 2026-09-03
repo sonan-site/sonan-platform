@@ -1293,7 +1293,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      fn_bootstrap_admin: { Args: { p_user_id: string }; Returns: string }
+      fn_bootstrap_admin: {
+        Args: { p_full_name: string; p_phone: string; p_user_id: string }
+        Returns: string
+      }
       fn_can_grant_role: {
         Args: {
           p_program_id?: string
