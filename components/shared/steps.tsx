@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Circle } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { FormState } from "@/lib/auth/form-state";
@@ -172,4 +172,68 @@ export function Messages({ state }: { state: FormState }) {
 
 export function meta(count: number, singular: string): string {
   return `${formatNumber(count)} ${singular}`;
+}
+
+/**
+ * لوحة الجاهزية — ما اكتمل وما يحجب الإطلاق، ورابطٌ لكل ناقص.
+ *
+ * **وصفٌ لا قيد:** لا تمنع النشر ولا تُغيّر سلوكاً. النشر قرار الراعي،
+ * وهذه تُريه ما يقرّر عليه بدل أن يتفقّد ست شاشات.
+ */
+export function Readiness({
+  items,
+  hrefOf,
+}: {
+  items: { key: string; label: string; consequence: string; done: boolean; fix: string }[];
+  hrefOf: (fix: string) => string | null;
+}) {
+  const done = items.filter((i) => i.done).length;
+  const percent = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
+
+  return (
+    <section className={styles.ready}>
+      <div className={styles.readyHead}>
+        <h2 className={styles.readyTitle}>جاهزية الإطلاق</h2>
+        <span className={styles.readyCount}>
+          {formatNumber(done)} من {formatNumber(items.length)}
+        </span>
+      </div>
+
+      <div
+        className={styles.bar}
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="نسبة الجاهزية"
+      >
+        <div className={styles.barFill} style={{ inlineSize: `${percent}%` }} />
+      </div>
+
+      <ul className={styles.readyList}>
+        {items.map((item) => {
+          const href = item.done ? null : hrefOf(item.fix);
+          return (
+            <li
+              key={item.key}
+              className={`${styles.readyItem} ${item.done ? styles.readyOk : styles.readyPending}`}
+            >
+              <span className={styles.readyMark}>
+                {item.done ? <Check size={16} aria-hidden /> : <Circle size={16} aria-hidden />}
+              </span>
+              <span>
+                <span className={styles.readyLabel}>{item.label}</span>
+                {item.done ? null : <span className={styles.readyWhy}>{item.consequence}</span>}
+              </span>
+              {href ? (
+                <Link className={styles.readyGo} href={href}>
+                  أصلِح
+                </Link>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }

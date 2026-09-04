@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { readiness } from "@/lib/programs/readiness";
 import { registrationState } from "@/lib/programs/registration";
 import { isBlockType, BLOCK_LABEL } from "@/lib/programs/blocks";
 import { PageBuilder, type AdmissionRow, type BlockRow, type HelpRow } from "./page-builder";
@@ -67,6 +68,43 @@ export default async function ProgramPage({
       .order("sort_order"),
   ]);
 
+  // ══ جاهزية الإطلاق ══
+  // تُجمَع هنا لا في ستّ شاشات: المُعِدّ يريد أن يعرف ما ينقصه في نظرة واحدة.
+  const trackIdsForReadiness = (tracksResult.data ?? []).map((t) => t.id);
+  const noRowsR = ["00000000-0000-0000-0000-000000000000"];
+  const [unitsCount, fieldsCount, partsRows, tplFieldRows, planDayRows] = await Promise.all([
+    db
+      .from("content_units")
+      .select("id", { count: "exact", head: true })
+      .eq("program_id", id)
+      .is("deleted_at", null),
+    db
+      .from("task_fields")
+      .select("id", { count: "exact", head: true })
+      .eq("program_id", id)
+      .is("deleted_at", null),
+    db
+      .from("track_content_ranges")
+      .select("track_id")
+      .in("track_id", trackIdsForReadiness.length > 0 ? trackIdsForReadiness : noRowsR)
+      .is("deleted_at", null),
+    db
+      .from("day_template_fields")
+      .select("day_template_id")
+      .is("deleted_at", null),
+    db
+      .from("plan_days")
+      .select("id, plans!inner(track_id)")
+      .is("deleted_at", null),
+  ]);
+
+  const tracksWithParts = new Set((partsRows.data ?? []).map((r) => r.track_id));
+  const tracksWithPlanDays = new Set(
+    (planDayRows.data ?? [])
+      .map((r) => (r.plans as unknown as { track_id: string }).track_id)
+      .filter((t) => trackIdsForReadiness.includes(t)),
+  );
+
   if (programResult.error || tracksResult.error) {
     return <ErrorState body="تعذّر جلب البرنامج. أعد المحاولة." />;
   }
@@ -131,7 +169,17 @@ export default async function ProgramPage({
 
   return (
     <>
-      <ProgramView program={program} tracks={tracks} canWrite={canWrite} />
+      <ProgramView
+        readinessItems={readiness({
+          tracks: trackIdsForReadiness.length,
+          tracksWithParts: trackIdsForReadiness.filter((t) => tracksWithParts.has(t)).length,
+          contentUnits: unitsCount.count ?? 0,
+          taskFields: fieldsCount.count ?? 0,
+          templatesWithFields: new Set((tplFieldRows.data ?? []).map((r) => r.day_template_id)).size,
+          tracksWithPlanDays: trackIdsForReadiness.filter((t) => tracksWithPlanDays.has(t)).length,
+          publicBlocks: (blocksResult.data ?? []).length,
+          published: programResult.data.status === "published",
+        })} program={program} tracks={tracks} canWrite={canWrite} />
       {canWrite ? (
         <PageBuilder
           programId={id}

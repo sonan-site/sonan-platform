@@ -170,7 +170,7 @@ export function JourneyView({
         <>
           <p style={{ ...NOTE, marginBlockEnd: "var(--space-4)" }}>
             {day.submitted
-              ? "هذا اليوم أُرسل. ما تراه لقطته وقت الإرسال، ولا تتغيّر."
+              ? "أرسلتَ هذا اليوم. ما تراه هو ما سجّلتَه وقتها، ولا يتغيّر."
               : `${formatNumber(doneCount)} من ${formatNumber(tasks.length)} واجبات`}
           </p>
 
@@ -198,17 +198,17 @@ export function JourneyView({
                   </p>
                 ) : task.trackEmpty ? (
                   <p style={{ ...NOTE, marginBlockEnd: "var(--space-3)" }}>
-                    لم تُضبَط مادة مسارك بعد. تُدخلها الإدارة قبل انطلاق البرنامج.
+                    لم يُحدَّد نصيب مسارك من المادة بعد. تضبطه الإدارة قبل انطلاق البرنامج.
                   </p>
                 ) : task.exhausted ? (
                   <p style={{ ...NOTE, marginBlockEnd: "var(--space-3)" }}>
-                    أتممتَ مادة مسارك في هذا الواجب — لا نطاق بعده.
+                    أتممتَ نصيب مسارك من المادة في هذا الواجب.
                   </p>
                 ) : (
                   <div style={{ marginBlockEnd: "var(--space-3)" }}>
                     {task.span.length > 1 ? (
                       <p style={{ ...NOTE, marginBlockEnd: "var(--space-2)" }}>
-                        مقطعان، فمادة مسارك ليست متّصلة الترقيم:
+                        جزآن — فنصيب مسارك من المادة غير متّصل الترقيم:
                       </p>
                     ) : null}
                     {task.span.map((part) => (
@@ -264,12 +264,12 @@ export function JourneyView({
                 </Button>
               ) : (
                 <p style={NOTE}>
-                  لم يحن هذا اليوم بعد. أرسِل يومك الجاري أولاً — والسلسلة تمضي للأمام فقط.
+                  لم يحن هذا اليوم بعد. أرسِل يومك الجاري أولاً — فالحفظ يمضي للأمام لا يُقفَز فيه.
                 </p>
               )}
 
               <p style={{ ...NOTE, marginBlockStart: "var(--space-3)" }}>
-                الإرسال مرة واحدة، ويُثبِّت ما أتممتَه. وما لم تُتمّه يبقى لك في اليوم التالي.
+                الإرسال مرة واحدة ويُثبِّت ما أتممتَه. وما لم تُتمّه لا يضيع — يبقى لك في اليوم التالي.
               </p>
             </>
           ) : null}

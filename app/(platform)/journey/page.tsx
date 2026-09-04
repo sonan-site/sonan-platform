@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHead } from "@/components/shared/steps";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
@@ -14,13 +15,6 @@ const STATUS_LABEL: Record<string, string> = {
   passed: "اجتاز النهائي",
   not_passed: "لم يجتز النهائي",
 };
-
-const NOTE = {
-  fontSize: "var(--text-sm)",
-  color: "var(--color-text-muted)",
-  marginBlockEnd: "var(--space-6)",
-  maxInlineSize: "68ch",
-} as const;
 
 const CARD = {
   display: "block",
@@ -53,11 +47,11 @@ export default async function JourneyListPage() {
 
   return (
     <>
-      <h1>رحلتي</h1>
-      <p style={NOTE}>
-        واجبك اليومي في البرامج التي تشارك فيها. النطاق يُحسَب من إنجازك الفعلي — من تأخّر
-        يجد يومه حيث تركه.
-      </p>
+      <PageHead
+        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
+        title="رحلتي"
+        lede="واجبك اليومي في البرامج التي تشارك فيها. ما تحفظه اليوم يبدأ من حيث انتهيت أمس — فمن تأخّر يجد يومه حيث تركه، ولا يُقفَز به."
+      />
 
       {rows.length === 0 ? (
         <EmptyState

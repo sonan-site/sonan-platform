@@ -1,11 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import {
+  Messages,
+  PageHead,
+  Readiness,
+  Step,
+  StepForm,
+} from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatDateBoth, formatNumber } from "@/lib/format";
+import type { ReadinessItem } from "@/lib/programs/readiness";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { archiveTrack, createTrack, setProgramStatus } from "../actions";
 
@@ -31,10 +38,6 @@ export type TrackRow = {
   capacity: number | null;
 };
 
-const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-8)" } as const;
-const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-8)" } as const;
-const ERR = { color: "var(--color-danger)" } as const;
-const OK = { color: "var(--color-success)" } as const;
 const META = {
   display: "grid",
   gap: "var(--space-2)",
@@ -43,10 +46,12 @@ const META = {
 } as const;
 
 export function ProgramView({
+  readinessItems,
   program,
   tracks,
   canWrite,
 }: {
+  readinessItems: ReadinessItem[];
   program: ProgramDetail;
   tracks: TrackRow[];
   canWrite: boolean;
@@ -86,13 +91,27 @@ export function ProgramView({
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)", display: "flex", gap: "var(--space-4)" }}>
-        <Link href="/programs">البرامج</Link>
-        <Link href={`/programs/${program.id}/content`}>المادة والواجب</Link>
-        <Link href={`/programs/${program.id}/plans`}>الخطط</Link>
-        <Link href={`/programs/${program.id}/participants`}>المشاركون</Link>
-      </p>
-      <h1>{program.name}</h1>
+      <PageHead
+        crumbs={[
+          { href: "/programs", label: "البرامج" },
+          { href: `/programs/${program.id}/content`, label: "ما يحفظه المشاركون" },
+          { href: `/programs/${program.id}/plans`, label: "الخطط" },
+          { href: `/programs/${program.id}/participants`, label: "المشاركون" },
+        ]}
+        title={program.name}
+        lede="من هنا تُدير البرنامج كلّه: مساراته، ونشره، وما ينقصه قبل أن يُفتَح للناس."
+      />
+
+      <Readiness
+        items={readinessItems}
+        hrefOf={(fix) =>
+          fix === "content"
+            ? `/programs/${program.id}/content`
+            : fix === "plans"
+              ? `/programs/${program.id}/plans`
+              : null
+        }
+      />
 
       <div style={META}>
         <span>
@@ -147,14 +166,34 @@ export function ProgramView({
         </div>
       ) : null}
 
-      <h2 style={H2}>المسارات</h2>
+      <Step
+        n={1}
+        title="المسارات"
+        why="المسار مستوىً يختاره المسجِّل. ولكلٍّ نصيبه من المادة وخطته، فمن أراد مستوىً واحداً يكتفي بمسار واحد."
+        done={tracks.length > 0}
+        state={
+          tracks.length === 0 ? (
+            <span>لا مسارات — لن يجد المسجِّل ما يختاره.</span>
+          ) : (
+            <span>{formatNumber(tracks.length)} مساراً</span>
+          )
+        }
+      >
+        <DataTable
+          columns={columns}
+          rows={tracks}
+          rowKey={(t) => t.id}
+          total={tracks.length}
+          page={1}
+          searchPlaceholder="ابحث باسم المسار…"
+          empty={{
+            title: "لا مسارات بعد",
+            body: canWrite ? "أضف أول مسار بالنموذج أدناه." : "لم تُضَف مسارات لهذا البرنامج.",
+          }}
+        />
 
-      {canWrite ? (
-        <section style={PANEL}>
-          {state.error ? <p style={ERR}>{state.error}</p> : null}
-          {state.notice ? <p style={OK}>{state.notice}</p> : null}
-
-          <form action={action}>
+        {canWrite ? (
+          <StepForm title="أضِف مساراً" action={action}>
             <input type="hidden" name="programId" value={program.id} />
 
             <Field id="tname" label="اسم المسار" required error={state.fieldErrors?.["name"]}>
@@ -180,27 +219,13 @@ export function ProgramView({
 
             <FormActions>
               <Button type="submit" variant="primary" pending={pending}>
-                إضافة مسار
+                أضِف
               </Button>
             </FormActions>
-          </form>
-        </section>
-      ) : null}
-
-      <DataTable
-        columns={columns}
-        rows={tracks}
-        rowKey={(t) => t.id}
-        total={tracks.length}
-        page={1}
-        searchPlaceholder="ابحث باسم المسار…"
-        empty={{
-          title: "لا مسارات بعد",
-          body: canWrite
-            ? "أضف أول مسار بالنموذج أعلاه."
-            : "لم تُضَف مسارات لهذا البرنامج.",
-        }}
-      />
+            <Messages state={state} />
+          </StepForm>
+        ) : null}
+      </Step>
     </>
   );
 }

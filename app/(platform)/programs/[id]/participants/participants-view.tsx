@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
@@ -51,11 +51,6 @@ const REQUEST_LABEL: Record<ChangeRow["status"], string> = {
   rejected: "مرفوض",
 };
 
-const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-8)" } as const;
-const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
-const ERR = { color: "var(--color-danger)" } as const;
-const OK = { color: "var(--color-success)" } as const;
-const NOTE = { fontSize: "var(--text-sm)", color: "var(--color-text-muted)" } as const;
 
 export function ParticipantsView({
   programId,
@@ -199,10 +194,14 @@ export function ParticipantsView({
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)" }}>
-        <Link href={`/programs/${programId}`}>{programName}</Link>
-      </p>
-      <h1>المشاركون</h1>
+      <PageHead
+        crumbs={[
+          { href: "/programs", label: "البرامج" },
+          { href: `/programs/${programId}`, label: programName },
+        ]}
+        title="المشاركون"
+        lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته. ومنها تُبتّ طلبات تغيير المسار."
+      />
 
       <DataTable
         columns={columns}
@@ -214,18 +213,21 @@ export function ParticipantsView({
         empty={{ title: "لا مشاركون بعد", body: "لم يسجّل أحد في هذا البرنامج." }}
       />
 
-      <h2 style={H2}>طلبات تغيير المسار</h2>
-      <p style={NOTE}>
-        قرار إداري بتقدير بشري: لا تبديل ذاتي، ولا معادلة آلية للنسبة. وبعد القبول
-        تصير النسبة نقطة انطلاق فقط، ثم يُحسب المشارك بالآلية العادية.
-      </p>
-
-      {canWrite && participants.length > 0 && tracks.length > 1 ? (
-        <section style={PANEL}>
-          {state.error ? <p style={ERR}>{state.error}</p> : null}
-          {state.notice ? <p style={OK}>{state.notice}</p> : null}
-
-          <form action={action}>
+      <Step
+        n={1}
+        title="طلبات تغيير المسار"
+        why="قرار إداري بتقدير بشري: لا يبدّل المشارك مساره بنفسه، ولا تُحسب نسبته بمعادلة. وبعد القبول تصير النسبة نقطة انطلاق، ثم يمضي كأي مشارك."
+        done={requests.length === 0}
+        state={
+          requests.length === 0 ? (
+            <span>لا طلبات معلَّقة.</span>
+          ) : (
+            <span>{formatNumber(requests.length)} طلباً</span>
+          )
+        }
+      >
+        {canWrite && participants.length > 0 && tracks.length > 1 ? (
+          <StepForm title="سجّل طلباً" action={action}>
             <input type="hidden" name="programId" value={programId} />
 
             <Field id="participantId" label="المشارك" required>
@@ -270,22 +272,23 @@ export function ParticipantsView({
 
             <FormActions>
               <Button type="submit" variant="primary" pending={pending}>
-                إنشاء الطلب
+                أنشئ الطلب
               </Button>
             </FormActions>
-          </form>
-        </section>
-      ) : null}
+            <Messages state={state} />
+          </StepForm>
+        ) : null}
 
-      <DataTable
-        columns={requestColumns}
-        rows={requests}
-        rowKey={(r) => r.id}
-        total={requests.length}
-        page={1}
-        searchPlaceholder="ابحث باسم المشارك…"
-        empty={{ title: "لا طلبات", body: "لم يُنشأ طلب تغيير مسار بعد." }}
-      />
+        <DataTable
+          columns={requestColumns}
+          rows={requests}
+          rowKey={(r) => r.id}
+          total={requests.length}
+          page={1}
+          searchPlaceholder="ابحث باسم المشارك…"
+          empty={{ title: "لا طلبات", body: "لم يُنشأ طلب تغيير مسار بعد." }}
+        />
+      </Step>
     </>
   );
 }
