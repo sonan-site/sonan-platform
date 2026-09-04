@@ -5,8 +5,9 @@ import { authorizeRequest } from "@/lib/permissions/server";
 import {
   ContentView,
   type FieldRow,
-  type RangeRow,
+  type PreviewTask,
   type TemplateRow,
+  type TrackRow,
   type UnitRow,
 } from "./content-view";
 
@@ -60,8 +61,11 @@ export default async function ContentPage({
   }
   if (!programResult.data) notFound();
 
-  const trackIds = (tracksResult.data ?? []).map((t) => t.id);
-  const templateIds = (templatesResult.data ?? []).map((t) => t.id);
+  const tracks = tracksResult.data ?? [];
+  const templates = templatesResult.data ?? [];
+  const fields = fieldsResult.data ?? [];
+  const trackIds = tracks.map((t) => t.id);
+  const templateIds = templates.map((t) => t.id);
   const noRows = ["00000000-0000-0000-0000-000000000000"];
 
   const [rangesResult, templateFieldsResult, countsResult] = await Promise.all([
@@ -73,7 +77,7 @@ export default async function ContentPage({
       .order("sort_order"),
     db
       .from("day_template_fields")
-      .select("day_template_id, task_field_id, base_amount")
+      .select("day_template_id, task_field_id, base_amount, sort_order")
       .in("day_template_id", templateIds.length > 0 ? templateIds : noRows)
       .is("deleted_at", null)
       .order("sort_order"),
@@ -86,53 +90,95 @@ export default async function ContentPage({
     ),
   ]);
 
-  const trackName = new Map((tracksResult.data ?? []).map((t) => [t.id, t.name]));
-  const fieldLabel = new Map((fieldsResult.data ?? []).map((f) => [f.id, f.label]));
   const countByTrack = new Map(countsResult.map((c) => [c.trackId, c.count]));
+  const unitLabel = new Map((unitsResult.data ?? []).map((u) => [u.sequence, u.label]));
+  const templateFields = templateFieldsResult.data ?? [];
 
   const units: UnitRow[] = unitsResult.data ?? [];
 
-  const ranges: RangeRow[] = (rangesResult.data ?? []).map((r) => ({
-    id: r.id,
-    trackId: r.track_id,
-    trackName: trackName.get(r.track_id) ?? "—",
-    from: r.from_sequence,
-    to: r.to_sequence,
-    sortOrder: r.sort_order,
+  const trackRows: TrackRow[] = tracks.map((track) => ({
+    id: track.id,
+    name: track.name,
+    unitCount: countByTrack.get(track.id) ?? 0,
+    parts: (rangesResult.data ?? [])
+      .filter((r) => r.track_id === track.id)
+      .map((r) => ({ id: r.id, from: r.from_sequence, to: r.to_sequence })),
   }));
 
-  const fields: FieldRow[] = (fieldsResult.data ?? []).map((f) => ({
+  const fieldRows: FieldRow[] = fields.map((f) => ({
     id: f.id,
     label: f.label,
     kind: f.kind,
-    sortOrder: f.sort_order,
   }));
 
-  const templates: TemplateRow[] = (templatesResult.data ?? []).map((t) => ({
+  const templateRows: TemplateRow[] = templates.map((t) => ({
     id: t.id,
     name: t.name,
-    fields: (templateFieldsResult.data ?? [])
+    fields: templateFields
       .filter((tf) => tf.day_template_id === t.id)
       .map((tf) => ({
-        label: fieldLabel.get(tf.task_field_id) ?? "—",
+        fieldId: tf.task_field_id,
+        label: fields.find((f) => f.id === tf.task_field_id)?.label ?? "—",
+        kind: fields.find((f) => f.id === tf.task_field_id)?.kind ?? "counted",
         amount: Number(tf.base_amount),
       })),
   }));
+
+  /**
+   * ══ المعاينة: يوم المشارك الأول ══
+   *
+   * تُحسَب **بدوالّ القاعدة نفسها** التي تخدم شاشة المشارك — لا بمنطق موازٍ
+   * هنا. فما يراه المُعِدّ في المعاينة هو ما سيراه المشارك حرفياً، ولا ينحرف
+   * أحدهما عن الآخر بتعديل في موضع واحد.
+   *
+   * واليوم الأول يبدأ من الرتبة ١ دائماً، فلا يحتاج مشاركاً ولا إنجازاً.
+   */
+  const previews: Record<string, PreviewTask[]> = {};
+  await Promise.all(
+    trackRows.flatMap((track) =>
+      templateRows.map(async (template) => {
+        const tasks: PreviewTask[] = [];
+        for (const field of template.fields) {
+          const amount = Math.max(1, Math.round(field.amount));
+          if (field.kind === "counted") {
+            tasks.push({ label: field.label, kind: "counted", amount, parts: [] });
+            continue;
+          }
+          if (track.unitCount === 0) {
+            tasks.push({ label: field.label, kind: "ranged", amount, parts: [] });
+            continue;
+          }
+          const { data } = await db.rpc("fn_track_ordinal_span", {
+            p_track_id: track.id,
+            p_from: 1,
+            p_to: Math.min(amount, track.unitCount),
+          });
+          tasks.push({
+            label: field.label,
+            kind: "ranged",
+            amount,
+            parts: (data ?? []).map((p) => ({
+              from: p.from_sequence,
+              to: p.to_sequence,
+              fromLabel: unitLabel.get(p.from_sequence) ?? "",
+              toLabel: unitLabel.get(p.to_sequence) ?? "",
+            })),
+          });
+        }
+        previews[`${track.id}:${template.id}`] = tasks;
+      }),
+    ),
+  );
 
   return (
     <ContentView
       programId={id}
       programName={programResult.data.name}
       units={units}
-      unitCount={units.length}
-      ranges={ranges}
-      fields={fields}
-      templates={templates}
-      tracks={(tracksResult.data ?? []).map((t) => ({
-        id: t.id,
-        name: t.name,
-        unitCount: countByTrack.get(t.id) ?? 0,
-      }))}
+      tracks={trackRows}
+      fields={fieldRows}
+      templates={templateRows}
+      previews={previews}
     />
   );
 }
