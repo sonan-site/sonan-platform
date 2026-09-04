@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
+import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { createPlan } from "./actions";
@@ -16,16 +17,6 @@ export type TrackPlanRow = {
   dayCount: number;
 };
 
-const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-8)" } as const;
-const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
-const ERR = { color: "var(--color-danger)" } as const;
-const OK = { color: "var(--color-success)" } as const;
-const NOTE = {
-  fontSize: "var(--text-sm)",
-  color: "var(--color-text-muted)",
-  marginBlockEnd: "var(--space-4)",
-  maxInlineSize: "68ch",
-} as const;
 
 export function PlansView({
   programId,
@@ -63,15 +54,14 @@ export function PlansView({
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)", display: "flex", gap: "var(--space-4)" }}>
-        <Link href="/programs">البرامج</Link>
-        <Link href={`/programs/${programId}`}>{programName}</Link>
-      </p>
-      <h1>خطط المسارات</h1>
-      <p style={NOTE}>
-        الخطة قائمة أيام مرتّبة لكل مسار — لا تاريخ فيها، ورقم اليوم يُقاس من انضمام المشارك.
-        وللمسار خطة واحدة.
-      </p>
+      <PageHead
+        crumbs={[
+          { href: "/programs", label: "البرامج" },
+          { href: `/programs/${programId}`, label: programName },
+        ]}
+        title="خطط المسارات"
+        lede="الخطة قائمة أيام مرتّبة لكل مسار. لا تاريخ فيها — كل مشارك يبدأ من يومه الأول أياً كان تاريخ انضمامه. وللمسار خطة واحدة."
+      />
 
       <DataTable
         columns={columns}
@@ -85,11 +75,23 @@ export function PlansView({
         }}
       />
 
-      <h2 style={H2}>خطة جديدة</h2>
-      {withoutPlan.length === 0 ? (
-        <p style={NOTE}>كل مسار في هذا البرنامج له خطة.</p>
-      ) : (
-        <form action={action} style={PANEL}>
+      <Step
+        n={1}
+        title="خطة جديدة"
+        why="لكل مسار خطته، لأن نصيبه من المادة يختلف. وتبقى قابلة للتعديل بعد بنائها."
+        done={withoutPlan.length === 0 && rows.length > 0}
+        state={
+          rows.length === 0 ? (
+            <span>لا مسارات في هذا البرنامج بعد.</span>
+          ) : withoutPlan.length === 0 ? (
+            <span>كل مسار له خطة.</span>
+          ) : (
+            <span>{formatNumber(withoutPlan.length)} مساراً بلا خطة</span>
+          )
+        }
+      >
+        {withoutPlan.length === 0 ? null : (
+        <StepForm title="أنشئ خطة" action={action}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field id="trackId" label="المسار" required error={state.fieldErrors?.trackId}>
@@ -115,10 +117,10 @@ export function PlansView({
             </Button>
           </FormActions>
 
-          {state.error ? <p style={ERR}>{state.error}</p> : null}
-          {state.notice ? <p style={OK}>{state.notice}</p> : null}
-        </form>
-      )}
+          <Messages state={state} />
+        </StepForm>
+        )}
+      </Step>
     </>
   );
 }

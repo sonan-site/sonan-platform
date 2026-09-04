@@ -1,11 +1,22 @@
 "use client";
 
-import { Check, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
-import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
+import {
+  Card,
+  Cards,
+  Chip,
+  ChipButton,
+  Chips,
+  Messages,
+  Muted,
+  PageHead,
+  Step,
+  StepForm,
+} from "@/components/shared/steps";
+import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import {
   addContentUnits,
@@ -37,52 +48,6 @@ export type PreviewTask = {
   amount: number;
   parts: PreviewPart[];
 };
-
-/** خطوة واحدة من الأربع: رقمها، وعنوانها، وسطرُ «لماذا»، وحالتها. */
-function Step({
-  n,
-  title,
-  why,
-  done,
-  state,
-  children,
-}: {
-  n: number;
-  title: string;
-  why: string;
-  done: boolean;
-  state: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={styles.step}>
-      <header className={styles.stepHead}>
-        <span className={`${styles.stepNum} ${done ? styles.stepNumDone : ""}`}>
-          {done ? <Check size={16} aria-hidden /> : formatNumber(n)}
-        </span>
-        <div>
-          <h2 className={styles.stepTitle}>{title}</h2>
-          <p className={styles.stepWhy}>{why}</p>
-        </div>
-      </header>
-
-      <div className={`${styles.state} ${done ? styles.stateDone : styles.stateEmpty}`}>
-        {state}
-      </div>
-
-      {children}
-    </section>
-  );
-}
-
-function Messages({ state }: { state: FormState }) {
-  return (
-    <>
-      {state.error ? <p className={styles.msgError}>{state.error}</p> : null}
-      {state.notice ? <p className={styles.msgOk}>{state.notice}</p> : null}
-    </>
-  );
-}
 
 export function ContentView({
   programId,
@@ -132,18 +97,14 @@ export function ContentView({
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)", display: "flex", gap: "var(--space-4)" }}>
-        <Link href="/programs">البرامج</Link>
-        <Link href={`/programs/${programId}`}>{programName}</Link>
-      </p>
-
-      <header className={styles.head}>
-        <h1 className={styles.title}>ما يحفظه المشاركون</h1>
-        <p className={styles.lede}>
-          أربع خطوات: تُدخل المادة، ثم تحدّد نصيب كل مسار منها، ثم تسمّي واجبات اليوم،
-          ثم تجمعها في شكل يوم. وتحتها معاينة تُريك ما سيراه المشارك.
-        </p>
-      </header>
+      <PageHead
+        crumbs={[
+          { href: "/programs", label: "البرامج" },
+          { href: `/programs/${programId}`, label: programName },
+        ]}
+        title="ما يحفظه المشاركون"
+        lede="أربع خطوات: تُدخل المادة، ثم تحدّد نصيب كل مسار منها، ثم تسمّي واجبات اليوم، ثم تجمعها في شكل يوم. وتحتها معاينة تُريك ما سيراه المشارك."
+      />
 
       {/* ══ المعاينة أولاً: النتيجة قبل التفاصيل ══ */}
       {ready ? (
@@ -254,8 +215,7 @@ export function ContentView({
           />
         ) : null}
 
-        <form action={unitAction} className={styles.form}>
-          <p className={styles.formTitle}>إضافة</p>
+        <StepForm title="إضافة" action={unitAction}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field
@@ -290,7 +250,7 @@ export function ContentView({
             </Button>
           </FormActions>
           <Messages state={unitState} />
-        </form>
+        </StepForm>
       </Step>
 
       {/* ══ ٢ · نصيب كل مسار ══ */}
@@ -312,42 +272,35 @@ export function ContentView({
           )
         }
       >
-        <div className={styles.cards}>
+        <Cards>
           {tracks.map((t) => (
-            <div key={t.id} className={styles.card}>
-              <div className={styles.cardHead}>
-                <span className={styles.cardName}>{t.name}</span>
-                <span className={styles.cardMeta}>{formatNumber(t.unitCount)} وحدة</span>
-              </div>
+            <Card key={t.id} name={t.name} meta={`${formatNumber(t.unitCount)} وحدة`}>
               {t.parts.length === 0 ? (
-                <p className={styles.none}>بلا نصيب — لن يرى مشاركوه واجباً</p>
+                <Muted>بلا نصيب — لن يرى مشاركوه واجباً</Muted>
               ) : (
-                <div className={styles.chips}>
+                <Chips>
                   {t.parts.map((p) => (
-                    <span key={p.id} className={styles.chip}>
+                    <Chip key={p.id}>
                       {formatNumber(p.from)} – {formatNumber(p.to)}
-                      <button
-                        type="button"
-                        aria-label={`حذف الجزء ${p.from} إلى ${p.to}`}
-                        className={styles.chipRemove}
+                      <ChipButton
+                        label={`حذف الجزء ${p.from} إلى ${p.to}`}
                         disabled={busy}
                         onClick={() =>
                           startTransition(async () => void (await removeTrackRange(p.id, programId)))
                         }
                       >
                         <Trash2 size={14} aria-hidden />
-                      </button>
-                    </span>
+                      </ChipButton>
+                    </Chip>
                   ))}
-                </div>
+                </Chips>
               )}
-            </div>
+            </Card>
           ))}
-        </div>
+        </Cards>
 
         {tracks.length > 0 && units.length > 0 ? (
-          <form action={partAction} className={styles.form}>
-            <p className={styles.formTitle}>إضافة جزء</p>
+          <StepForm title="إضافة جزء" action={partAction}>
             <input type="hidden" name="programId" value={programId} />
 
             <Field id="trackId" label="المسار" required error={partState.fieldErrors?.trackId}>
@@ -396,7 +349,7 @@ export function ContentView({
               </Button>
             </FormActions>
             <Messages state={partState} />
-          </form>
+          </StepForm>
         ) : null}
       </Step>
 
@@ -414,23 +367,19 @@ export function ContentView({
           )
         }
       >
-        <div className={styles.cards}>
+        <Cards>
           {fields.map((f) => (
-            <div key={f.id} className={styles.card}>
-              <div className={styles.cardHead}>
-                <span className={styles.cardName}>{f.label}</span>
-              </div>
-              <p className={styles.cardMeta}>
+            <Card key={f.id} name={f.label}>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
                 {f.kind === "ranged"
                   ? "يمتدّ في المادة — يبدأ من حيث انتهى أمس"
                   : "عدد مستقلّ — لا يتقدّم في المادة"}
               </p>
-            </div>
+            </Card>
           ))}
-        </div>
+        </Cards>
 
-        <form action={fieldAction} className={styles.form}>
-          <p className={styles.formTitle}>إضافة واجب</p>
+        <StepForm title="إضافة واجب" action={fieldAction}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field
@@ -467,7 +416,7 @@ export function ContentView({
             </Button>
           </FormActions>
           <Messages state={fieldState} />
-        </form>
+        </StepForm>
       </Step>
 
       {/* ══ ٤ · شكل اليوم ══ */}
@@ -487,30 +436,25 @@ export function ContentView({
           )
         }
       >
-        <div className={styles.cards}>
+        <Cards>
           {templates.map((t) => (
-            <div key={t.id} className={styles.card}>
-              <div className={styles.cardHead}>
-                <span className={styles.cardName}>{t.name}</span>
-                <span className={styles.cardMeta}>{formatNumber(t.fields.length)} واجب</span>
-              </div>
+            <Card key={t.id} name={t.name} meta={`${formatNumber(t.fields.length)} واجب`}>
               {t.fields.length === 0 ? (
-                <p className={styles.none}>بلا واجبات — أضِفها أدناه</p>
+                <Muted>بلا واجبات — أضِفها أدناه</Muted>
               ) : (
-                <div className={styles.chips}>
+                <Chips>
                   {t.fields.map((f) => (
-                    <span key={f.fieldId} className={styles.chip}>
+                    <Chip key={f.fieldId}>
                       {f.label} · {formatNumber(f.amount)}
-                    </span>
+                    </Chip>
                   ))}
-                </div>
+                </Chips>
               )}
-            </div>
+            </Card>
           ))}
-        </div>
+        </Cards>
 
-        <form action={tplAction} className={styles.form}>
-          <p className={styles.formTitle}>شكل جديد</p>
+        <StepForm title="شكل جديد" action={tplAction}>
           <input type="hidden" name="programId" value={programId} />
           <Field
             id="name"
@@ -527,11 +471,10 @@ export function ContentView({
             </Button>
           </FormActions>
           <Messages state={tplState} />
-        </form>
+        </StepForm>
 
         {templates.length > 0 && fields.length > 0 ? (
-          <form action={tfAction} className={styles.form}>
-            <p className={styles.formTitle}>إضافة واجب إلى شكل</p>
+          <StepForm title="إضافة واجب إلى شكل" action={tfAction}>
             <input type="hidden" name="programId" value={programId} />
 
             <Field
@@ -589,7 +532,7 @@ export function ContentView({
               </Button>
             </FormActions>
             <Messages state={tfState} />
-          </form>
+          </StepForm>
         ) : null}
       </Step>
     </>

@@ -1,0 +1,215 @@
+/*
+ * الجامع الخامس: **الشاشة المرحلية**.
+ *
+ * وُجد بعد أن قال الراعي إن الشاشات «ركيكة وغير مفهومة من قوة التعقيد» —
+ * وكانت شاشةً لكل مفهوم في القاعدة، بأسمائه، بلا حالة ولا سبب.
+ *
+ * فالخطوة هنا تحمل ثلاثة لا واحداً: **ماذا** (العنوان) و**لماذا** (سطر بلغة
+ * المستخدم) و**أين وصلت** (شريط الحالة). وهي جامع لا نسخة: أي شاشة إعداد
+ * تستهلكه، فلا يتفرّق الشكل بين شاشتين.
+ */
+
+.head {
+  margin-block-end: var(--space-8);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  margin-block: 0 var(--space-2);
+}
+
+.lede {
+  color: var(--color-text-muted);
+  max-inline-size: 60ch;
+  line-height: var(--leading-normal);
+  margin-block: 0;
+}
+
+.crumbs {
+  font-size: var(--text-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-block-end: var(--space-4);
+}
+
+/* ══ الخطوة ══ */
+
+.step {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-block-end: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.stepHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-block-end: var(--space-5);
+}
+
+/* رقم الخطوة: يعطي التسلسل شكلاً، فالعين تعرف أين هي بلا قراءة. */
+.stepNum {
+  flex: none;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: var(--radius-full);
+  display: grid;
+  place-items: center;
+  background: var(--color-brand);
+  color: var(--color-text-on-brand);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.stepNumDone {
+  background: var(--color-success);
+  color: var(--color-text-on-accent);
+}
+
+.stepTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  margin-block: 0 var(--space-1);
+}
+
+.stepWhy {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  max-inline-size: 62ch;
+  margin-block: 0;
+}
+
+.state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+  font-size: var(--text-sm);
+  margin-block-end: var(--space-5);
+}
+
+.stateDone {
+  background: var(--color-success-surface);
+  color: var(--color-success);
+}
+
+.stateEmpty {
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+}
+
+/* ══ البطاقات ══ */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--space-4);
+  margin-block-end: var(--space-5);
+}
+
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface-raised);
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-end: var(--space-3);
+}
+
+.cardName {
+  font-weight: var(--weight-bold);
+}
+
+.cardMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ══ الوسوم ══ */
+/* الأجزاء المتفرّقة وسمٌ لكلٍّ منها، لا سطرٌ متّصل — الشكل يقول إنها منفصلة. */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+}
+
+.chipButton {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-subtle);
+  display: inline-flex;
+  font: inherit;
+}
+
+.chipButton:hover {
+  color: var(--color-danger);
+}
+
+.none {
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+/* ══ النموذج داخل الخطوة ══ */
+
+.form {
+  max-inline-size: 30rem;
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.formTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-label);
+  margin-block: 0 var(--space-4);
+}
+
+.msgError {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.msgOk {
+  color: var(--color-success);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .step {
+    padding: var(--space-4);
+  }
+}

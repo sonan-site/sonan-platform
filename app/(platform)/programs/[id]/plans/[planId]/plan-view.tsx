@@ -81,7 +81,7 @@ function MultiplierCell({
   return (
     <Input
       key={day.multiplier}
-      aria-label={`مضاعف اليوم ${formatNumber(day.dayNumber)}`}
+      aria-label={`ضِعف المقدار في اليوم ${formatNumber(day.dayNumber)}`}
       type="number"
       min={0.25}
       step={0.25}
@@ -149,7 +149,7 @@ function TemplateCell({
   return (
     <Select
       key={day.templateId ?? ""}
-      aria-label={`قالب اليوم ${formatNumber(day.dayNumber)}`}
+      aria-label={`شكل اليوم ${formatNumber(day.dayNumber)}`}
       disabled={pending}
       defaultValue={day.templateId ?? ""}
       style={{ maxInlineSize: "12rem" }}
@@ -162,9 +162,9 @@ function TemplateCell({
         );
       }}
     >
-      {/* قالبٌ حُذف بعد إسناده: يُسمّى صراحةً، فالسقوط على أول خيار كذبٌ صامت. */}
+      {/* شكلٌ حُذف بعد إسناده: يُسمّى صراحةً، فالسقوط على أول خيار كذبٌ صامت. */}
       {day.templateId && !templates.some((t) => t.id === day.templateId) ? (
-        <option value={day.templateId}>قالب محذوف</option>
+        <option value={day.templateId}>شكل محذوف</option>
       ) : null}
       {templates.map((t) => (
         <option key={t.id} value={t.id}>
@@ -227,14 +227,14 @@ export function PlanView({
     },
     {
       key: "what",
-      header: "المحتوى",
+      header: "شكل اليوم",
       render: (d) => (
         <TemplateCell day={d} templates={templates} planId={planId} programId={programId} />
       ),
     },
     {
       key: "multiplier",
-      header: "المضاعف",
+      header: "الضِّعف",
       align: "end",
       render: (d) => <MultiplierCell day={d} planId={planId} programId={programId} />,
     },
@@ -338,22 +338,23 @@ export function PlanView({
         pageSize={days.length || 1}
         empty={{
           title: "الخطة بلا أيام",
-          body: "ابنِها بالتوليد أو بالرفع أو يوماً يوماً من النماذج أدناه.",
+          body: "ابنِها دفعةً واحدة، أو الصق قائمة جاهزة، أو يوماً يوماً.",
         }}
       />
 
       {/* ══ البناء الجملي — على خطة فارغة وحدها ══ */}
       {isEmpty ? (
         <>
-          <h2 style={H2}>البناء بالتوليد</h2>
+          <h2 style={H2}>ابنِ الخطة دفعة واحدة</h2>
           <p style={NOTE}>
-            قالب واحد يتكرّر بإيقاع راحة دوري. والراحة بالترتيب لا بيوم الأسبوع — الخطة بلا
-            تاريخ بدء. من أراد راحة يوم بعينه، حرّكها بعد التوليد.
+            شكل يوم واحد يتكرّر، وراحة كل عدد من الأيام. والراحة بالترتيب لا بيوم الأسبوع،
+            لأن الخطة بلا تاريخ بدء — كل مشارك يبدأ من يومه الأول. ومن أراد راحة يوم بعينه
+            حرّكها بعد البناء.
           </p>
           {templates.length === 0 ? (
             <p style={ERR}>
-              لا قوالب في هذا البرنامج.{" "}
-              <Link href={`/programs/${programId}/content`}>عرّف قالباً أولاً</Link>.
+              لا أشكال أيام في هذا البرنامج.{" "}
+              <Link href={`/programs/${programId}/content`}>عرّف شكل يوم أولاً</Link>.
             </p>
           ) : (
             <form action={genAction} style={PANEL}>
@@ -365,11 +366,11 @@ export function PlanView({
                        defaultValue={30} numeric />
               </Field>
 
-              <Field id="dayTemplateId" label="قالب اليوم العادي" required
+              <Field id="dayTemplateId" label="شكل اليوم العادي" required
                      error={genState.fieldErrors?.dayTemplateId}>
                 <Select id="dayTemplateId" name="dayTemplateId" required defaultValue="">
                   <option value="" disabled>
-                    اختر قالباً
+                    اختر شكلاً
                   </option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -379,8 +380,8 @@ export function PlanView({
                 </Select>
               </Field>
 
-              <Field id="amountMultiplier" label="مضاعف المقدار"
-                     hint="مقدار الحقل = الأساسي في القالب × هذا الرقم."
+              <Field id="amountMultiplier" label="ضِعف المقدار"
+                     hint="١ = المقدار المعتاد. ٢ = ضِعفه. يُضرب في مقادير شكل اليوم."
                      error={genState.fieldErrors?.amountMultiplier}>
                 <Input id="amountMultiplier" name="amountMultiplier" type="number" min={0.25}
                        step={0.25} defaultValue={1} numeric />
@@ -403,21 +404,21 @@ export function PlanView({
             </form>
           )}
 
-          <h2 style={H2}>البناء بالرفع</h2>
+          <h2 style={H2}>أو الصق قائمة جاهزة</h2>
           <p style={NOTE}>
-            سطر لكل يوم: النوع ثم فاصلة ثم المضاعف. المقبول <bdi>عادي</bdi> و<bdi>راحة</bdi>،
-            ورقم اليوم من ترتيب السطر لا من عمود. أيام الاختبار تُضاف بعد الرفع.
+            سطر لكل يوم: النوع ثم فاصلة ثم الضِّعف. المقبول <bdi>عادي</bdi> و<bdi>راحة</bdi>،
+            ورقم اليوم من ترتيب السطر لا من عمود مكتوب. أيام الاختبار تُضاف بعده.
           </p>
           {templates.length > 0 ? (
             <form action={upAction} style={PANEL}>
               <input type="hidden" name="programId" value={programId} />
               <input type="hidden" name="planId" value={planId} />
 
-              <Field id="upTemplate" label="قالب اليوم العادي" required
+              <Field id="upTemplate" label="شكل اليوم العادي" required
                      error={upState.fieldErrors?.dayTemplateId}>
                 <Select id="upTemplate" name="dayTemplateId" required defaultValue="">
                   <option value="" disabled>
-                    اختر قالباً
+                    اختر شكلاً
                   </option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -446,9 +447,9 @@ export function PlanView({
       ) : null}
 
       {/* ══ التحرير اليدوي ══ */}
-      <h2 style={H2}>إضافة يوم</h2>
+      <h2 style={H2}>أضِف يوماً</h2>
       <p style={NOTE}>
-        اليوم يُدرَج في موضعه وما بعده يُزاح. اترك الموضع فارغاً ليُضاف في الآخر.
+        اليوم يُدرَج في موضعه، وما بعده ينزاح يوماً واحداً. اترك الموضع فارغاً ليُضاف في الآخر.
       </p>
       <form action={dayAction} style={PANEL}>
         <input type="hidden" name="programId" value={programId} />
@@ -474,11 +475,11 @@ export function PlanView({
 
         {newDayType === "normal" ? (
           <>
-            <Field id="dayTemplate" label="القالب" required
+            <Field id="dayTemplate" label="شكل اليوم" required
                    error={dayState.fieldErrors?.dayTemplateId}>
               <Select id="dayTemplate" name="dayTemplateId" required defaultValue="">
                 <option value="" disabled>
-                  اختر قالباً
+                  اختر شكلاً
                 </option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -487,7 +488,7 @@ export function PlanView({
                 ))}
               </Select>
             </Field>
-            <Field id="dayMultiplier" label="مضاعف المقدار"
+            <Field id="dayMultiplier" label="ضِعف المقدار"
                    error={dayState.fieldErrors?.amountMultiplier}>
               <Input id="dayMultiplier" name="amountMultiplier" type="number" min={0.25}
                      step={0.25} defaultValue={1} numeric />
