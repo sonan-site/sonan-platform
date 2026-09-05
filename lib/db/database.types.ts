@@ -1372,6 +1372,16 @@ export type Database = {
       }
       fn_plan_program_id: { Args: { p_plan_id: string }; Returns: string }
       fn_plan_remove_day: { Args: { p_plan_day_id: string }; Returns: number }
+      fn_quick_setup: {
+        Args: {
+          p_day_count: number
+          p_fields: Json
+          p_lines: string[]
+          p_program_id: string
+          p_rest_every: number
+        }
+        Returns: Json
+      }
       fn_rate_limit: {
         Args: { p_bucket: string; p_setting_prefix: string }
         Returns: boolean

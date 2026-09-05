@@ -170,6 +170,7 @@ export default async function ProgramPage({
   return (
     <>
       <ProgramView
+        emptyProgram={(unitsCount.count ?? 0) === 0 && (fieldsCount.count ?? 0) === 0}
         readinessItems={readiness({
           tracks: trackIdsForReadiness.length,
           tracksWithParts: trackIdsForReadiness.filter((t) => tracksWithParts.has(t)).length,

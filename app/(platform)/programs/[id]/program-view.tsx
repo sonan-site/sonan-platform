@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useTransition } from "react";
+import Link from "next/link";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import {
   Messages,
@@ -47,11 +48,14 @@ const META = {
 
 export function ProgramView({
   readinessItems,
+  emptyProgram,
   program,
   tracks,
   canWrite,
 }: {
   readinessItems: ReadinessItem[];
+  /** برنامج بلا مادة ولا واجبات — يُعرَض له الإعداد السريع. */
+  emptyProgram: boolean;
   program: ProgramDetail;
   tracks: TrackRow[];
   canWrite: boolean;
@@ -112,6 +116,21 @@ export function ProgramView({
               : null
         }
       />
+
+      {/* الإعداد السريع يظهر للفارغ وحده: زرٌّ يفتح شاشةً ترفض وعدٌ كاذب. */}
+      {canWrite && emptyProgram ? (
+        <Step
+          n={0}
+          title="ابدأ بالإعداد السريع"
+          why="خمسة أسئلة تُنشئ المادة ونصيب المسارات وواجبات اليوم والخطة دفعة واحدة. وكلّها قابلة للتعديل بعدها — والتفصيل يبقى متاحاً لمن أراده."
+          done={false}
+          state={<span>البرنامج فارغ — والإعداد السريع أسرع طريق لتشغيله.</span>}
+        >
+          <Link href={`/programs/${program.id}/setup`}>
+            <Button variant="primary">افتح الإعداد السريع</Button>
+          </Link>
+        </Step>
+      ) : null}
 
       <div style={META}>
         <span>
