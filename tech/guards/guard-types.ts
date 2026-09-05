@@ -23,9 +23,9 @@ const TYPES_PATH = "lib/db/database.types.ts";
 export const guardTypes: Guard = {
   name: "guard-types",
   claim:
-    "يقابل **مخطط** الأنواع المولَّدة بالمُودَعة. " +
-    "لا يكشف: صحّة استخدامها، ولا ترويسة __InternalSupabase — وهي وصفٌ للخادم " +
-    "المُستعلَم لا للمخطط، ولا يعرفها التوليد من عنوان القاعدة أصلاً.",
+    "يقابل **مخطط** الأنواع المولَّدة بالمُودَعة — الجداول والدوال والتعدادات. " +
+    "لا يكشف: صحّة استخدامها، ولا ترويسة الخادم، ولا النصّ المساعد المذيَّل — " +
+    "وكلاهما وصفُ أداةٍ لا وصفُ قاعدة.",
 
   async run() {
     const project = process.env["SUPABASE_PROJECT_ID"] ?? "cdzkbcatygyaapvzhkjz";
@@ -89,6 +89,10 @@ export const guardTypes: Guard = {
      * **ليست جزءاً من المخطط:** تحمل نسخة PostgREST التي رُدَّت من الخادم
      * المُستعلَم. والتوليد من عنوان القاعدة لا خادم فيه يُسأل فلا يكتبها —
      * فمقابلتها تُفشل الحارس أبداً على فرقٍ لا يصف المخطط.
+     *
+     * ويُسقط معها **النصّ المساعد المذيَّل** (`DatabaseWithoutInternals` وما
+     * بعده): أنواعٌ عامّة تكتبها الأداة بصياغة تختلف بين مسارَي التوليد.
+     * فيبقى `Database` بجداوله ودوالّه وتعداداته — وهو المقصود.
      */
     const normalise = (value: string) =>
       value
@@ -96,6 +100,7 @@ export const guardTypes: Guard = {
         .filter((line) => !line.trimStart().startsWith("//"))
         .join(String.fromCharCode(10))
         .replace(/^ {2}__InternalSupabase: \{[\s\S]*?^ {2}\}$/m, "")
+        .split(/^type DatabaseWithoutInternals\b/m)[0]!
         .replace(/\n{2,}/g, String.fromCharCode(10))
         .trim();
 
