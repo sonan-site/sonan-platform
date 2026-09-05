@@ -57,9 +57,12 @@ export const guardTypes: Guard = {
       // فيعمل الحارس على ويندوز ولينكس بنفس السطر.
       const require_ = createRequire(import.meta.url);
       const cli = join(dirname(require_.resolve("supabase/package.json")), "dist", "supabase.js");
+      // `--schema public` صراحةً في الطريقين: التوليد من عنوان القاعدة يشمل
+      // كل المخططات غير النظامية (`graphql_public` منها)، والتوليد من
+      // المشروع يتبع مخططاته المعروضة. فبلا تثبيت لا يتّفق المصدران أبداً.
       const args = token
-        ? ["gen", "types", "typescript", "--project-id", project]
-        : ["gen", "types", "typescript", "--db-url", dbUrl!];
+        ? ["gen", "types", "typescript", "--schema", "public", "--project-id", project]
+        : ["gen", "types", "typescript", "--schema", "public", "--db-url", dbUrl!];
       const { stdout } = await run(process.execPath, [cli, ...args], {
         maxBuffer: 32 * 1024 * 1024,
       });

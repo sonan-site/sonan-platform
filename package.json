@@ -16,7 +16,7 @@
     "lint": "eslint .",
     "verify": "tsc --noEmit && eslint . && pnpm guards && vitest run && pnpm test:db",
     "db:reset": "dotenv -e .env -- sh -c 'supabase db reset --db-url \"$SUPABASE_DB_URL\" --yes'",
-    "db:types": "dotenv -e .env -- supabase gen types typescript --project-id cdzkbcatygyaapvzhkjz > lib/db/database.types.ts",
+    "db:types": "dotenv -e .env -- supabase gen types typescript --schema public --project-id cdzkbcatygyaapvzhkjz > lib/db/database.types.ts",
     "db:push": "dotenv -e .env -- sh -c 'supabase db push --db-url \"$SUPABASE_DB_URL\"'",
     "guards": "dotenv -e .env -- node tech/guards/run.ts",
     "guards:report": "dotenv -e .env -- node tech/guards/run.ts --report"
