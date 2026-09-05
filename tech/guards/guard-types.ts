@@ -22,7 +22,10 @@ const TYPES_PATH = "lib/db/database.types.ts";
 
 export const guardTypes: Guard = {
   name: "guard-types",
-  claim: "يقابل الأنواع المولَّدة بالمُودَعة. لا يكشف: صحّة استخدامها.",
+  claim:
+    "يقابل **مخطط** الأنواع المولَّدة بالمُودَعة. " +
+    "لا يكشف: صحّة استخدامها، ولا ترويسة __InternalSupabase — وهي وصفٌ للخادم " +
+    "المُستعلَم لا للمخطط، ولا يعرفها التوليد من عنوان القاعدة أصلاً.",
 
   async run() {
     const project = process.env["SUPABASE_PROJECT_ID"] ?? "cdzkbcatygyaapvzhkjz";
@@ -80,7 +83,21 @@ export const guardTypes: Guard = {
     }
 
     const committed = await readFile(TYPES_PATH, "utf8");
-    const normalise = (value: string) => value.replace(/\r\n/g, "\n").trim();
+    /**
+     * التطبيع يُسقط ترويسة `__InternalSupabase` وتعليقها.
+     *
+     * **ليست جزءاً من المخطط:** تحمل نسخة PostgREST التي رُدَّت من الخادم
+     * المُستعلَم. والتوليد من عنوان القاعدة لا خادم فيه يُسأل فلا يكتبها —
+     * فمقابلتها تُفشل الحارس أبداً على فرقٍ لا يصف المخطط.
+     */
+    const normalise = (value: string) =>
+      value
+        .split(/\r?\n/)
+        .filter((line) => !line.trimStart().startsWith("//"))
+        .join(String.fromCharCode(10))
+        .replace(/^ {2}__InternalSupabase: \{[\s\S]*?^ {2}\}$/m, "")
+        .replace(/\n{2,}/g, String.fromCharCode(10))
+        .trim();
 
     if (normalise(generated) !== normalise(committed)) {
       // **أين** يختلف لا أنه اختلف. رسالةٌ تقول «شغّل الأمر» لا تنفع في CI،
