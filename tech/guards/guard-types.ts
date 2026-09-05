@@ -80,12 +80,26 @@ export const guardTypes: Guard = {
     const normalise = (value: string) => value.replace(/\r\n/g, "\n").trim();
 
     if (normalise(generated) !== normalise(committed)) {
+      // **أين** يختلف لا أنه اختلف. رسالةٌ تقول «شغّل الأمر» لا تنفع في CI،
+      // حيث لا يستطيع القارئ تشغيل شيء — ولا تنفع من يبحث عن السبب.
+      const nl = String.fromCharCode(10);
+      const left = normalise(committed).split(nl);
+      const right = normalise(generated).split(nl);
+      const at = left.findIndex((line, i) => line !== right[i]);
+      const sample =
+        at < 0
+          ? `الطول مختلف: المُودَع ${left.length} سطراً والمولَّد ${right.length}.`
+          : `أول اختلاف عند السطر ${at + 1}:
+     المُودَع : ${left[at] ?? "(ينتهي)"}
+     المولَّد: ${right[at] ?? "(ينتهي)"}`;
+
       return [
         {
           rule: "generated-differs",
           file: TYPES_PATH,
-          line: 1,
-          message: "المولَّد يخالف المُودَع. شغّل `pnpm db:types` وأودِع الناتج.",
+          line: at < 0 ? 1 : at + 1,
+          message: `المولَّد يخالف المُودَع. شغّل \`pnpm db:types\` وأودِع الناتج.
+     ${sample}`,
         },
       ];
     }
