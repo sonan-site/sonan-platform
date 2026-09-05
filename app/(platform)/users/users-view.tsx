@@ -2,6 +2,8 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
+import { formatNumber } from "@/lib/format";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatDateBoth } from "@/lib/format";
@@ -57,15 +59,27 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
 
   return (
     <>
-      <h1>المستخدمون</h1>
+      <PageHead
+        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
+        title="المستخدمون"
+        lede="من يعمل على المنصة — لا المشاركون. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمته بنفسه، فلا تمرّ كلمة مرور بينكما. والإيقاف ينفذ في الحال."
+      />
 
       {canWrite ? (
-        <section style={{ marginBlockEnd: "var(--space-8)", maxInlineSize: "34rem" }}>
-          <h2 style={{ fontSize: "var(--text-lg)" }}>دعوة مستخدم</h2>
-          {state.error ? <p style={{ color: "var(--color-danger)" }}>{state.error}</p> : null}
-          {state.notice ? <p style={{ color: "var(--color-success)" }}>{state.notice}</p> : null}
-
-          <form action={action}>
+        <Step
+          n={1}
+          title="دعوة مستخدم"
+          why="تُرسَل رسالة يضبط بها كلمته ويدخل. ولا يملك شيئاً حتى يُسنَد له دور — والدعوة وحدها لا تفتح باباً."
+          done={rows.length > 0}
+          state={
+            rows.length === 0 ? (
+              <span>لا مستخدمين بعد.</span>
+            ) : (
+              <span>{formatNumber(rows.length)} مستخدماً</span>
+            )
+          }
+        >
+          <StepForm title="أرسِل دعوة" action={action}>
             <Field id="fullName" label="الاسم" required error={state.fieldErrors?.["fullName"]}>
               <Input id="fullName" name="fullName" required />
             </Field>
@@ -83,11 +97,12 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
             </Field>
             <FormActions>
               <Button type="submit" variant="primary" pending={pending}>
-                إرسال الدعوة
+                أرسِل الدعوة
               </Button>
             </FormActions>
-          </form>
-        </section>
+            <Messages state={state} />
+          </StepForm>
+        </Step>
       ) : null}
 
       <DataTable

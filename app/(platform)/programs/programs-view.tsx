@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
@@ -27,10 +28,6 @@ const KIND_LABEL: Record<string, string> = {
   remote_memorization: "حفظ عن بعد",
 };
 
-const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-8)" } as const;
-const H2 = { fontSize: "var(--text-lg)" } as const;
-const ERR = { color: "var(--color-danger)" } as const;
-const OK = { color: "var(--color-success)" } as const;
 
 export function ProgramsView({
   sections,
@@ -78,15 +75,27 @@ export function ProgramsView({
 
   return (
     <>
-      <h1>البرامج</h1>
+      <PageHead
+        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
+        title="البرامج"
+        lede="القسم حاوية تجمع برامج الجمعية عبر السنوات، والبرنامج دورة واحدة بمساراتها ومادتها وخطتها."
+      />
 
       {canWriteSections ? (
-        <section style={PANEL}>
-          <h2 style={H2}>قسم جديد</h2>
-          {sectionState.error ? <p style={ERR}>{sectionState.error}</p> : null}
-          {sectionState.notice ? <p style={OK}>{sectionState.notice}</p> : null}
-
-          <form action={sectionAction}>
+        <Step
+          n={1}
+          title="الأقسام"
+          why="القسم يجمع برامج متتابعة — «مسابقات الحفظ» تضمّ دورة ١٤٤٨ و١٤٤٩ وما بعدهما. أنشئه مرة وتستعمله سنين."
+          done={sections.length > 0}
+          state={
+            sections.length === 0 ? (
+              <span>لا أقسام — والبرنامج لا يُنشأ بلا قسم.</span>
+            ) : (
+              <span>{formatNumber(sections.length)} قسماً</span>
+            )
+          }
+        >
+          <StepForm title="أنشئ قسماً" action={sectionAction}>
             <Field id="sname" label="اسم القسم" required error={sectionState.fieldErrors?.["name"]}>
               <Input id="sname" name="name" required />
             </Field>
@@ -104,20 +113,29 @@ export function ProgramsView({
 
             <FormActions>
               <Button type="submit" variant="primary" pending={sectionPending}>
-                إنشاء القسم
+                أنشئ
               </Button>
             </FormActions>
-          </form>
-        </section>
+            <Messages state={sectionState} />
+          </StepForm>
+        </Step>
       ) : null}
 
       {canWritePrograms && sections.length > 0 ? (
-        <section style={PANEL}>
-          <h2 style={H2}>برنامج جديد</h2>
-          {programState.error ? <p style={ERR}>{programState.error}</p> : null}
-          {programState.notice ? <p style={OK}>{programState.notice}</p> : null}
-
-          <form action={programAction}>
+        <Step
+          n={2}
+          title="البرامج"
+          why="البرنامج دورة واحدة. يُنشأ مسوّدةً لا يراها أحد، ثم يُنشَر حين يكتمل — ولوحة الجاهزية في صفحته تقول ما ينقص."
+          done={programs.length > 0}
+          state={
+            programs.length === 0 ? (
+              <span>لا برامج بعد.</span>
+            ) : (
+              <span>{formatNumber(programs.length)} برنامجاً</span>
+            )
+          }
+        >
+          <StepForm title="أنشئ برنامجاً" action={programAction}>
             <Field
               id="sectionId"
               label="القسم"
@@ -223,11 +241,12 @@ export function ProgramsView({
 
             <FormActions>
               <Button type="submit" variant="primary" pending={programPending}>
-                إنشاء البرنامج
+                أنشئ
               </Button>
             </FormActions>
-          </form>
-        </section>
+            <Messages state={programState} />
+          </StepForm>
+        </Step>
       ) : null}
 
       <DataTable

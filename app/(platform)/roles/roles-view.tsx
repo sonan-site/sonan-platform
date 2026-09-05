@@ -2,6 +2,7 @@
 
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Button, Field, FormActions, Select } from "@/components/shared/form";
 import { PERMISSIONS, type PermissionCode } from "@/config/permissions";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -84,7 +85,11 @@ export function RolesView({
 
   return (
     <>
-      <h1>الأدوار والصلاحيات</h1>
+      <PageHead
+        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
+        title="الأدوار والصلاحيات"
+        lede="الدور حزمة صلاحيات تُسنَد لشخص. والإسناد قد يكون عامّاً على المنصة كلها، أو محصوراً ببرنامج واحد — فمنسّق برنامج لا يرى غيره."
+      />
 
       <DataTable
         columns={roleColumns}
@@ -96,16 +101,21 @@ export function RolesView({
         empty={{ title: "لا أدوار", body: "لم يُنشأ دور بعد." }}
       />
 
-      <h2 style={{ marginBlockStart: "var(--space-10)", fontSize: "var(--text-lg)" }}>
-        الإسناد
-      </h2>
-
-      {canAssign ? (
-        <section style={{ maxInlineSize: "34rem", marginBlockEnd: "var(--space-6)" }}>
-          {state.error ? <p style={{ color: "var(--color-danger)" }}>{state.error}</p> : null}
-          {state.notice ? <p style={{ color: "var(--color-success)" }}>{state.notice}</p> : null}
-
-          <form action={action}>
+      <Step
+        n={1}
+        title="إسناد الأدوار"
+        why="الدور بلا إسناد لا يفعل شيئاً. ولا تُسنِد ما لا تملكه أنت — المنصة تمنع تمرير صلاحية أوسع من صلاحيتك."
+        done={assignments.length > 0}
+        state={
+          assignments.length === 0 ? (
+            <span>لا إسنادات — لا أحد يملك شيئاً بعد.</span>
+          ) : (
+            <span>{formatNumber(assignments.length)} إسناداً</span>
+          )
+        }
+      >
+        {canAssign ? (
+          <StepForm title="أسنِد دوراً" action={action}>
             <Field id="userId" label="المستخدم" required>
               <Select id="userId" name="userId" required defaultValue="">
                 <option value="" disabled>
@@ -132,22 +142,23 @@ export function RolesView({
             </Field>
             <FormActions>
               <Button type="submit" variant="primary" pending={pending}>
-                إسناد
+                أسنِد
               </Button>
             </FormActions>
-          </form>
-        </section>
-      ) : null}
+            <Messages state={state} />
+          </StepForm>
+        ) : null}
 
-      <DataTable
-        columns={assignmentColumns}
-        rows={assignments}
-        rowKey={(a) => a.id}
-        total={assignments.length}
-        page={1}
-        searchPlaceholder="ابحث بالمستخدم…"
-        empty={{ title: "لا إسنادات", body: "لم يُسنَد دور لأحد بعد." }}
-      />
+        <DataTable
+          columns={assignmentColumns}
+          rows={assignments}
+          rowKey={(a) => a.id}
+          total={assignments.length}
+          page={1}
+          searchPlaceholder="ابحث بالمستخدم…"
+          empty={{ title: "لا إسنادات", body: "لم يُسنَد دور لأحد بعد." }}
+        />
+      </Step>
     </>
   );
 }

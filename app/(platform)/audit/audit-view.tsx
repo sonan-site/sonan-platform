@@ -1,6 +1,7 @@
 "use client";
 
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { PageHead } from "@/components/shared/steps";
 import { formatDateTime } from "@/lib/format";
 
 export type AuditRow = {
@@ -21,10 +22,11 @@ const columns: Column<AuditRow>[] = [
 export function AuditView({ rows }: { rows: AuditRow[] }) {
   return (
     <>
-      <h1>سجل التدقيق</h1>
-      <p style={{ color: "var(--color-text-muted)", fontSize: "var(--text-sm)" }}>
-        من فعل ماذا على ماذا ومتى. سجل يُقرأ ولا يُعدَّل.
-      </p>
+      <PageHead
+        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
+        title="سجل التدقيق"
+        lede="من فعل ماذا على ماذا ومتى. يُقرأ ولا يُعدَّل ولا يُحذف — لا من الشاشة ولا من القاعدة، فسجلٌّ يقبل التعديل لا يشهد على شيء."
+      />
       <DataTable
         columns={columns}
         rows={rows}
