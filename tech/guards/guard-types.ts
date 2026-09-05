@@ -26,15 +26,27 @@ export const guardTypes: Guard = {
 
   async run() {
     const project = process.env["SUPABASE_PROJECT_ID"] ?? "cdzkbcatygyaapvzhkjz";
+    const token = process.env["SUPABASE_ACCESS_TOKEN"];
+    const dbUrl = process.env["SUPABASE_DB_URL"];
 
-    if (!process.env["SUPABASE_ACCESS_TOKEN"]) {
+    /**
+     * مصدران للأنواع، والأول ما يتوفّر:
+     *
+     * - **رمز الوصول** يولّدها من المشروع البعيد. هذا مسار المطوّر.
+     * - **عنوان القاعدة** يولّدها من القاعدة نفسها. هذا مسار CI، وهو أصحّ:
+     *   يقابل الأنواع بالهجرات المدفوعة لا بحالة مشروع بعيد قد تسبقها.
+     *
+     * وغيابهما معاً مخالفة لا تخطٍّ — الفحص المتعذّر يُبقي البوّابة حمراء.
+     */
+    if (!token && !dbUrl) {
       return [
         {
           rule: "check-unavailable",
           file: TYPES_PATH,
           line: 1,
           message:
-            "SUPABASE_ACCESS_TOKEN غير مضبوط فتعذّرت المقابلة. الفحص المتعذّر يُسجَّل مخالفةً لا يُتخطّى.",
+            "لا SUPABASE_ACCESS_TOKEN ولا SUPABASE_DB_URL فتعذّرت المقابلة. " +
+            "الفحص المتعذّر يُسجَّل مخالفةً لا يُتخطّى.",
         },
       ];
     }
@@ -45,11 +57,12 @@ export const guardTypes: Guard = {
       // فيعمل الحارس على ويندوز ولينكس بنفس السطر.
       const require_ = createRequire(import.meta.url);
       const cli = join(dirname(require_.resolve("supabase/package.json")), "dist", "supabase.js");
-      const { stdout } = await run(
-        process.execPath,
-        [cli, "gen", "types", "typescript", "--project-id", project],
-        { maxBuffer: 32 * 1024 * 1024 },
-      );
+      const args = token
+        ? ["gen", "types", "typescript", "--project-id", project]
+        : ["gen", "types", "typescript", "--db-url", dbUrl!];
+      const { stdout } = await run(process.execPath, [cli, ...args], {
+        maxBuffer: 32 * 1024 * 1024,
+      });
       generated = stdout;
     } catch (error) {
       const first = (error as Error).message.split("\n")[0] ?? "سبب غير معروف";

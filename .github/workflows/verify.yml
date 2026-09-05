@@ -5,21 +5,34 @@ on:
     branches: [main]
   pull_request:
 
+# ══ مكتفٍ بنفسه، بلا سرّ واحد ══
+#
+# كان يعتمد على أسرار مستودع تشير إلى مشروع Supabase الحيّ. وهذا عيبان:
+# **أوّلهما** أن CI بلا أسرار لا يعمل أصلاً — وقد بقي أحمر منذ أول دفع.
+# **وثانيهما** أن اختبارات القاعدة تكتب صفوفاً حقيقية، فكانت كل دورة تلمس
+# قاعدة العمل.
+#
+# فصار يُشغّل نسخة Supabase محلّية في المُشغّل، وتُطبَّق عليها الهجرات من
+# المستودع. والنتيجة أصحّ لا أرخص فقط: الأنواع تُقابَل بالهجرات المدفوعة لا
+# بحالة مشروع بعيد قد تسبقها أو تتأخّر عنها.
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    env:
-      # أسرار المستودع. تُضاف من: Settings > Secrets and variables > Actions
-      # قاعدة التطوير لا الإنتاج — verify يشغّل اختبارات قاعدة حقيقية.
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      # guard-types يُعيد توليد الأنواع ويقابلها بالمُودَع
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
     steps:
       - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # يُقلع القاعدة والمصادقة وواجهة REST ويُطبّق الهجرات.
+      # ما لا تحتاجه الاختبارات يُستثنى: البدء أسرع والسطح أضيق.
+      - name: إقلاع Supabase محلّياً
+        run: >
+          supabase start
+          -x realtime,storage-api,imgproxy,inbucket,studio,edge-runtime,logflare,vector,supavisor,mailpit
 
       - uses: pnpm/action-setup@v4
         with:
@@ -33,14 +46,17 @@ jobs:
       - name: تثبيت الاعتماديات
         run: pnpm install --frozen-lockfile
 
-      # dotenv-cli يقرأ .env، وهو غير موجود في CI — تُمرَّر القيم من الأسرار.
+      # dotenv-cli يقرأ .env، وهو غير موجود في CI. والقيم من النسخة المحلّية
+      # لا من سرّ — مفاتيح التطوير معروفة ومحصورة في المُشغّل.
       - name: تجهيز البيئة
         run: |
-          printf '%s\n' \
-            "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" \
-            "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-            "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" \
-            "SUPABASE_DB_URL=$SUPABASE_DB_URL"             "SUPABASE_ACCESS_TOKEN=$SUPABASE_ACCESS_TOKEN"             "SUPABASE_PROJECT_ID=$SUPABASE_PROJECT_ID" > .env
+          STATUS=$(supabase status -o json)
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$STATUS" | jq -r .API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(echo "$STATUS" | jq -r .ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS" | jq -r .SERVICE_ROLE_KEY)"
+            echo "SUPABASE_DB_URL=$(echo "$STATUS" | jq -r .DB_URL)"
+          } > .env
 
       - name: verify
         run: pnpm verify
