@@ -659,13 +659,6 @@ export type Database = {
             referencedRelation: "programs"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "participants_track_id_fkey"
-            columns: ["track_id"]
-            isOneToOne: false
-            referencedRelation: "tracks"
-            referencedColumns: ["id"]
-          },
         ]
       }
       plan_days: {
