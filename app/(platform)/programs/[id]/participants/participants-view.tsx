@@ -3,6 +3,11 @@
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
+import {
+  PARTICIPANT_STATUS_LABEL,
+  statusesOf,
+  type ProgramKind,
+} from "@/lib/programs/kinds";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
@@ -36,15 +41,6 @@ export type ChangeRow = {
   status: "pending" | "approved" | "rejected";
 };
 
-export const STATUS_LABEL: Record<string, string> = {
-  registered: "مسجَّل",
-  memorizing: "حافظ",
-  qualified: "مؤهَّل",
-  not_qualified: "غير مؤهَّل",
-  passed: "مجتاز",
-  not_passed: "لم يجتز",
-};
-
 const REQUEST_LABEL: Record<ChangeRow["status"], string> = {
   pending: "معلَّق",
   approved: "مقبول",
@@ -55,6 +51,7 @@ const REQUEST_LABEL: Record<ChangeRow["status"], string> = {
 export function ParticipantsView({
   programId,
   programName,
+  kind,
   participants,
   requests,
   tracks,
@@ -62,6 +59,7 @@ export function ParticipantsView({
 }: {
   programId: string;
   programName: string;
+  kind: ProgramKind;
   participants: ParticipantRow[];
   requests: ChangeRow[];
   tracks: { id: string; name: string }[];
@@ -102,14 +100,15 @@ export function ParticipantsView({
               })
             }
           >
-            {Object.entries(STATUS_LABEL).map(([value, label]) => (
+            {/* الحالات المسموحة تتبع نمط البرنامج — والقاعدة ترفض ما عداها. */}
+            {statusesOf(kind).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {PARTICIPANT_STATUS_LABEL[value]}
               </option>
             ))}
           </Select>
         ) : (
-          (STATUS_LABEL[p.status] ?? p.status)
+          (PARTICIPANT_STATUS_LABEL[p.status as keyof typeof PARTICIPANT_STATUS_LABEL] ?? p.status)
         ),
     },
     {

@@ -7,6 +7,7 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
+import { kindAllowsExams, type ProgramKind } from "@/lib/programs/kinds";
 import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
 import {
   addPlanDay,
@@ -178,6 +179,7 @@ function TemplateCell({
 export function PlanView({
   programId,
   programName,
+  kind,
   planId,
   planName,
   trackName,
@@ -188,6 +190,7 @@ export function PlanView({
 }: {
   programId: string;
   programName: string;
+  kind: ProgramKind;
   planId: string;
   planName: string;
   trackName: string;
@@ -205,6 +208,7 @@ export function PlanView({
   const [newDayType, setNewDayType] = useState<"normal" | "rest" | "exam">("normal");
   const [examType, setExamType] = useState<"remote" | "oral">("remote");
 
+  const allowsExams = kindAllowsExams(kind);
   const isEmpty = days.length === 0;
   const restCount = days.filter((d) => d.dayType === "rest").length;
   const examCount = days.filter((d) => d.dayType === "exam").length;
@@ -464,7 +468,8 @@ export function PlanView({
           >
             <option value="normal">عادي</option>
             <option value="rest">راحة</option>
-            <option value="exam">اختبار</option>
+            {/* المحجوب يُخفى لا يُعطَّل (`platform.md §٨`). والقاعدة ترفضه أيضاً. */}
+            {allowsExams ? <option value="exam">اختبار</option> : null}
           </Select>
         </Field>
 
@@ -537,7 +542,9 @@ export function PlanView({
         {dayState.notice ? <p style={OK}>{dayState.notice}</p> : null}
       </form>
 
-      {/* ══ الاختبار: تعريفاً فقط ══ */}
+      {/* ══ الاختبار: تعريفاً فقط، وللمسابقة وحدها `[BR-KIND-01]` ══ */}
+      {allowsExams ? (
+      <>
       <h2 style={H2}>الاختبارات</h2>
       <p style={NOTE}>
         تعريفاً فقط في هذه المرحلة (<code>adr/0022</code>): بنك الأسئلة والجلسات والتحكيم
@@ -642,6 +649,8 @@ export function PlanView({
         {examState.error ? <p style={ERR}>{examState.error}</p> : null}
         {examState.notice ? <p style={OK}>{examState.notice}</p> : null}
       </form>
+      </>
+      ) : null}
     </>
   );
 }

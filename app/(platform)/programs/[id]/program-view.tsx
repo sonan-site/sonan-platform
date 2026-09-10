@@ -12,7 +12,8 @@ import {
 } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatDateBoth, formatNumber } from "@/lib/format";
+import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
+import { kindIsScored, kindLabel, type ProgramKind } from "@/lib/programs/kinds";
 import type { ReadinessItem } from "@/lib/programs/readiness";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { archiveTrack, createTrack, setProgramStatus } from "../actions";
@@ -27,8 +28,10 @@ export type ProgramDetail = {
   capacity: number | null;
   opensAt: string | null;
   closesAt: string | null;
-  passingPercentage: number;
-  awardPercentage: number;
+  kind: ProgramKind;
+  /** فارغتان في غير المسابقة — والفراغ يُعرَض غياباً لا صفراً. */
+  passingPercentage: number | null;
+  awardPercentage: number | null;
   registration: RegistrationState;
 };
 
@@ -146,6 +149,24 @@ export function ProgramView({
           {program.closesAt ? formatDateBoth(program.closesAt) : "بلا نهاية محدَّدة"}
         </span>
         <span>حالة التسجيل: {REGISTRATION_LABEL[program.registration]}</span>
+        <span>النمط: {kindLabel(program.kind)}</span>
+        {/* العتبتان للمسابقة وحدها: كانتا تُكتبان في الإنشاء ولا تُقرآن أبداً. */}
+        {kindIsScored(program.kind) ? (
+          <>
+            <span>
+              عتبة الاجتياز:{" "}
+              {program.passingPercentage === null
+                ? "—"
+                : formatPercent(program.passingPercentage / 100)}
+            </span>
+            <span>
+              عتبة الجوائز:{" "}
+              {program.awardPercentage === null
+                ? "—"
+                : formatPercent(program.awardPercentage / 100)}
+            </span>
+          </>
+        ) : null}
       </div>
 
       {canWrite ? (

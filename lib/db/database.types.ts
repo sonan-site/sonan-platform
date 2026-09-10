@@ -789,7 +789,7 @@ export type Database = {
       }
       programs: {
         Row: {
-          award_percentage: number
+          award_percentage: number | null
           capacity: number | null
           created_at: string
           deleted_at: string | null
@@ -797,7 +797,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["program_kind"]
           name: string
           participant_label: string
-          passing_percentage: number
+          passing_percentage: number | null
           registration_closes_at: string | null
           registration_opens_at: string | null
           section_id: string
@@ -807,7 +807,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          award_percentage?: number
+          award_percentage?: number | null
           capacity?: number | null
           created_at?: string
           deleted_at?: string | null
@@ -815,7 +815,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["program_kind"]
           name: string
           participant_label?: string
-          passing_percentage?: number
+          passing_percentage?: number | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
           section_id: string
@@ -825,7 +825,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          award_percentage?: number
+          award_percentage?: number | null
           capacity?: number | null
           created_at?: string
           deleted_at?: string | null
@@ -833,7 +833,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["program_kind"]
           name?: string
           participant_label?: string
-          passing_percentage?: number
+          passing_percentage?: number | null
           registration_closes_at?: string | null
           registration_opens_at?: string | null
           section_id?: string

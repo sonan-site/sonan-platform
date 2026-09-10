@@ -1,11 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
+import {
+  isProgramKind,
+  kindIsScored,
+  kindLabel,
+  PROGRAM_KIND_CODES,
+  PROGRAM_KINDS,
+  type ProgramKind,
+} from "@/lib/programs/kinds";
 import { formatNumber } from "@/lib/format";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { createProgram, createSection } from "./actions";
@@ -20,12 +28,6 @@ export type ProgramRow = {
   kind: string;
   registration: RegistrationState;
   capacity: number | null;
-};
-
-const KIND_LABEL: Record<string, string> = {
-  competition: "مسابقة",
-  weekly_followup: "متابعة أسبوعية",
-  remote_memorization: "حفظ عن بعد",
 };
 
 
@@ -44,6 +46,8 @@ export function ProgramsView({
     createSection,
     EMPTY_FORM_STATE,
   );
+  // النمط يحكم ما يُعرَض من حقول، فيلزم أن يكون حالةً لا قيمة أوّلية.
+  const [kind, setKind] = useState<ProgramKind>("competition");
   const [programState, programAction, programPending] = useActionState(
     createProgram,
     EMPTY_FORM_STATE,
@@ -58,7 +62,11 @@ export function ProgramsView({
       render: (p) => <Link href={`/programs/${p.id}`}>{p.name}</Link>,
     },
     { key: "section", header: "القسم", sortable: true, render: (p) => p.sectionName },
-    { key: "kind", header: "النمط", render: (p) => KIND_LABEL[p.kind] ?? p.kind },
+    {
+      key: "kind",
+      header: "النمط",
+      render: (p) => (isProgramKind(p.kind) ? kindLabel(p.kind) : p.kind),
+    },
     {
       key: "registration",
       header: "التسجيل",
@@ -173,11 +181,19 @@ export function ProgramsView({
               <Input id="slug" name="slug" latin required placeholder="sonan-1448" />
             </Field>
 
-            <Field id="kind" label="النمط" required>
-              <Select id="kind" name="kind" required defaultValue="competition">
-                <option value="competition">مسابقة</option>
-                <option value="weekly_followup">متابعة أسبوعية (محجوز)</option>
-                <option value="remote_memorization">حفظ عن بعد (محجوز)</option>
+            <Field id="kind" label="النمط" required hint={PROGRAM_KINDS[kind].lede}>
+              <Select
+                id="kind"
+                name="kind"
+                required
+                value={kind}
+                onChange={(e) => setKind(e.target.value as ProgramKind)}
+              >
+                {PROGRAM_KIND_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {PROGRAM_KINDS[code].label}
+                  </option>
+                ))}
               </Select>
             </Field>
 
@@ -217,27 +233,39 @@ export function ProgramsView({
               <Input id="registrationClosesAt" name="registrationClosesAt" type="date" latin />
             </Field>
 
-            <Field
-              id="passingPercentage"
-              label="نسبة الاجتياز"
-              error={programState.fieldErrors?.["passingPercentage"]}
-            >
-              <Input
-                id="passingPercentage"
-                name="passingPercentage"
-                numeric
-                latin
-                defaultValue="80"
-              />
-            </Field>
+            {/* العتبتان تقيسان مقابل نتيجة، ولا نتيجة في غير المسابقة.
+                والمحجوب **يُخفى لا يُعطَّل** (`platform.md §٨`). */}
+            {kindIsScored(kind) ? (
+              <>
+                <Field
+                  id="passingPercentage"
+                  label="نسبة الاجتياز"
+                  error={programState.fieldErrors?.["passingPercentage"]}
+                >
+                  <Input
+                    id="passingPercentage"
+                    name="passingPercentage"
+                    numeric
+                    latin
+                    defaultValue="80"
+                  />
+                </Field>
 
-            <Field
-              id="awardPercentage"
-              label="نسبة استحقاق الجوائز"
-              error={programState.fieldErrors?.["awardPercentage"]}
-            >
-              <Input id="awardPercentage" name="awardPercentage" numeric latin defaultValue="90" />
-            </Field>
+                <Field
+                  id="awardPercentage"
+                  label="نسبة استحقاق الجوائز"
+                  error={programState.fieldErrors?.["awardPercentage"]}
+                >
+                  <Input
+                    id="awardPercentage"
+                    name="awardPercentage"
+                    numeric
+                    latin
+                    defaultValue="90"
+                  />
+                </Field>
+              </>
+            ) : null}
 
             <FormActions>
               <Button type="submit" variant="primary" pending={programPending}>

@@ -6,6 +6,7 @@ import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
+import { type ParticipantStatus } from "@/lib/programs/kinds";
 import { authorizeRequest } from "@/lib/permissions/server";
 
 /** إجراءات المشاركين وأسئلة القبول وطلبات تغيير المسار. */
@@ -209,7 +210,7 @@ export async function decideTrackChange(
 export async function setParticipantStatus(
   participantId: string,
   programId: string,
-  status: "registered" | "memorizing" | "qualified" | "not_qualified" | "passed" | "not_passed",
+  status: ParticipantStatus,
 ): Promise<FormState> {
   const denied = await guardParticipants(programId);
   if (denied) return denied;

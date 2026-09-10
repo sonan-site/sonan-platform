@@ -29,5 +29,5 @@ on conflict do nothing;
 -- لا قبلها تخميناً: ما لم يُذكر لم يُقرَّر (platform.md 12).
 insert into public.settings (key, value, scope_program_id, description)
 values
-  ('platform.name', '"منصة مسابقة سنن"'::jsonb, null, 'الاسم المعروض في الترويسة وعنوان الصفحة')
+  ('platform.name', '"منصة سنن"'::jsonb, null, 'الاسم المعروض في الترويسة وعنوان الصفحة')
 on conflict do nothing;

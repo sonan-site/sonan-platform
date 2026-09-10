@@ -37,7 +37,7 @@ export default async function ProgramPage({
     db
       .from("programs")
       .select(
-        "id, name, slug, summary, status, participant_label, capacity, registration_opens_at, registration_closes_at, passing_percentage, award_percentage",
+        "id, name, slug, summary, status, kind, participant_label, capacity, registration_opens_at, registration_closes_at, passing_percentage, award_percentage",
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -122,8 +122,11 @@ export default async function ProgramPage({
     capacity: p.capacity,
     opensAt: p.registration_opens_at,
     closesAt: p.registration_closes_at,
-    passingPercentage: Number(p.passing_percentage),
-    awardPercentage: Number(p.award_percentage),
+    // `Number(null)` صفرٌ لا فراغ — والصفر هنا كذبة: «عتبة اجتياز ٠٪».
+    // فالفراغ يُمرَّر فراغاً، والشاشة تعرضه أو تُخفيه بحسب النمط.
+    passingPercentage: p.passing_percentage === null ? null : Number(p.passing_percentage),
+    awardPercentage: p.award_percentage === null ? null : Number(p.award_percentage),
+    kind: p.kind,
     // [BR-CAP-01]
     registration: registrationState({
       status: p.status,

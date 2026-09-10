@@ -32,7 +32,7 @@ export default async function ParticipantsPage({
 
   const db = await createClient();
   const [programResult, participantsResult, tracksResult, requestsResult] = await Promise.all([
-    db.from("programs").select("id, name").eq("id", id).is("deleted_at", null).maybeSingle(),
+    db.from("programs").select("id, name, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
     db
       .from("participants")
       .select("id, user_id, track_id, status, joined_at, baseline_percentage")
@@ -131,6 +131,7 @@ export default async function ParticipantsPage({
     <ParticipantsView
       programId={id}
       programName={programResult.data.name}
+      kind={programResult.data.kind}
       participants={participants}
       requests={requests}
       tracks={tracksResult.data ?? []}

@@ -20,7 +20,7 @@ export default async function PlanPage({
 
   const db = await createClient();
   const [programResult, planResult, templatesResult, examsResult, tracksResult] = await Promise.all([
-    db.from("programs").select("id, name").eq("id", id).is("deleted_at", null).maybeSingle(),
+    db.from("programs").select("id, name, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
     db
       .from("plans")
       .select("id, name, track_id, tracks!inner(id, name, program_id)")
@@ -93,6 +93,7 @@ export default async function PlanPage({
     <PlanView
       programId={id}
       programName={programResult.data.name}
+      kind={programResult.data.kind}
       planId={planId}
       planName={planResult.data.name}
       trackName={track.name}
