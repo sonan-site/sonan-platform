@@ -53,6 +53,8 @@ export function ContentView({
   programId,
   programName,
   units,
+  unitSummary,
+  unitPage,
   tracks,
   fields,
   templates,
@@ -60,7 +62,10 @@ export function ContentView({
 }: {
   programId: string;
   programName: string;
+  /** صفحة واحدة من المادة لا كلها — المادة قد تبلغ آلاف الوحدات. */
   units: UnitRow[];
+  unitSummary: { count: number; first: number | null; last: number | null };
+  unitPage: number;
   tracks: TrackRow[];
   fields: FieldRow[];
   templates: TemplateRow[];
@@ -77,9 +82,9 @@ export function ContentView({
   const [track, setTrack] = useState(tracks[0]?.id ?? "");
   const [template, setTemplate] = useState(templates[0]?.id ?? "");
 
-  const nextNumber = units.length === 0 ? 1 : Math.max(...units.map((u) => u.sequence)) + 1;
+  const nextNumber = (unitSummary.last ?? 0) + 1;
   const hasParts = tracks.some((t) => t.parts.length > 0);
-  const ready = units.length > 0 && hasParts && fields.length > 0 && templates.length > 0;
+  const ready = unitSummary.count > 0 && hasParts && fields.length > 0 && templates.length > 0;
 
   const previewTasks = previews[`${track}:${template}`] ?? [];
   const shownTrack = tracks.find((t) => t.id === track);
@@ -89,7 +94,6 @@ export function ContentView({
       key: "sequence",
       header: "الرقم",
       align: "end",
-      sortable: true,
       render: (u) => formatNumber(u.sequence),
     },
     { key: "label", header: "النصّ", primary: true, render: (u) => u.label },
@@ -183,15 +187,15 @@ export function ContentView({
         n={1}
         title="المادة"
         why="القائمة المرقَّمة لكل ما يمكن حفظه في هذا البرنامج — حديثاً حديثاً أو متناً متناً. الترقيم هو ما يُبنى عليه كل شيء بعده."
-        done={units.length > 0}
+        done={unitSummary.count > 0}
         state={
-          units.length === 0 ? (
+          unitSummary.count === 0 ? (
             <span>لم تُدخل المادة بعد.</span>
           ) : (
             <>
               <span>
-                {formatNumber(units.length)} عنصراً · من {formatNumber(units[0]!.sequence)} إلى{" "}
-                {formatNumber(units[units.length - 1]!.sequence)}
+                {formatNumber(unitSummary.count)} عنصراً · من {formatNumber(unitSummary.first ?? 0)} إلى{" "}
+                {formatNumber(unitSummary.last ?? 0)}
               </span>
               <button
                 type="button"
@@ -204,13 +208,13 @@ export function ContentView({
           )
         }
       >
-        {showUnits && units.length > 0 ? (
+        {showUnits && unitSummary.count > 0 ? (
           <DataTable
             columns={unitColumns}
             rows={units}
             rowKey={(u) => u.id}
-            total={units.length}
-            page={1}
+            total={unitSummary.count}
+            page={unitPage}
             empty={{ title: "لا مادة", body: "أدخلها من النموذج أدناه." }}
           />
         ) : null}
@@ -299,7 +303,7 @@ export function ContentView({
           ))}
         </Cards>
 
-        {tracks.length > 0 && units.length > 0 ? (
+        {tracks.length > 0 && unitSummary.count > 0 ? (
           <StepForm title="إضافة جزء" action={partAction}>
             <input type="hidden" name="programId" value={programId} />
 

@@ -19,7 +19,8 @@
     "db:types": "dotenv -e .env -- supabase gen types typescript --schema public --project-id cdzkbcatygyaapvzhkjz > lib/db/database.types.ts",
     "db:push": "dotenv -e .env -- sh -c 'supabase db push --db-url \"$SUPABASE_DB_URL\"'",
     "guards": "dotenv -e .env -- node tech/guards/run.ts",
-    "guards:report": "dotenv -e .env -- node tech/guards/run.ts --report"
+    "load:journey": "dotenv -e .env -- node tech/load/journey-load.ts",
+    "guards:report":"dotenv -e .env -- node tech/guards/run.ts --report"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",

@@ -1291,6 +1291,18 @@ export type Database = {
         Returns: boolean
       }
       fn_is_active: { Args: never; Returns: boolean }
+      fn_journey_days: {
+        Args: { p_participant_id: string }
+        Returns: {
+          day_number: number
+          day_type: Database["public"]["Enums"]["day_type"]
+          done_count: number
+          has_work: boolean
+          id: string
+          submitted: boolean
+          task_count: number
+        }[]
+      }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }
       fn_my_permissions: {
         Args: never
@@ -1341,6 +1353,21 @@ export type Database = {
       }
       fn_plan_program_id: { Args: { p_plan_id: string }; Returns: string }
       fn_plan_remove_day: { Args: { p_plan_day_id: string }; Returns: number }
+      fn_program_participants: {
+        Args: { p_limit?: number; p_offset?: number; p_program_id: string }
+        Returns: {
+          baseline_percentage: number
+          complete_days: number
+          full_name: string
+          id: string
+          joined_at: string
+          status: Database["public"]["Enums"]["participant_status"]
+          submitted_days: number
+          total: number
+          track_id: string
+          work_days: number
+        }[]
+      }
       fn_quick_setup: {
         Args: {
           p_day_count: number

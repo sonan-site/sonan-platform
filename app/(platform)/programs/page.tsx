@@ -1,7 +1,7 @@
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
-import { registrationState } from "@/lib/programs/registration";
+import { registrationStates } from "@/lib/programs/registration-server";
 import { ProgramsView, type ProgramRow, type SectionRow } from "./programs-view";
 
 export default async function ProgramsPage() {
@@ -38,6 +38,7 @@ export default async function ProgramsPage() {
     parentName: s.parent_id ? (nameById.get(s.parent_id) ?? null) : null,
   }));
 
+  const states = await registrationStates(db, (programsResult.data ?? []).map((p) => p.id));
   const programs: ProgramRow[] = (programsResult.data ?? []).map((p) => ({
     id: p.id,
     name: p.name,
@@ -45,15 +46,8 @@ export default async function ProgramsPage() {
     slug: p.slug,
     kind: p.kind,
     capacity: p.capacity,
-    // [BR-CAP-01] — تُشتقّ عند العرض ولا تُخزَّن.
-    // عدد المسجَّلين صفر حتى يُبنى التسجيل في س٣.
-    registration: registrationState({
-      status: p.status,
-      capacity: p.capacity,
-      opensAt: p.registration_opens_at,
-      closesAt: p.registration_closes_at,
-      registeredCount: 0,
-    }),
+    // [BR-CAP-01] — من القاعدة لا من عدٍّ مكتوب صفراً.
+    registration: states.get(p.id) ?? "closed",
   }));
 
   return (

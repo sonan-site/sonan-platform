@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { isBlockType } from "@/lib/programs/blocks";
-import { registrationState } from "@/lib/programs/registration";
+import { registrationStates } from "@/lib/programs/registration-server";
 import { BlockList, type BlockData, type PageBlock } from "./blocks";
 
 /**
@@ -66,13 +66,7 @@ export default async function ProgramLandingPage({
     programSummary: program.summary,
     participantLabel: program.participant_label,
     // [BR-CAP-01]
-    registration: registrationState({
-      status: program.status,
-      capacity: program.capacity,
-      opensAt: program.registration_opens_at,
-      closesAt: program.registration_closes_at,
-      registeredCount: 0,
-    }),
+    registration: (await registrationStates(db, [program.id])).get(program.id) ?? "closed",
     tracks: tracksResult.data ?? [],
     faq: faqResult.data ?? [],
     // المرفقات تُوصَل عند بناء رفع الصور. حتى ذلك الحين عنصر الصورة يُتخطّى.

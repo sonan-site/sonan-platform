@@ -18,7 +18,7 @@ export const guardStructure: Guard = {
   name: "guard-structure",
   claim:
     "يكشف: <table> خام · تخطيط موضعي · <nav> خارج مصدره · تصدير غير دالّة من " +
-    "ملف \"use server\". لا يكشف: صحّة استخدام الجامع.",
+    "ملف \"use server\" · قراءة الإنجاز صفوفاً خاماً في شاشة. لا يكشف: صحّة استخدام الجامع.",
 
   run(files) {
     const findings: Finding[] = [];
@@ -72,6 +72,19 @@ export const guardStructure: Guard = {
             "التشغيل ولا يكشفه البناء — انقل القيمة إلى وحدة عادية.",
         });
       });
+    }
+
+    // ── الإنجاز لا يُقرأ صفوفاً خاماً في الشاشات ──
+    // صفّ لكل واجب في كل يوم: يبلغ سقف واجهة REST (ألف صفّ) فيُقطَع **بصمت**،
+    // وقد أعاد لكل مشارك يوماً أرسله سلفاً (الهجرة ٠٢٩). القراءة عبر
+    // `fn_journey_days` و`fn_program_participants` اللتين تُجمّعان في القاعدة.
+    for (const f of files) {
+      if (!f.path.startsWith("app/") || (f.ext !== ".ts" && f.ext !== ".tsx")) continue;
+      findings.push(
+        ...scan(f, /\.from\(\s*["']achievements["']\s*\)/, "raw-achievements-read", () =>
+          "قراءة خام لجدول الإنجاز من شاشة. يُقطَع عند ألف صفّ بصمت — استخدم fn_journey_days أو fn_program_participants.",
+        ),
+      );
     }
 
     return findings;

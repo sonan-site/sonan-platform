@@ -32,10 +32,12 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   );
 
-  // getUser لا getSession: الأول يتحقّق من الرمز عند الخادم، والثاني يصدّق الكوكي.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // `getClaims` لا `getSession`: الأول يتحقّق من توقيع الرمز، والثاني يصدّق الكوكي.
+  // ولا `getUser`: البوّابة تمرّ بكل طلب — حتى الجلب المسبق للروابط — و`getUser`
+  // رحلةٌ إلى خدمة المصادقة في كل مرّة. الفحص الحيّ (الإيقاف والصلاحيات) في
+  // الخادم والقاعدة، لا هنا.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ?? null;
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_EXACT.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));

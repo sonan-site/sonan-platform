@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/db/server";
 
 /**
@@ -7,6 +8,10 @@ import { createClient } from "@/lib/db/server";
  * **الصلاحيات تُقرأ حيّة من القاعدة** في كل طلب لا من داخل الرمز — فتغيير الدور
  * أو إيقاف الحساب ينفذ خلال طلب واحد، لا خلال عمر الرمز (`platform.md §٩`:
  * «ينفذ على الجلسات القائمة خلال دقيقة كحد أقصى»).
+ *
+ * **ومرّة واحدة للطلب:** الإطار والصفحة والفاحص كلهم يسألونها، وكان كلٌّ منهم
+ * يدفع رحلة إلى خدمة المصادقة ونداءين للقاعدة. `cache` يجعلها تُحسب مرّة في
+ * العرض الواحد، وتبقى حيّة بين طلب وآخر.
  */
 
 export type SessionState =
@@ -20,16 +25,17 @@ export type SessionState =
       permissions: Map<string, Set<string | null>>;
     };
 
-export async function getSession(): Promise<SessionState> {
+export const getSession = cache(async (): Promise<SessionState> => {
   const db = await createClient();
 
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { status: "anonymous" };
 
-  const { data: active } = await db.rpc("fn_is_active");
+  const [{ data: active }, { data: rows }] = await Promise.all([
+    db.rpc("fn_is_active"),
+    db.rpc("fn_my_permissions"),
+  ]);
   if (active !== true) return { status: "suspended", userId: auth.user.id };
-
-  const { data: rows } = await db.rpc("fn_my_permissions");
 
   const permissions = new Map<string, Set<string | null>>();
   for (const row of rows ?? []) {
@@ -44,4 +50,4 @@ export async function getSession(): Promise<SessionState> {
     email: auth.user.email ?? "",
     permissions,
   };
-}
+});

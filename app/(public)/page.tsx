@@ -2,11 +2,8 @@ import Link from "next/link";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { formatNumber } from "@/lib/format";
-import {
-  REGISTRATION_LABEL,
-  registrationState,
-  type RegistrationState,
-} from "@/lib/programs/registration";
+import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
+import { registrationStates } from "@/lib/programs/registration-server";
 import styles from "./store.module.css";
 
 /**
@@ -41,17 +38,9 @@ export default async function StorePage() {
     return <ErrorState body="تعذّر جلب البرامج. أعد المحاولة بعد قليل." />;
   }
 
-  const programs = (data ?? []).map((p) => ({
-    ...p,
-    // [BR-CAP-01] — مشتقّة عند العرض. عدد المسجَّلين يُوصل في س٣.
-    state: registrationState({
-      status: p.status,
-      capacity: p.capacity,
-      opensAt: p.registration_opens_at,
-      closesAt: p.registration_closes_at,
-      registeredCount: 0,
-    }),
-  }));
+  // [BR-CAP-01] — من القاعدة، فيظهر «اكتمل العدد» حين يكتمل.
+  const states = await registrationStates(db, (data ?? []).map((p) => p.id));
+  const programs = (data ?? []).map((p) => ({ ...p, state: states.get(p.id) ?? "closed" }));
 
   return (
     <>

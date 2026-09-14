@@ -123,7 +123,9 @@ describe("الدوال مرتفعة الامتياز", () => {
     expect(pinned!.replace(/"/g, "")).toBe("search_path=");
   });
 
-  it.each(SECURITY_DEFINER_FUNCTIONS)("%s لا ينفّذها anon", async (fn) => {
+  // `fn_has_permission` مستثناة بقرار (الهجرة ٠٢٨): سياسات القراءة العامة تستدعيها،
+  // وجوابها للزائر `false` دائماً. القائمة المغلقة لما يصله الزائر في `lib/auth/security.db-test.ts`.
+  it.each(SECURITY_DEFINER_FUNCTIONS.filter((f) => f !== "fn_has_permission"))("%s لا ينفّذها anon", async (fn) => {
     const { rows } = await db.query<{ granted: boolean }>(
       `select has_function_privilege('anon', p.oid, 'EXECUTE') as granted
          from pg_proc p join pg_namespace n on n.oid = p.pronamespace

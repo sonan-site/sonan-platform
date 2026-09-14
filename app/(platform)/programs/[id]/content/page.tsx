@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
@@ -13,10 +14,14 @@ import {
 
 export default async function ContentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { id } = await params;
+  const { page: rawPage } = await searchParams;
+  const page = rawPage && /^\d+$/.test(rawPage) ? Math.max(1, Number(rawPage)) : 1;
 
   // الإعداد يشترط الكتابة لا القراءة: صفحة كلها نماذج تعديل.
   const authz = await authorizeRequest({
@@ -27,15 +32,19 @@ export default async function ContentPage({
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [programResult, unitsResult, tracksResult, fieldsResult, templatesResult] =
+  // **صفحةٌ من المادة لا كلها.** واجهة REST تقطع عند ألف صفّ بصمت، والمادة
+  // قد تبلغ آلافاً — فكان العدد والنطاق المعروضان يكذبان بعد الألف.
+  const from = (page - 1) * DEFAULT_PAGE_SIZE;
+  const [programResult, unitsResult, tracksResult, fieldsResult, templatesResult, firstUnit, lastUnit] =
     await Promise.all([
       db.from("programs").select("id, name").eq("id", id).is("deleted_at", null).maybeSingle(),
       db
         .from("content_units")
-        .select("id, sequence, label")
+        .select("id, sequence, label", { count: "exact" })
         .eq("program_id", id)
         .is("deleted_at", null)
-        .order("sequence"),
+        .order("sequence")
+        .range(from, from + DEFAULT_PAGE_SIZE - 1),
       db
         .from("tracks")
         .select("id, name")
@@ -54,6 +63,22 @@ export default async function ContentPage({
         .eq("program_id", id)
         .is("deleted_at", null)
         .order("name"),
+      db
+        .from("content_units")
+        .select("sequence")
+        .eq("program_id", id)
+        .is("deleted_at", null)
+        .order("sequence")
+        .limit(1)
+        .maybeSingle(),
+      db
+        .from("content_units")
+        .select("sequence")
+        .eq("program_id", id)
+        .is("deleted_at", null)
+        .order("sequence", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   if (programResult.error || unitsResult.error) {
@@ -91,7 +116,6 @@ export default async function ContentPage({
   ]);
 
   const countByTrack = new Map(countsResult.map((c) => [c.trackId, c.count]));
-  const unitLabel = new Map((unitsResult.data ?? []).map((u) => [u.sequence, u.label]));
   const templateFields = templateFieldsResult.data ?? [];
 
   const units: UnitRow[] = unitsResult.data ?? [];
@@ -134,6 +158,7 @@ export default async function ContentPage({
    * واليوم الأول يبدأ من الرتبة ١ دائماً، فلا يحتاج مشاركاً ولا إنجازاً.
    */
   const previews: Record<string, PreviewTask[]> = {};
+  const neededSequences = new Set<number>();
   await Promise.all(
     trackRows.flatMap((track) =>
       templateRows.map(async (template) => {
@@ -153,28 +178,53 @@ export default async function ContentPage({
             p_from: 1,
             p_to: Math.min(amount, track.unitCount),
           });
-          tasks.push({
-            label: field.label,
-            kind: "ranged",
-            amount,
-            parts: (data ?? []).map((p) => ({
-              from: p.from_sequence,
-              to: p.to_sequence,
-              fromLabel: unitLabel.get(p.from_sequence) ?? "",
-              toLabel: unitLabel.get(p.to_sequence) ?? "",
-            })),
-          });
+          const parts = (data ?? []).map((p) => ({
+            from: p.from_sequence,
+            to: p.to_sequence,
+            fromLabel: "",
+            toLabel: "",
+          }));
+          for (const part of parts) {
+            neededSequences.add(part.from);
+            neededSequences.add(part.to);
+          }
+          tasks.push({ label: field.label, kind: "ranged", amount, parts });
         }
         previews[`${track.id}:${template.id}`] = tasks;
       }),
     ),
   );
 
+  // النصوص للأرقام التي تعرضها المعاينة وحدها — لا للمادة كلها.
+  if (neededSequences.size > 0) {
+    const { data: labelled } = await db
+      .from("content_units")
+      .select("sequence, label")
+      .eq("program_id", id)
+      .in("sequence", [...neededSequences])
+      .is("deleted_at", null);
+    const unitLabel = new Map((labelled ?? []).map((u) => [u.sequence, u.label]));
+    for (const tasks of Object.values(previews)) {
+      for (const task of tasks) {
+        for (const part of task.parts) {
+          part.fromLabel = unitLabel.get(part.from) ?? "";
+          part.toLabel = unitLabel.get(part.to) ?? "";
+        }
+      }
+    }
+  }
+
   return (
     <ContentView
       programId={id}
       programName={programResult.data.name}
       units={units}
+      unitSummary={{
+        count: unitsResult.count ?? 0,
+        first: firstUnit.data?.sequence ?? null,
+        last: lastUnit.data?.sequence ?? null,
+      }}
+      unitPage={page}
       tracks={trackRows}
       fields={fieldRows}
       templates={templateRows}

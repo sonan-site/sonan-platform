@@ -64,15 +64,21 @@ export default async function JourneyDayPage({
     );
   }
 
-  const { data: plan, error: planError } = await db
-    .from("plans")
-    .select("id, name")
-    .eq("track_id", participant.track_id)
-    .is("deleted_at", null)
-    .maybeSingle();
+  const [planResult, daysResult] = await Promise.all([
+    db
+      .from("plans")
+      .select("id, name")
+      .eq("track_id", participant.track_id)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    // **صفٌّ لكل يوم محسوبٌ في القاعدة**، لا صفّ لكل واجب في كل يوم. واجهة REST
+    // تقطع الناتج عند ألف صفّ بصمت، فكانت الأيام المُرسَلة تُقرأ ناقصة بعد
+    // ٢٥٠ يوماً ويُعرَض للمشارك يومٌ أرسله سلفاً (الهجرة ٠٢٩).
+    db.rpc("fn_journey_days", { p_participant_id: participantId }),
+  ]);
 
-  if (planError) return <ErrorState body="تعذّر جلب خطة مسارك." />;
-  if (!plan) {
+  if (planResult.error) return <ErrorState body="تعذّر جلب خطة مسارك." />;
+  if (!planResult.data) {
     return (
       <EmptyState
         kind="no-data"
@@ -81,43 +87,18 @@ export default async function JourneyDayPage({
       />
     );
   }
+  const plan = planResult.data;
 
-  const [daysResult, doneResult, templateFieldsResult] = await Promise.all([
-    db
-      .from("plan_days")
-      .select("id, day_number, day_type, day_template_id")
-      .eq("plan_id", plan.id)
-      .is("deleted_at", null)
-      .order("day_number"),
-    db
-      .from("achievements")
-      .select("plan_day_id")
-      .eq("participant_id", participantId)
-      .is("deleted_at", null),
-    // القوالب التي لها حقل واحد على الأقل. قالبٌ بلا حقول ينتج يوماً لا يُرسَل،
-    // ولو عُدّ يوم عمل لعلق المشارك عنده إلى الأبد.
-    db
-      .from("day_template_fields")
-      .select("day_template_id")
-      .is("deleted_at", null),
-  ]);
+  // **لا استعلام يبتلع خطأه.** فشل استعلام الأيام يجعلها تبدو غير مُرسَلة،
+  // فيُعرَض اليوم الأول قابلاً للإرسال ويُصدَم المشارك بـ«أُرسل سلفاً».
+  if (daysResult.error) return <ErrorState body="تعذّر جلب أيام الخطة." />;
 
-  // **لا استعلام يبتلع خطأه.** فشل استعلام الإنجاز يجعل كل الأيام تبدو غير
-  // مُرسَلة، فيُعرَض اليوم الأول قابلاً للإرسال ويُصدَم المشارك بـ«أُرسل سلفاً».
-  if (daysResult.error || doneResult.error || templateFieldsResult.error) {
-    return <ErrorState body="تعذّر جلب أيام الخطة." />;
-  }
-
-  const submittedDays = new Set((doneResult.data ?? []).map((a) => a.plan_day_id));
-  const templatesWithFields = new Set(
-    (templateFieldsResult.data ?? []).map((f) => f.day_template_id),
-  );
   const days: JourneyDay[] = (daysResult.data ?? []).map((d) => ({
     id: d.id,
     dayNumber: d.day_number,
     dayType: d.day_type,
-    submitted: submittedDays.has(d.id),
-    hasWork: d.day_type === "normal" && templatesWithFields.has(d.day_template_id ?? ""),
+    submitted: d.submitted,
+    hasWork: d.has_work,
   }));
 
   const requested = day && /^\d+$/.test(day) ? Number(day) : null;

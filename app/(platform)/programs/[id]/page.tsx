@@ -72,7 +72,9 @@ export default async function ProgramPage({
   // تُجمَع هنا لا في ستّ شاشات: المُعِدّ يريد أن يعرف ما ينقصه في نظرة واحدة.
   const trackIdsForReadiness = (tracksResult.data ?? []).map((t) => t.id);
   const noRowsR = ["00000000-0000-0000-0000-000000000000"];
-  const [unitsCount, fieldsCount, partsRows, tplFieldRows, planDayRows] = await Promise.all([
+  // كلها **مقيَّدة بالبرنامج**: كانت أشكال الأيام وأيام الخطط تُقرأ من المنصة
+  // كلها ثم تُرشَّح هنا، فتكبر كلفة الصفحة مع كل برنامج جديد وتبلغ سقف الألف.
+  const [unitsCount, fieldsCount, partsRows, tplFieldRows, planRows, registered] = await Promise.all([
     db
       .from("content_units")
       .select("id", { count: "exact", head: true })
@@ -90,20 +92,26 @@ export default async function ProgramPage({
       .is("deleted_at", null),
     db
       .from("day_template_fields")
-      .select("day_template_id")
+      .select("day_template_id, day_templates!inner(program_id)")
+      .eq("day_templates.program_id", id)
       .is("deleted_at", null),
     db
-      .from("plan_days")
-      .select("id, plans!inner(track_id)")
+      .from("plans")
+      // الربط الداخلي يُسقط الخطة بلا يوم حيّ، ويومٌ واحد يكفي للحكم.
+      .select("track_id, plan_days!inner(id)")
+      .in("track_id", trackIdsForReadiness.length > 0 ? trackIdsForReadiness : noRowsR)
+      .is("deleted_at", null)
+      .is("plan_days.deleted_at", null)
+      .limit(1, { referencedTable: "plan_days" }),
+    db
+      .from("participants")
+      .select("id", { count: "exact", head: true })
+      .eq("program_id", id)
       .is("deleted_at", null),
   ]);
 
   const tracksWithParts = new Set((partsRows.data ?? []).map((r) => r.track_id));
-  const tracksWithPlanDays = new Set(
-    (planDayRows.data ?? [])
-      .map((r) => (r.plans as unknown as { track_id: string }).track_id)
-      .filter((t) => trackIdsForReadiness.includes(t)),
-  );
+  const tracksWithPlanDays = new Set((planRows.data ?? []).map((r) => r.track_id));
 
   if (programResult.error || tracksResult.error) {
     return <ErrorState body="تعذّر جلب البرنامج. أعد المحاولة." />;
@@ -133,7 +141,7 @@ export default async function ProgramPage({
       capacity: p.capacity,
       opensAt: p.registration_opens_at,
       closesAt: p.registration_closes_at,
-      registeredCount: 0,
+      registeredCount: registered.count ?? 0,
     }),
   };
 
