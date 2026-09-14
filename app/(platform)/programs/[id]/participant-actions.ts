@@ -126,7 +126,7 @@ export async function requestTrackChange(_prev: FormState, form: FormData): Prom
     .maybeSingle();
 
   if (!participant) return { error: "المشارك غير موجود في هذا البرنامج." };
-  if (!participant.track_id) return { error: "المشارك بلا مسار حالي." };
+  if (!participant.track_id) return { error: "لا مسار لهذا المشارك. أسنِد له مساراً من عمود المسار أولاً." };
   if (participant.track_id === parsed.data.toTrackId) {
     return { error: "المسار الجديد هو نفسه الحالي." };
   }
@@ -210,6 +210,59 @@ export async function decideTrackChange(
 
   revalidatePath(`/programs/${programId}/participants`);
   return EMPTY_FORM_STATE;
+}
+
+// ── إسناد مسار لمن لا مسار له ──
+
+/**
+ * لمشاركٍ سُجِّل بلا مسار وحده. **تغيير مسارٍ قائم خارجه**: ذلك قرار م-٤
+ * المؤجَّل (ما يحلّ بتقدّمه)، فالقيد `track_id is null` في الاستعلام نفسه.
+ * والسعة يفرضها مشغّل القاعدة (الهجرة ٠٣٢).
+ */
+export async function assignTrack(
+  participantId: string,
+  trackId: string,
+  programId: string,
+): Promise<FormState> {
+  const ids = z.object({ participantId: z.uuid(), trackId: z.uuid(), programId: z.uuid() });
+  if (!ids.safeParse({ participantId, trackId, programId }).success) {
+    return { error: "اختر المسار من القائمة." };
+  }
+
+  const denied = await guardParticipants(programId);
+  if (denied) return denied;
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("participants")
+    .update({ track_id: trackId })
+    .eq("id", participantId)
+    .eq("program_id", programId)
+    .is("track_id", null)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) {
+    return {
+      error:
+        error.code === "23514"
+          ? `${error.message}.`
+          : error.code === "23503"
+            ? "المسار ليس من هذا البرنامج."
+            : "تعذّر إسناد المسار.",
+    };
+  }
+  if (!data?.length) return { error: "للمشارك مسار سلفاً، أو لم يُعثر عليه." };
+
+  await db.rpc("fn_write_audit", {
+    p_action: "participant_track_assigned",
+    p_entity_table: "participants",
+    p_entity_id: participantId,
+    p_after: { track_id: trackId },
+  });
+
+  revalidatePath(`/programs/${programId}/participants`);
+  return { notice: "أُسنِد المسار." };
 }
 
 // ── حالة المشارك ──

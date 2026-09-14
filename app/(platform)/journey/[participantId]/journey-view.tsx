@@ -7,7 +7,12 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/shared/form";
 import { EmptyState } from "@/components/shared/states";
 import { formatNumber, formatPercent } from "@/lib/format";
-import type { JourneyDay, JourneyProgress } from "@/lib/participants/journey";
+import {
+  DAY_STATE_LABEL,
+  dayState,
+  type JourneyDay,
+  type JourneyProgress,
+} from "@/lib/participants/journey";
 import { submitDay } from "../actions";
 
 export type SpanPart = { from: number; to: number; fromLabel: string; toLabel: string };
@@ -120,9 +125,14 @@ export function JourneyView({
         <span>المسار: {trackName}</span>
         <span>الخطة: {planName}</span>
         <span>
-          الالتزام: {formatPercent(progress.commitment)} ({formatNumber(progress.submittedDays)} من{" "}
-          {formatNumber(progress.workDays)})
+          أرسلتَ {formatNumber(progress.submittedDays)} من {formatNumber(progress.workDays)} يوماً
         </span>
+        {progress.submittedDays > 0 ? (
+          <span>
+            الإتمام: {formatPercent(progress.completion)} ({formatNumber(progress.completeDays)} يوماً
+            مكتملاً)
+          </span>
+        ) : null}
       </div>
 
       <div style={HEAD}>
@@ -139,7 +149,7 @@ export function JourneyView({
 
         <strong>
           اليوم {formatNumber(day.dayNumber)} من {formatNumber(totalDays)}
-          {day.submitted ? " · مُرسَل" : null}
+          {day.submitted ? ` · ${DAY_STATE_LABEL[dayState(day)]}` : null}
         </strong>
 
         <Button

@@ -13,6 +13,7 @@ import { Button, Field, FormActions, Input, Select, Textarea } from "@/component
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
 import {
+  assignTrack,
   decideTrackChange,
   requestTrackChange,
   setParticipantStatus,
@@ -22,11 +23,14 @@ export type ParticipantRow = {
   id: string;
   name: string;
   trackName: string;
+  hasTrack: boolean;
   status: string;
   joinedAt: string;
   baseline: number | null;
   /** أيام أُرسلت — متابعة تشغيلية لا إحصاء. */
   submittedDays: number;
+  /** ما أُتمّت واجباته كلها من المُرسَل. */
+  completeDays: number;
   /** أيام العمل في خطة مساره. صفر = لا خطة بعد. */
   workDays: number;
 };
@@ -71,7 +75,36 @@ export function ParticipantsView({
 
   const columns: Column<ParticipantRow>[] = [
     { key: "name", header: "المشارك", sortable: true, primary: true, render: (p) => p.name },
-    { key: "track", header: "المسار", sortable: true, render: (p) => p.trackName },
+    {
+      key: "track",
+      header: "المسار",
+      sortable: true,
+      render: (p) =>
+        // المسار يُسنَد لمن لا مسار له وحده. تغيير مسارٍ قائم يمرّ بطلب تغيير المسار.
+        p.hasTrack || !canWrite || tracks.length === 0 ? (
+          p.trackName
+        ) : (
+          <Select
+            aria-label={`إسناد مسار لـ ${p.name}`}
+            defaultValue=""
+            disabled={busy}
+            onChange={(e) => {
+              const trackId = e.target.value;
+              if (!trackId) return;
+              startTransition(async () => reportAction(await assignTrack(p.id, trackId, programId)));
+            }}
+          >
+            <option value="" disabled>
+              أسنِد مساراً
+            </option>
+            {tracks.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        ),
+    },
     {
       key: "progress",
       header: "الإرسال",
@@ -81,6 +114,14 @@ export function ParticipantsView({
         p.workDays === 0
           ? "لا خطة"
           : `${formatNumber(p.submittedDays)} من ${formatNumber(p.workDays)}`,
+    },
+    {
+      key: "complete",
+      header: "المكتمل",
+      align: "end",
+      // المُرسَل فارغاً أو ناقصاً لا يُحسب هنا — فيظهر من يُرسل ولا يحفظ.
+      render: (p) =>
+        p.submittedDays === 0 ? "—" : `${formatNumber(p.completeDays)} من ${formatNumber(p.submittedDays)}`,
     },
     {
       key: "status",
@@ -189,7 +230,7 @@ export function ParticipantsView({
           { href: `/programs/${programId}`, label: programName },
         ]}
         title="المشاركون"
-        lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته. ومنها تُبتّ طلبات تغيير المسار."
+        lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته، وكم منها أتمّه كاملاً. ومنها تُبتّ طلبات تغيير المسار."
       />
 
       <DataTable

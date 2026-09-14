@@ -64,10 +64,12 @@ export default async function ParticipantsPage({
     id: p.id,
     name: p.full_name ?? "—",
     trackName: p.track_id ? (trackName.get(p.track_id) ?? "—") : "بلا مسار",
+    hasTrack: p.track_id !== null,
     status: p.status,
     joinedAt: p.joined_at,
     baseline: p.baseline_percentage === null ? null : Number(p.baseline_percentage),
     submittedDays: p.submitted_days,
+    completeDays: p.complete_days,
     workDays: p.work_days,
   }));
 

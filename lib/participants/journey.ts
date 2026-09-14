@@ -20,6 +20,31 @@ export type JourneyDay = {
    * **لعلق المشارك عنده إلى الأبد**. يُتخطّى كما تُتخطّى الراحة.
    */
   hasWork: boolean;
+  /** واجبات اليوم: للمُرسَل من لقطته، ولغيره من شكل يومه. */
+  taskCount: number;
+  /** ما أُتمّ منها — صفرٌ لما لم يُرسَل. */
+  doneCount: number;
+};
+
+/**
+ * حالة اليوم كما تُعرض للمشارك والمُعِدّ.
+ *
+ * كان كل يومٍ مُرسَل يُوسَم «مُرسَل» ولو لم يُتمّ فيه شيء، فيبدو المتعثّر
+ * منضبطاً. الحالات الأربع تفصل بين ما أُتمّ كلّه وما أُتمّ بعضه وما أُرسل فارغاً.
+ */
+export type DayState = "pending" | "complete" | "partial" | "empty";
+
+export function dayState(day: JourneyDay): DayState {
+  if (!day.submitted) return "pending";
+  if (day.doneCount === 0) return "empty";
+  return day.doneCount >= day.taskCount ? "complete" : "partial";
+}
+
+export const DAY_STATE_LABEL: Record<DayState, string> = {
+  pending: "",
+  complete: "مكتمل",
+  partial: "جزئي",
+  empty: "أُرسل فارغاً",
 };
 
 /**
@@ -49,19 +74,26 @@ export function resolveDayNumber(days: JourneyDay[], requested: number | null): 
 export type JourneyProgress = {
   /** أيام العمل في الخطة — الراحة والاختبار خارجها. */
   workDays: number;
-  /** ما أُرسل منها. */
+  /** ما أُرسل منها — التقدّم في الخطة. */
   submittedDays: number;
-  /** نسبة الالتزام: أيام أُرسلت ÷ أيام عمل. */
-  commitment: number;
+  /** ما أُتمّت واجباته كلها. */
+  completeDays: number;
+  /**
+   * الإتمام: المكتملة ÷ المُرسَلة. **لا المُرسَلة ÷ أيام الخطة**: تلك تقيس
+   * السير لا الجودة، وكان من يُرسل فارغاً يبلغ فيها مئة بالمئة.
+   */
+  completion: number;
 };
 
 export function journeyProgress(days: JourneyDay[]): JourneyProgress {
   const work = days.filter((d) => d.dayType === "normal" && d.hasWork);
   const submitted = work.filter((d) => d.submitted);
+  const complete = submitted.filter((d) => dayState(d) === "complete");
   return {
     workDays: work.length,
     submittedDays: submitted.length,
-    commitment: work.length === 0 ? 0 : submitted.length / work.length,
+    completeDays: complete.length,
+    completion: submitted.length === 0 ? 0 : complete.length / submitted.length,
   };
 }
 

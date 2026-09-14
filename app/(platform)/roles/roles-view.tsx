@@ -33,11 +33,13 @@ export function RolesView({
   roles,
   assignments,
   people,
+  programs,
   canAssign,
 }: {
   roles: RoleRow[];
   assignments: AssignmentRow[];
   people: { userId: string; name: string }[];
+  programs: { id: string; name: string }[];
   canAssign: boolean;
 }) {
   const [state, action, pending] = useActionState(assignRole, EMPTY_FORM_STATE);
@@ -99,7 +101,7 @@ export function RolesView({
       <PageHead
         crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
         title="الأدوار والصلاحيات"
-        lede="الدور مجموعة صلاحيات تُسنَد لشخص، فيعمل على المنصة بما فيها."
+        lede="الدور مجموعة صلاحيات تُسنَد لشخص. والإسناد يكون على المنصة كلها، أو محصوراً ببرنامج واحد — فمنسّق برنامج لا يرى غيره."
       />
 
       <DataTable
@@ -147,6 +149,21 @@ export function RolesView({
                 {roles.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              id="scopeProgramId"
+              label="النطاق"
+              hint="برنامج واحد: يعمل صاحب الدور عليه وحده"
+              error={state.fieldErrors?.["scopeProgramId"]}
+            >
+              <Select id="scopeProgramId" name="scopeProgramId" defaultValue="">
+                <option value="">المنصة كلها</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </Select>

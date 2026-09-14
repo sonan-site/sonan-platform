@@ -1383,6 +1383,10 @@ export type Database = {
         Returns: boolean
       }
       fn_rate_limit_clear: { Args: { p_bucket: string }; Returns: undefined }
+      fn_register: {
+        Args: { p_answers?: Json; p_program_id: string; p_track_id: string }
+        Returns: string
+      }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
       fn_role_is_system: { Args: { p_role_id: string }; Returns: boolean }
       fn_submit_day: {

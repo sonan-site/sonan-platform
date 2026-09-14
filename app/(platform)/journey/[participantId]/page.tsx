@@ -99,6 +99,8 @@ export default async function JourneyDayPage({
     dayType: d.day_type,
     submitted: d.submitted,
     hasWork: d.has_work,
+    taskCount: d.task_count,
+    doneCount: d.done_count,
   }));
 
   const requested = day && /^\d+$/.test(day) ? Number(day) : null;

@@ -58,10 +58,22 @@ export async function assignRole(_prev: FormState, form: FormData): Promise<Form
 export async function revokeRole(assignmentId: string): Promise<FormState> {
   if (!z.uuid().safeParse(assignmentId).success) return { error: "إسناد غير معروف." };
 
-  const authz = await authorizeRequest({ permission: "roles.assign" });
+  const db = await createClient();
+  // الصلاحية تُفحص **في نطاق الإسناد نفسه**: من يُسنِد في برنامج يسحب فيه لا في غيره.
+  const { data: assignment } = await db
+    .from("user_roles")
+    .select("scope_program_id")
+    .eq("id", assignmentId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!assignment) return { error: "الإسناد غير موجود." };
+
+  const authz = await authorizeRequest({
+    permission: "roles.assign",
+    programId: assignment.scope_program_id,
+  });
   if (!authz.ok) return { error: authz.message };
 
-  const db = await createClient();
   const { data, error } = await db
     .from("user_roles")
     .update({ deleted_at: nowIso() })

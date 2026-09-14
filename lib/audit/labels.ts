@@ -28,6 +28,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   page_block_removed: "حذف عنصر من الصفحة",
   participant_registered: "تسجيل مشارك",
   participant_status_changed: "تغيير حالة مشارك",
+  participant_track_assigned: "إسناد مسار لمشارك",
   track_change_requested: "طلب تغيير مسار",
   track_change_approved: "قبول تغيير مسار",
   track_change_rejected: "رفض تغيير مسار",

@@ -2,24 +2,37 @@ import { describe, expect, it } from "vitest";
 import {
   canSubmit,
   currentDayNumber,
+  dayState,
   journeyProgress,
   neighbours,
   resolveDayNumber,
   type JourneyDay,
 } from "./journey";
 
-/** خطة عشرة أيام، راحة في السابع، واختبار في العاشر. */
-function plan(submittedUpTo: number, workless: number[] = []): JourneyDay[] {
+/**
+ * خطة عشرة أيام، راحة في السابع، واختبار في العاشر. ثلاثة واجبات لكل يوم عمل،
+ * والمُرسَل مكتمل ما لم يُذكر في `done` عددُ ما أُتمّ منه.
+ */
+function plan(
+  submittedUpTo: number,
+  workless: number[] = [],
+  done: Record<number, number> = {},
+): JourneyDay[] {
   return Array.from({ length: 10 }, (_, i) => {
     const dayNumber = i + 1;
     const dayType: JourneyDay["dayType"] =
       dayNumber === 7 ? "rest" : dayNumber === 10 ? "exam" : "normal";
+    const hasWork = dayType === "normal" && !workless.includes(dayNumber);
+    const submitted = dayType === "normal" && dayNumber <= submittedUpTo;
+    const taskCount = hasWork ? 3 : 0;
     return {
       id: `d${dayNumber}`,
       dayNumber,
       dayType,
-      submitted: dayType === "normal" && dayNumber <= submittedUpTo,
-      hasWork: dayType === "normal" && !workless.includes(dayNumber),
+      submitted,
+      hasWork,
+      taskCount,
+      doneCount: submitted ? (done[dayNumber] ?? taskCount) : 0,
     };
   });
 }
@@ -113,14 +126,39 @@ describe("التقدّم", () => {
     expect(journeyProgress(plan(0)).workDays).toBe(8);
   });
 
-  it("الالتزام نسبة المُرسَل من أيام العمل", () => {
-    const p = journeyProgress(plan(4));
+  it("التقدّم عددُ المُرسَل، والإتمام نسبة المكتمل منه", () => {
+    const p = journeyProgress(plan(4, [], { 2: 1, 4: 0 }));
     expect(p.submittedDays).toBe(4);
-    expect(p.commitment).toBe(0.5);
+    expect(p.completeDays).toBe(2);
+    expect(p.completion).toBe(0.5);
+  });
+
+  it("**من أرسل أيامه فارغة لا يبلغ مئة بالمئة**", () => {
+    const p = journeyProgress(plan(6, [], { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }));
+    expect(p.submittedDays).toBe(6);
+    expect(p.completion).toBe(0);
   });
 
   it("خطة فارغة بلا قسمة على صفر", () => {
-    expect(journeyProgress([])).toEqual({ workDays: 0, submittedDays: 0, commitment: 0 });
+    expect(journeyProgress([])).toEqual({
+      workDays: 0,
+      submittedDays: 0,
+      completeDays: 0,
+      completion: 0,
+    });
+  });
+});
+
+describe("حالة اليوم", () => {
+  it("**مكتمل · جزئي · أُرسل فارغاً · لم يُرسَل** — أربع لا واحدة", () => {
+    const days = plan(4, [], { 2: 2, 3: 0 });
+    expect(days.slice(0, 5).map(dayState)).toEqual([
+      "complete",
+      "partial",
+      "empty",
+      "complete",
+      "pending",
+    ]);
   });
 });
 
@@ -143,6 +181,6 @@ describe("اليوم بقالبٍ بلا حقول", () => {
   it("خطة كلها بلا حقول: لا يوم جارٍ ولا قسمة على صفر", () => {
     const empty = plan(0, [1, 2, 3, 4, 5, 6, 8, 9]);
     expect(currentDayNumber(empty)).toBeNull();
-    expect(journeyProgress(empty).commitment).toBe(0);
+    expect(journeyProgress(empty).completion).toBe(0);
   });
 });
