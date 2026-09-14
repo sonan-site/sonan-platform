@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { userMessage } from "@/lib/db/messages";
 import { programSchema, sectionSchema, trackSchema } from "@/lib/validation/programs";
+import { z } from "@/lib/validation/z";
 
 /** الترتيب في كل إجراء: تحقّق ← فحص رباعي الطبقات ← فعل ← تدقيق. */
 
@@ -181,4 +183,117 @@ export async function archiveTrack(trackId: string, programId: string): Promise<
 
   revalidatePath(`/programs/${programId}`);
   return EMPTY_FORM_STATE;
+}
+
+// ══ التصحيح ══
+
+/**
+ * تعديل بيانات البرنامج — بالقواعد نفسها التي أنشأته (`programSchema`).
+ *
+ * القسم والنمط لا يتغيّران هنا: النمط يُختار مرّة (`BR-KIND-01`)، فيُقرآن من
+ * القاعدة لا من النموذج. والرابط يتغيّر قبل النشر وحده، والقاعدة تفرض ذلك.
+ */
+export async function updateProgram(_prev: FormState, form: FormData): Promise<FormState> {
+  const programId = z.uuid().safeParse(form.get("programId"));
+  if (!programId.success) return { error: "برنامج غير معروف." };
+
+  const authz = await authorizeRequest({
+    permission: "programs.write",
+    programId: programId.data,
+    resourceProgramId: programId.data,
+  });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data: current } = await db
+    .from("programs")
+    .select("section_id, kind, status, slug")
+    .eq("id", programId.data)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!current) return { error: "البرنامج غير موجود." };
+
+  const parsed = programSchema.safeParse({
+    ...Object.fromEntries(form),
+    sectionId: current.section_id,
+    kind: current.kind,
+    slug: current.status === "draft" ? (form.get("slug") ?? current.slug) : current.slug,
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const { data, error } = await db
+    .from("programs")
+    .update({
+      name: parsed.data.name,
+      summary: parsed.data.summary,
+      slug: parsed.data.slug,
+      participant_label: parsed.data.participantLabel,
+      capacity: parsed.data.capacity,
+      registration_opens_at: parsed.data.registrationOpensAt,
+      registration_closes_at: parsed.data.registrationClosesAt,
+      passing_percentage: parsed.data.passingPercentage,
+      award_percentage: parsed.data.awardPercentage,
+    })
+    .eq("id", programId.data)
+    .select("id");
+
+  if (error || !data?.length) {
+    return { error: userMessage(error, "تعذّر حفظ بيانات البرنامج.", "الرابط مستخدَم في برنامج آخر.") };
+  }
+
+  await db.rpc("fn_write_audit", {
+    p_action: "program_updated",
+    p_entity_table: "programs",
+    p_entity_id: programId.data,
+    p_after: { name: parsed.data.name, slug: parsed.data.slug },
+  });
+
+  revalidatePath("/programs");
+  revalidatePath(`/programs/${programId.data}`);
+  return { notice: "حُفظت بيانات البرنامج." };
+}
+
+const trackPatchSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  description: z.string().trim().max(500).optional(),
+  capacity: z.number().int().positive().nullable().optional(),
+});
+
+export async function updateTrack(
+  trackId: string,
+  programId: string,
+  patch: { name?: string; description?: string; capacity?: number | null },
+): Promise<FormState> {
+  if (!z.object({ trackId: z.uuid(), programId: z.uuid() }).safeParse({ trackId, programId }).success) {
+    return { error: "مسار غير معروف." };
+  }
+  const parsed = trackPatchSchema.safeParse(patch);
+  if (!parsed.success) {
+    return {
+      error:
+        patch.capacity !== undefined
+          ? "السعة عدد صحيح موجب، أو اتركها فارغة لبلا سقف."
+          : "اسم المسار حرفان فأكثر.",
+    };
+  }
+
+  const authz = await authorizeRequest({
+    permission: "programs.write",
+    programId,
+    resourceProgramId: programId,
+  });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("tracks")
+    .update(parsed.data)
+    .eq("id", trackId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: userMessage(error, "تعذّر تعديل المسار.") };
+
+  revalidatePath(`/programs/${programId}`);
+  return { notice: "عُدِّل المسار." };
 }

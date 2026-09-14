@@ -18,6 +18,7 @@ import {
   movePlanDay,
   removePlanDay,
   renameExam,
+  setPlanDayType,
   updatePlanDay,
   uploadPlan,
 } from "../actions";
@@ -177,6 +178,52 @@ function TemplateCell({
   );
 }
 
+/**
+ * نوع اليوم يُغيَّر في موضعه. الانتقال إلى «عادي» يأخذ أول شكل يوم، وإلى
+ * «اختبار» أول اختبار — ثم يُختار غيرهما من خليّة اليوم نفسها.
+ */
+function TypeCell({
+  day,
+  planId,
+  programId,
+  templates,
+  exams,
+  allowsExams,
+}: {
+  day: DayRow;
+  planId: string;
+  programId: string;
+  templates: { id: string; name: string }[];
+  exams: ExamRow[];
+  allowsExams: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <Select
+      key={day.dayType}
+      aria-label={`نوع اليوم ${formatNumber(day.dayNumber)}`}
+      defaultValue={day.dayType}
+      disabled={pending}
+      style={{ maxInlineSize: "7rem" }}
+      onChange={(e) => {
+        const next = e.target.value as DayRow["dayType"];
+        if (next === day.dayType) return;
+        const refId =
+          next === "normal" ? (templates[0]?.id ?? null) : next === "exam" ? (exams[0]?.id ?? null) : null;
+        startTransition(async () =>
+          reportAction(await setPlanDayType(day.id, planId, programId, next, refId)),
+        );
+      }}
+    >
+      <option value="normal">{DAY_TYPE_LABEL.normal}</option>
+      <option value="rest">{DAY_TYPE_LABEL.rest}</option>
+      {allowsExams || day.dayType === "exam" ? (
+        <option value="exam">{DAY_TYPE_LABEL.exam}</option>
+      ) : null}
+    </Select>
+  );
+}
+
 export function PlanView({
   programId,
   programName,
@@ -228,7 +275,16 @@ export function PlanView({
       key: "type",
       header: "النوع",
       align: "center",
-      render: (d) => DAY_TYPE_LABEL[d.dayType],
+      render: (d) => (
+        <TypeCell
+          day={d}
+          planId={planId}
+          programId={programId}
+          templates={templates}
+          exams={exams}
+          allowsExams={allowsExams}
+        />
+      ),
     },
     {
       key: "what",

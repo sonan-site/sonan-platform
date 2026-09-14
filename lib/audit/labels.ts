@@ -19,6 +19,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   section_created: "إنشاء قسم",
   program_created: "إنشاء برنامج",
   program_status_changed: "تغيير حالة برنامج",
+  program_updated: "تعديل بيانات برنامج",
   track_created: "إنشاء مسار",
   track_archived: "أرشفة مسار",
   content_units_added: "إدخال مادة",

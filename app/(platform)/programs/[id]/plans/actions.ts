@@ -321,6 +321,49 @@ export async function updatePlanDay(
   return EMPTY_FORM_STATE;
 }
 
+/**
+ * تغيير نوع يومٍ في موضعه — عادي ↔ راحة ↔ اختبار.
+ *
+ * البديل كان حذف اليوم وإعادة إدراجه، فيُزاح ما بعده مرتين. والنوع وشكله
+ * واختباره تُكتب **في تحديث واحد**: قيد الاتساق يرفض أي خطوة وسطى. وما له
+ * إرسال يُرفض في القاعدة (`fn_guard_plan_day_delete`).
+ */
+export async function setPlanDayType(
+  planDayId: string,
+  planId: string,
+  programId: string,
+  dayType: "normal" | "rest" | "exam",
+  refId: string | null,
+): Promise<FormState> {
+  const denied = await guard(programId);
+  if (denied) return denied;
+
+  if (!["normal", "rest", "exam"].includes(dayType)) return { error: "اختر نوع اليوم من القائمة." };
+  if (dayType === "normal" && !refId) return { error: "لا شكل يوم في البرنامج. أنشئ شكلاً أولاً." };
+  if (dayType === "exam" && !refId) return { error: "لا اختبار معرَّف. عرّف اختباراً أولاً." };
+  if (refId && !z.uuid().safeParse(refId).success) return { error: "اختر من القائمة." };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("plan_days")
+    .update({
+      day_type: dayType,
+      day_template_id: dayType === "normal" ? refId : null,
+      exam_id: dayType === "exam" ? refId : null,
+      amount_multiplier: 1,
+    })
+    .eq("id", planDayId)
+    .eq("plan_id", planId)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) return { error: planMessage(error.message, "تعذّر تغيير نوع اليوم.") };
+  if (!data?.length) return { error: "لم يتغيّر اليوم — تحقّق من صلاحيتك." };
+
+  revalidateBoth(programId, planId);
+  return EMPTY_FORM_STATE;
+}
+
 export async function removePlanDay(
   planDayId: string,
   planId: string,

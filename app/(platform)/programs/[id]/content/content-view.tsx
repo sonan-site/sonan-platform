@@ -1,7 +1,8 @@
 "use client";
 
 import { reportAction } from "@/components/shared/action-notice";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { InlineNumber, InlineText } from "@/components/shared/inline-edit";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
@@ -25,7 +26,17 @@ import {
   addTaskField,
   addTemplateField,
   addTrackRange,
+  moveTemplateField,
+  removeContentUnit,
+  removeDayTemplate,
+  removeTaskField,
+  removeTemplateField,
   removeTrackRange,
+  renameDayTemplate,
+  renameTaskField,
+  setTaskFieldKind,
+  setTemplateFieldAmount,
+  updateContentUnitLabel,
 } from "./actions";
 import styles from "./content.module.css";
 
@@ -97,7 +108,33 @@ export function ContentView({
       align: "end",
       render: (u) => formatNumber(u.sequence),
     },
-    { key: "label", header: "النصّ", primary: true, render: (u) => u.label },
+    {
+      key: "label",
+      header: "النصّ",
+      primary: true,
+      render: (u) => (
+        <InlineText
+          label={`نصّ الوحدة ${u.sequence}`}
+          value={u.label}
+          maxInlineSize="28rem"
+          onSave={(next) => updateContentUnitLabel(u.id, programId, next)}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "end",
+      render: (u) => (
+        <ChipButton
+          label={`حذف الوحدة ${u.sequence}`}
+          disabled={busy}
+          onClick={() => startTransition(async () => reportAction(await removeContentUnit(u.id, programId)))}
+        >
+          <Trash2 size={14} aria-hidden />
+        </ChipButton>
+      ),
+    },
   ];
 
   return (
@@ -374,12 +411,39 @@ export function ContentView({
       >
         <Cards>
           {fields.map((f) => (
-            <Card key={f.id} name={f.label}>
-              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-                {f.kind === "ranged"
-                  ? "يمتدّ في المادة — يبدأ من حيث انتهى أمس"
-                  : "عدد مستقلّ — لا يتقدّم في المادة"}
-              </p>
+            <Card
+              key={f.id}
+              name={
+                <InlineText
+                  label={`اسم الواجب ${f.label}`}
+                  value={f.label}
+                  maxInlineSize="12rem"
+                  onSave={(next) => renameTaskField(f.id, programId, next)}
+                />
+              }
+              meta={
+                <ChipButton
+                  label={`حذف الواجب ${f.label}`}
+                  disabled={busy}
+                  onClick={() => startTransition(async () => reportAction(await removeTaskField(f.id, programId)))}
+                >
+                  <Trash2 size={14} aria-hidden />
+                </ChipButton>
+              }
+            >
+              <Select
+                aria-label={`نوع الواجب ${f.label}`}
+                key={f.kind}
+                defaultValue={f.kind}
+                disabled={busy}
+                onChange={(e) => {
+                  const kind = e.target.value as FieldRow["kind"];
+                  startTransition(async () => reportAction(await setTaskFieldKind(f.id, programId, kind)));
+                }}
+              >
+                <option value="ranged">يمتدّ في المادة — يبدأ من حيث انتهى أمس</option>
+                <option value="counted">عدد مستقلّ — لا يتقدّم في المادة</option>
+              </Select>
             </Card>
           ))}
         </Cards>
@@ -443,14 +507,65 @@ export function ContentView({
       >
         <Cards>
           {templates.map((t) => (
-            <Card key={t.id} name={t.name} meta={`${formatNumber(t.fields.length)} واجب`}>
+            <Card
+              key={t.id}
+              name={
+                <InlineText
+                  label={`اسم شكل اليوم ${t.name}`}
+                  value={t.name}
+                  maxInlineSize="12rem"
+                  onSave={(next) => renameDayTemplate(t.id, programId, next)}
+                />
+              }
+              meta={
+                <ChipButton
+                  label={`حذف شكل اليوم ${t.name}`}
+                  disabled={busy}
+                  onClick={() => startTransition(async () => reportAction(await removeDayTemplate(t.id, programId)))}
+                >
+                  <Trash2 size={14} aria-hidden />
+                </ChipButton>
+              }
+            >
               {t.fields.length === 0 ? (
                 <Muted>بلا واجبات — أضِفها أدناه</Muted>
               ) : (
                 <Chips>
-                  {t.fields.map((f) => (
+                  {t.fields.map((f, index) => (
                     <Chip key={f.fieldId}>
-                      {f.label} · {formatNumber(f.amount)}
+                      {f.label}
+                      <InlineNumber
+                        label={`مقدار ${f.label} في ${t.name}`}
+                        value={f.amount}
+                        onSave={(next) => setTemplateFieldAmount(t.id, f.fieldId, programId, next)}
+                      />
+                      <ChipButton
+                        label={`تقديم ${f.label}`}
+                        disabled={busy || index === 0}
+                        onClick={() =>
+                          startTransition(async () => reportAction(await moveTemplateField(t.id, f.fieldId, programId, "up")))
+                        }
+                      >
+                        <ChevronUp size={14} aria-hidden />
+                      </ChipButton>
+                      <ChipButton
+                        label={`تأخير ${f.label}`}
+                        disabled={busy || index === t.fields.length - 1}
+                        onClick={() =>
+                          startTransition(async () => reportAction(await moveTemplateField(t.id, f.fieldId, programId, "down")))
+                        }
+                      >
+                        <ChevronDown size={14} aria-hidden />
+                      </ChipButton>
+                      <ChipButton
+                        label={`إزالة ${f.label} من ${t.name}`}
+                        disabled={busy}
+                        onClick={() =>
+                          startTransition(async () => reportAction(await removeTemplateField(t.id, f.fieldId, programId)))
+                        }
+                      >
+                        <Trash2 size={14} aria-hidden />
+                      </ChipButton>
                     </Chip>
                   ))}
                 </Chips>

@@ -13,11 +13,12 @@ import {
 } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
+import { formatDateBoth, formatNumber, formatPercent, toDateInput } from "@/lib/format";
 import { kindIsScored, kindLabel, type ProgramKind } from "@/lib/programs/kinds";
 import type { ReadinessItem } from "@/lib/programs/readiness";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
-import { archiveTrack, createTrack, setProgramStatus } from "../actions";
+import { archiveTrack, createTrack, setProgramStatus, updateProgram, updateTrack } from "../actions";
+import { InlineText } from "@/components/shared/inline-edit";
 
 export type ProgramDetail = {
   id: string;
@@ -65,16 +66,63 @@ export function ProgramView({
   canWrite: boolean;
 }) {
   const [state, action, pending] = useActionState(createTrack, EMPTY_FORM_STATE);
+  const [editState, editAction, editPending] = useActionState(updateProgram, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
 
   const columns: Column<TrackRow>[] = [
-    { key: "name", header: "المسار", sortable: true, primary: true, render: (t) => t.name },
-    { key: "description", header: "الوصف", render: (t) => t.description || "—" },
+    {
+      key: "name",
+      header: "المسار",
+      sortable: true,
+      primary: true,
+      render: (t) =>
+        canWrite ? (
+          <InlineText
+            label={`اسم المسار ${t.name}`}
+            value={t.name}
+            onSave={(name) => updateTrack(t.id, program.id, { name })}
+          />
+        ) : (
+          t.name
+        ),
+    },
+    {
+      key: "description",
+      header: "الوصف",
+      render: (t) =>
+        canWrite ? (
+          <InlineText
+            label={`وصف المسار ${t.name}`}
+            value={t.description}
+            allowEmpty
+            maxInlineSize="22rem"
+            onSave={(description) => updateTrack(t.id, program.id, { description })}
+          />
+        ) : (
+          t.description || "—"
+        ),
+    },
     {
       key: "capacity",
       header: "السعة",
       align: "end",
-      render: (t) => (t.capacity === null ? "بلا سقف" : formatNumber(t.capacity)),
+      render: (t) =>
+        canWrite ? (
+          <InlineText
+            label={`سعة المسار ${t.name} — فارغة لبلا سقف`}
+            value={t.capacity === null ? "" : String(t.capacity)}
+            allowEmpty
+            latin
+            maxInlineSize="6rem"
+            onSave={(raw) =>
+              updateTrack(t.id, program.id, { capacity: raw === "" ? null : Number(raw) })
+            }
+          />
+        ) : t.capacity === null ? (
+          "بلا سقف"
+        ) : (
+          formatNumber(t.capacity)
+        ),
     },
     ...(canWrite
       ? [
@@ -208,6 +256,121 @@ export function ProgramView({
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {canWrite ? (
+        <details style={{ marginBlockEnd: "var(--space-8)" }}>
+          <summary style={{ cursor: "pointer", fontWeight: "var(--weight-medium)" }}>
+            عدّل بيانات البرنامج
+          </summary>
+          <StepForm title="بيانات البرنامج" action={editAction}>
+            <input type="hidden" name="programId" value={program.id} />
+            <Field id="pname" label="الاسم" required error={editState.fieldErrors?.["name"]}>
+              <Input id="pname" name="name" defaultValue={program.name} required />
+            </Field>
+            <Field id="psummary" label="النبذة">
+              <Textarea id="psummary" name="summary" rows={2} defaultValue={program.summary} />
+            </Field>
+            <Field
+              id="pslug"
+              label="رابط الصفحة المعلنة"
+              hint={
+                program.status === "draft"
+                  ? "بحروف لاتينية صغيرة وأرقام وشرطات"
+                  : "لا يتغيّر بعد النشر — من حفظه يصل إلى صفحة غير موجودة"
+              }
+              error={editState.fieldErrors?.["slug"]}
+            >
+              <Input
+                id="pslug"
+                name="slug"
+                defaultValue={program.slug}
+                latin
+                disabled={program.status !== "draft"}
+              />
+            </Field>
+            <Field
+              id="plabel"
+              label="مسمّى المشارك"
+              required
+              error={editState.fieldErrors?.["participantLabel"]}
+            >
+              <Input id="plabel" name="participantLabel" defaultValue={program.participantLabel} required />
+            </Field>
+            <Field id="pcap" label="السعة" hint="اتركها فارغة لبلا سقف" error={editState.fieldErrors?.["capacity"]}>
+              <Input
+                id="pcap"
+                name="capacity"
+                numeric
+                latin
+                defaultValue={program.capacity === null ? "" : String(program.capacity)}
+              />
+            </Field>
+            <Field id="popens" label="فتح التسجيل" hint="اختياري">
+              <Input
+                id="popens"
+                name="registrationOpensAt"
+                type="date"
+                latin
+                defaultValue={program.opensAt ? toDateInput(program.opensAt) : ""}
+              />
+            </Field>
+            <Field
+              id="pcloses"
+              label="إغلاق التسجيل"
+              hint="اختياري"
+              error={editState.fieldErrors?.["registrationClosesAt"]}
+            >
+              <Input
+                id="pcloses"
+                name="registrationClosesAt"
+                type="date"
+                latin
+                defaultValue={program.closesAt ? toDateInput(program.closesAt) : ""}
+              />
+            </Field>
+            {kindIsScored(program.kind) ? (
+              <>
+                <Field
+                  id="ppass"
+                  label="نسبة الاجتياز (٪)"
+                  required
+                  error={editState.fieldErrors?.["passingPercentage"]}
+                >
+                  <Input
+                    id="ppass"
+                    name="passingPercentage"
+                    numeric
+                    latin
+                    defaultValue={program.passingPercentage ?? ""}
+                    required
+                  />
+                </Field>
+                <Field
+                  id="paward"
+                  label="نسبة استحقاق الجوائز (٪)"
+                  required
+                  error={editState.fieldErrors?.["awardPercentage"]}
+                >
+                  <Input
+                    id="paward"
+                    name="awardPercentage"
+                    numeric
+                    latin
+                    defaultValue={program.awardPercentage ?? ""}
+                    required
+                  />
+                </Field>
+              </>
+            ) : null}
+            <FormActions>
+              <Button type="submit" variant="primary" pending={editPending}>
+                احفظ
+              </Button>
+            </FormActions>
+            <Messages state={editState} />
+          </StepForm>
+        </details>
       ) : null}
 
       <Step
