@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
-import { withinRateLimit } from "@/lib/auth/rate-limit";
+import { clearRateLimit, withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";
 import { signInSchema } from "@/lib/validation/auth";
 
@@ -27,6 +27,7 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
   // أي البُرد مسجَّلة عندنا، وهو تسريب لا يخدم أحداً إلا من يعدّ الحسابات.
   if (error) return { error: "بيانات الدخول غير صحيحة." };
 
+  await clearRateLimit("auth.login", parsed.data.email);
   redirect(safeNext(form.get("next")));
 }
 

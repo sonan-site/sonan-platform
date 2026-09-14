@@ -21,6 +21,12 @@ describe("وجهة ما بعد الدخول", () => {
     expect(safeNext("/" + String.fromCharCode(92) + "evil.example")).toBe("/dashboard");
   });
 
+  it("**المحارف الخفية تُردّ** — المتصفّح يحذفها فتصير `/\\t/evil` عنواناً خارجياً", () => {
+    for (const hidden of [9, 10, 13]) {
+      expect(safeNext("/" + String.fromCharCode(hidden) + "/evil.example")).toBe("/dashboard");
+    }
+  });
+
   it("العنوان المطلق يُردّ", () => {
     expect(safeNext("https://evil.example")).toBe("/dashboard");
     expect(safeNext("javascript:alert(1)")).toBe("/dashboard");

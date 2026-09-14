@@ -73,7 +73,7 @@ export function RolesView({
             render: (a: AssignmentRow) => (
               <Button
                 pending={busy}
-                onClick={() => startTransition(async () => void (await revokeRole(a.id, a.userId)))}
+                onClick={() => startTransition(async () => void (await revokeRole(a.id)))}
               >
                 سحب
               </Button>

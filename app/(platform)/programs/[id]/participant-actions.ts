@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
-import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
 import { type ParticipantStatus } from "@/lib/programs/kinds";
@@ -76,12 +75,16 @@ export async function removeAdmissionQuestion(
   });
   if (!authz.ok) return { error: authz.message };
 
+  // المورد يُقيَّد ببرنامج التصريح: بلا هذا القيد يُقبل تصريحٌ في برنامج لحذف سؤال في غيره.
   const db = await createClient();
-  const { error } = await db
+  const { data, error } = await db
     .from("admission_questions")
     .update({ deleted_at: nowIso() })
-    .eq("id", questionId);
-  if (error) return { error: "تعذّر حذف السؤال." };
+    .eq("id", questionId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حذف السؤال." };
 
   revalidatePath(`/programs/${programId}`);
   return EMPTY_FORM_STATE;
@@ -119,9 +122,11 @@ export async function requestTrackChange(_prev: FormState, form: FormData): Prom
     .from("participants")
     .select("id, track_id")
     .eq("id", parsed.data.participantId)
+    .eq("program_id", parsed.data.programId)
     .maybeSingle();
 
-  if (!participant?.track_id) return { error: "المشارك بلا مسار حالي." };
+  if (!participant) return { error: "المشارك غير موجود في هذا البرنامج." };
+  if (!participant.track_id) return { error: "المشارك بلا مسار حالي." };
   if (participant.track_id === parsed.data.toTrackId) {
     return { error: "المسار الجديد هو نفسه الحالي." };
   }
@@ -130,10 +135,13 @@ export async function requestTrackChange(_prev: FormState, form: FormData): Prom
   const { data: tracks } = await db
     .from("tracks")
     .select("id, sort_order")
+    .eq("program_id", parsed.data.programId)
+    .is("deleted_at", null)
     .in("id", [participant.track_id, parsed.data.toTrackId]);
 
   const from = tracks?.find((t) => t.id === participant.track_id);
   const to = tracks?.find((t) => t.id === parsed.data.toTrackId);
+  if (!to) return { fieldErrors: { toTrackId: "المسار ليس من هذا البرنامج" } };
   const direction = (to?.sort_order ?? 0) > (from?.sort_order ?? 0) ? "up" : "down";
 
   const { error } = await db.from("track_change_requests").insert({
@@ -161,38 +169,37 @@ export async function decideTrackChange(
   programId: string,
   decision: "approved" | "rejected",
 ): Promise<FormState> {
-  const denied = await guardParticipants(programId);
-  if (denied) return denied;
+  /**
+   * **القبول موقوف حتى يُحسم م-٤** (`docs/open-questions.md`): قبول النقلة اليوم
+   * يُعيد المشارك إلى أول المسار الجديد ويُخفي تاريخه، والراعي لم يقرّر أهذا
+   * المقصود. والرفض لا أثر له على التقدّم فيبقى متاحاً.
+   */
+  if (decision === "approved") {
+    return { error: "قبول تغيير المسار غير متاح حتى يُحسم أثره على تقدّم المشارك." };
+  }
 
-  const session = await getSession();
-  if (session.status !== "active") return { error: "لا جلسة." };
+  const authz = await authorizeRequest({ permission: "participants.write", programId });
+  if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
+  // الطلب يُقيَّد ببرنامج التصريح عبر مشاركه — لا يُبتّ في طلبٍ من برنامج آخر.
   const { data: request } = await db
     .from("track_change_requests")
-    .select("id, participant_id, to_track_id, baseline_percentage, status")
+    .select("id, status, participants!inner(program_id)")
     .eq("id", requestId)
+    .eq("participants.program_id", programId)
     .maybeSingle();
 
   if (!request) return { error: "الطلب غير موجود." };
   if (request.status !== "pending") return { error: "الطلب مبتوت فيه سلفاً." };
 
-  const { error } = await db
+  const { data, error } = await db
     .from("track_change_requests")
-    .update({ status: decision, decided_by: session.userId, decided_at: nowIso() })
-    .eq("id", requestId);
-  if (error) return { error: "تعذّر حفظ القرار." };
-
-  // بعد القبول: النسبة **نقطة انطلاق فقط**، ثم يُحسب كأي مشارك بالآلية العادية.
-  if (decision === "approved") {
-    await db
-      .from("participants")
-      .update({
-        track_id: request.to_track_id,
-        baseline_percentage: request.baseline_percentage,
-      })
-      .eq("id", request.participant_id);
-  }
+    .update({ status: decision, decided_by: authz.userId, decided_at: nowIso() })
+    .eq("id", requestId)
+    .eq("status", "pending")
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حفظ القرار." };
 
   await db.rpc("fn_write_audit", {
     p_action: `track_change_${decision}`,
@@ -220,10 +227,22 @@ export async function setParticipantStatus(
     .from("participants")
     .select("status")
     .eq("id", participantId)
+    .eq("program_id", programId)
     .maybeSingle();
+  if (!before) return { error: "المشارك غير موجود في هذا البرنامج." };
 
-  const { error } = await db.from("participants").update({ status }).eq("id", participantId);
-  if (error) return { error: "تعذّر تغيير الحالة." };
+  const { data, error } = await db
+    .from("participants")
+    .update({ status })
+    .eq("id", participantId)
+    .eq("program_id", programId)
+    .select("id");
+  if (error) {
+    return {
+      error: error.code === "23514" ? "هذه الحالة خاصة ببرامج المسابقة." : "تعذّر تغيير الحالة.",
+    };
+  }
+  if (!data?.length) return { error: "تعذّر تغيير الحالة." };
 
   await db.rpc("fn_write_audit", {
     p_action: "participant_status_changed",

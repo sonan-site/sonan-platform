@@ -161,14 +161,11 @@ export function ParticipantsView({
             render: (r: ChangeRow) =>
               r.status === "pending" ? (
                 <span style={{ display: "flex", gap: "var(--space-2)" }}>
+                  {/* القبول معطَّل حتى يُحسم أثر النقلة على تقدّم المشارك (م-٤). */}
                   <Button
                     variant="primary"
-                    pending={busy}
-                    onClick={() =>
-                      startTransition(
-                        async () => void (await decideTrackChange(r.id, programId, "approved")),
-                      )
-                    }
+                    disabled
+                    title="غير متاح حتى يُقرَّر ما يحدث لتقدّم المشارك عند نقله"
                   >
                     قبول
                   </Button>

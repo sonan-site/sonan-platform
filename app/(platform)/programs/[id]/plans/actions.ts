@@ -478,6 +478,7 @@ export async function renameExam(
     .from("exams")
     .update({ name: trimmed })
     .eq("id", examId)
+    .eq("program_id", programId)
     .is("deleted_at", null)
     .select("id");
 

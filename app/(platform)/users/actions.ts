@@ -2,12 +2,12 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
-import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
-import { revokeSessions, sendInvite } from "@/lib/mail";
+import { sendInvite, setSignInBlocked } from "@/lib/mail";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { inviteSchema } from "@/lib/validation/auth";
 
@@ -32,9 +32,14 @@ export async function inviteUser(_prev: FormState, form: FormData): Promise<Form
     return { error: "دعوات كثيرة في وقت قصير. انتظر قليلاً." };
   }
 
+  // الأصل موثوق هنا: Next يرفض إجراء الخادم إن خالف `Origin` مضيفَ الطلب.
   const origin = (await headers()).get("origin") ?? "";
-  const sent = await sendInvite(parsed.data.email, `${origin}/auth/callback?next=/activate`);
-  if (!sent.ok) return { error: `تعذّر إرسال الدعوة: ${sent.reason}` };
+  const sent = await sendInvite(parsed.data.email, `${origin}/auth/callback?next=/activate`, {
+    fullName: parsed.data.fullName,
+    phone: parsed.data.phone,
+  });
+  // سبب المزوّد لا يُعرض: نصّه إنجليزي، ويكشف إن كان البريد مسجَّلاً سلفاً.
+  if (!sent.ok) return { error: "تعذّر إرسال الدعوة. تحقّق من البريد أو أعد المحاولة بعد قليل." };
 
   const db = await createClient();
   await db.rpc("fn_write_audit", {
@@ -47,54 +52,68 @@ export async function inviteUser(_prev: FormState, form: FormData): Promise<Form
   return { notice: `أُرسلت الدعوة إلى ${parsed.data.email}.` };
 }
 
-/** الإيقاف = deleted_at + **إبطال الجلسات فوراً** (platform.md §٩). */
+/**
+ * الإيقاف طبقتان: `deleted_at` تُسقط الصلاحيات في القاعدة **في الطلب نفسه**
+ * (الهجرة ٠٢٦)، والحظر يمنع تجديد الجلسة فلا تعيش بعد عمر رمزها.
+ */
 export async function suspendUser(userId: string): Promise<FormState> {
+  if (!z.uuid().safeParse(userId).success) return { error: "مستخدم غير معروف." };
+
   const authz = await authorizeRequest({ permission: "users.write" });
   if (!authz.ok) return { error: authz.message };
 
-  const session = await getSession();
-  if (session.status === "active" && session.userId === userId) {
-    return { error: "لا توقف حسابك بنفسك." };
-  }
+  if (authz.userId === userId) return { error: "لا توقف حسابك بنفسك." };
 
   const db = await createClient();
-  const { data: before } = await db
-    .from("profiles")
-    .select("id, deleted_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const { error } = await db
+  const { data, error } = await db
     .from("profiles")
     .update({ deleted_at: nowIso() })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .select("id");
   if (error) return { error: "تعذّر إيقاف الحساب." };
+  if (!data?.length) return { error: "لم يُوقَف الحساب — ربما كان موقوفاً سلفاً." };
 
-  await revokeSessions(userId);
+  const blocked = await setSignInBlocked(userId, true);
   await db.rpc("fn_write_audit", {
     p_action: "user_suspended",
     p_entity_table: "profiles",
-    p_entity_id: before?.id ?? undefined,
-    p_before: before ?? undefined,
-    p_after: { deleted_at: "now" },
+    p_entity_id: data[0]!.id,
+    p_after: { sign_in_blocked: blocked.ok },
   });
 
   revalidatePath("/users");
-  return EMPTY_FORM_STATE;
+  // الصلاحيات سقطت على كل حال؛ ما تعذّر هو قطع الجلسة القائمة فوراً.
+  return blocked.ok
+    ? EMPTY_FORM_STATE
+    : { error: "أُوقف الحساب، لكن تعذّر قطع جلسته القائمة. ستنتهي خلال ساعة." };
 }
 
 export async function restoreUser(userId: string): Promise<FormState> {
+  if (!z.uuid().safeParse(userId).success) return { error: "مستخدم غير معروف." };
+
   const authz = await authorizeRequest({ permission: "users.write" });
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
-  const { error } = await db.from("profiles").update({ deleted_at: null }).eq("user_id", userId);
+  const { data, error } = await db
+    .from("profiles")
+    .update({ deleted_at: null })
+    .eq("user_id", userId)
+    .not("deleted_at", "is", null)
+    .select("id");
   if (error) return { error: "تعذّر إعادة تفعيل الحساب." };
+  if (!data?.length) return { error: "لم يُعَد تفعيل الحساب — ربما كان نشطاً." };
+
+  const unblocked = await setSignInBlocked(userId, false);
+  if (!unblocked.ok) {
+    return { error: "أُعيد تفعيل الحساب، لكن تعذّر رفع منع الدخول. أعد المحاولة." };
+  }
 
   await db.rpc("fn_write_audit", {
     p_action: "user_restored",
     p_entity_table: "profiles",
-    p_after: { user_id: userId },
+    p_entity_id: data[0]!.id,
   });
 
   revalidatePath("/users");

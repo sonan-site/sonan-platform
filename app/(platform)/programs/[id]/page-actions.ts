@@ -85,11 +85,14 @@ export async function removeBlock(blockId: string, programId: string): Promise<F
   if (denied) return denied;
 
   const db = await createClient();
-  const { error } = await db
+  const { data, error } = await db
     .from("page_blocks")
     .update({ deleted_at: nowIso() })
-    .eq("id", blockId);
-  if (error) return { error: "تعذّر حذف العنصر." };
+    .eq("id", blockId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حذف العنصر." };
 
   await db.rpc("fn_write_audit", {
     p_action: "page_block_removed",
@@ -125,8 +128,9 @@ export async function moveBlock(
 
   const a = list[index]!;
   const b = list[target]!;
-  await db.from("page_blocks").update({ sort_order: b.sort_order }).eq("id", a.id);
-  await db.from("page_blocks").update({ sort_order: a.sort_order }).eq("id", b.id);
+  const first = await db.from("page_blocks").update({ sort_order: b.sort_order }).eq("id", a.id);
+  const second = await db.from("page_blocks").update({ sort_order: a.sort_order }).eq("id", b.id);
+  if (first.error || second.error) return { error: "تعذّر تحريك العنصر." };
 
   revalidatePath(`/programs/${programId}`);
   return EMPTY_FORM_STATE;
@@ -164,8 +168,13 @@ export async function setHelpStatus(
   if (denied) return denied;
 
   const db = await createClient();
-  const { error } = await db.from("help_entries").update({ status }).eq("id", entryId);
-  if (error) return { error: "تعذّر تغيير حالة النشر." };
+  const { data, error } = await db
+    .from("help_entries")
+    .update({ status })
+    .eq("id", entryId)
+    .eq("program_id", programId)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر تغيير حالة النشر." };
 
   revalidatePath(`/programs/${programId}`);
   return EMPTY_FORM_STATE;

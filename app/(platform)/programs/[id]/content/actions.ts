@@ -132,11 +132,22 @@ export async function removeTrackRange(rangeId: string, programId: string): Prom
   if (denied) return denied;
 
   const db = await createClient();
-  const { error } = await db
+  // المقطع يُقيَّد ببرنامج التصريح عبر مساره قبل أن يُمسّ.
+  const { data: owned } = await db
+    .from("track_content_ranges")
+    .select("id, tracks!inner(program_id)")
+    .eq("id", rangeId)
+    .eq("tracks.program_id", programId)
+    .maybeSingle();
+  if (!owned) return { error: "تعذّر حذف المقطع." };
+
+  const { data, error } = await db
     .from("track_content_ranges")
     .update({ deleted_at: nowIso() })
-    .eq("id", rangeId);
-  if (error) return { error: "تعذّر حذف المقطع." };
+    .eq("id", rangeId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حذف المقطع." };
 
   revalidatePath(`/programs/${programId}/content`);
   return EMPTY_FORM_STATE;

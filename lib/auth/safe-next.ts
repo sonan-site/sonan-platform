@@ -15,6 +15,10 @@ export const DEFAULT_LANDING = "/dashboard";
 
 export function safeNext(raw: unknown): string {
   const value = typeof raw === "string" ? raw : "";
+  // المتصفّح يحذف المحارف الخفية قبل قراءة العنوان، فـ`/\t/evil` تصير `//evil`.
+  if ([...value].some((ch) => ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127)) {
+    return DEFAULT_LANDING;
+  }
   if (!value.startsWith("/")) return DEFAULT_LANDING;
   if (value.startsWith("//") || value.startsWith("/\\")) return DEFAULT_LANDING;
   return value;

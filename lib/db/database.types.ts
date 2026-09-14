@@ -1261,6 +1261,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_bootstrap_admin: {
         Args: { p_full_name: string; p_phone: string; p_user_id: string }
         Returns: string
@@ -1354,7 +1355,9 @@ export type Database = {
         Args: { p_bucket: string; p_setting_prefix: string }
         Returns: boolean
       }
+      fn_rate_limit_clear: { Args: { p_bucket: string }; Returns: undefined }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
+      fn_role_is_system: { Args: { p_role_id: string }; Returns: boolean }
       fn_submit_day: {
         Args: { p_done_fields: string[]; p_plan_day_id: string }
         Returns: number

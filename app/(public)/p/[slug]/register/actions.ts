@@ -46,7 +46,9 @@ export async function registerInProgram(
   }
 
   const trackRaw = form.get("trackId");
-  const trackId = trackRaw ? String(trackRaw) : null;
+  const trackParsed = z.uuid().nullable().safeParse(trackRaw ? String(trackRaw) : null);
+  if (!trackParsed.success) return { error: "مسار غير معروف." };
+  const trackId = trackParsed.data;
 
   // ── الأسئلة الإلزامية تُفحَص قبل الإنشاء، لا بعده ──
   const { data: questions } = await db
@@ -59,6 +61,9 @@ export async function registerInProgram(
   for (const [key, value] of form.entries()) {
     const match = answerKey.exec(key);
     if (match?.[1]) answers.set(match[1], String(value).trim());
+  }
+  if ([...answers.values()].some((a) => a.length > 2000)) {
+    return { error: "إحدى الإجابات أطول من المسموح (٢٠٠٠ حرف)." };
   }
 
   const applicable = (questions ?? []).filter(
@@ -81,12 +86,12 @@ export async function registerInProgram(
 
   if (error) {
     // 23505 = مسجَّل سلفاً. الفهرس الفريد هو من يمنع التكرار، لا فحصٌ سابق قد يسبقه غيره.
-    return {
-      error:
-        error.code === "23505"
-          ? "أنت مسجَّل في هذا البرنامج بالفعل."
-          : "تعذّر إتمام التسجيل. أعد المحاولة.",
-    };
+    // 23514 = اكتمل العدد أو المسار غير متاح — والقاعدة تسمّي أيّهما.
+    if (error.code === "23505") return { error: "أنت مسجَّل في هذا البرنامج بالفعل." };
+    if (error.code === "23514" && /اكتمل العدد|غير متاح/.test(error.message)) {
+      return { error: `${error.message}.` };
+    }
+    return { error: "تعذّر إتمام التسجيل. أعد المحاولة." };
   }
 
   const rows = applicable
@@ -97,7 +102,13 @@ export async function registerInProgram(
       answer: answers.get(q.id)!,
     }));
 
-  if (rows.length > 0) await db.from("admission_answers").insert(rows);
+  // تسجيلٌ بلا إجاباته قبولٌ بلا شرطه — فالفشل هنا لا يُتجاوَز بصمت.
+  if (rows.length > 0) {
+    const saved = await db.from("admission_answers").insert(rows);
+    if (saved.error) {
+      return { error: "سُجِّلت، لكن تعذّر حفظ إجاباتك. تواصل مع إدارة البرنامج." };
+    }
+  }
 
   await db.rpc("fn_write_audit", {
     p_action: "participant_registered",

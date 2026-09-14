@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
-import { revokeSessions } from "@/lib/mail";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { assignRoleSchema } from "@/lib/validation/auth";
 
@@ -38,12 +38,13 @@ export async function assignRole(_prev: FormState, form: FormData): Promise<Form
     // رفض السياسة = محاولة منح ما لا يملكه المُسنِد، أو منح نفسه.
     return {
       error:
-        "رفضت القاعدة الإسناد: لا تمنح نفسك دوراً، ولا تمنح صلاحية لا تملكها.",
+        error.code === "23505"
+          ? "هذا الدور مُسنَد له سلفاً."
+          : "تعذّر إسناد الدور: لا تمنح نفسك دوراً، ولا دوراً فيه صلاحية لا تملكها.",
     };
   }
 
-  // تغيير الدور ينفذ فوراً؛ وإبطال الجلسات يجعله محسوساً في الرمز أيضاً.
-  await revokeSessions(parsed.data.userId);
+  // لا إبطال جلسات: الصلاحيات تُقرأ حيّة من القاعدة في كل طلب، فالتغيير ينفذ فوراً.
   await db.rpc("fn_write_audit", {
     p_action: "role_assigned",
     p_entity_table: "user_roles",
@@ -54,19 +55,24 @@ export async function assignRole(_prev: FormState, form: FormData): Promise<Form
   return { notice: "أُسنِد الدور." };
 }
 
-export async function revokeRole(assignmentId: string, userId: string): Promise<FormState> {
+export async function revokeRole(assignmentId: string): Promise<FormState> {
+  if (!z.uuid().safeParse(assignmentId).success) return { error: "إسناد غير معروف." };
+
   const authz = await authorizeRequest({ permission: "roles.assign" });
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
-  const { error } = await db
+  const { data, error } = await db
     .from("user_roles")
     .update({ deleted_at: nowIso() })
-    .eq("id", assignmentId);
+    .eq("id", assignmentId)
+    .is("deleted_at", null)
+    .select("id");
 
-  if (error) return { error: "رفضت القاعدة السحب." };
+  if (error || !data?.length) {
+    return { error: "تعذّر سحب الدور: لا تسحب دورك أنت، ولا دوراً فيه صلاحية لا تملكها." };
+  }
 
-  await revokeSessions(userId);
   await db.rpc("fn_write_audit", {
     p_action: "role_revoked",
     p_entity_table: "user_roles",

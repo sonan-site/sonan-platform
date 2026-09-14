@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 
 /**
@@ -7,7 +8,7 @@ import { createClient } from "@/lib/db/server";
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const code = request.nextUrl.searchParams.get("code");
-  const next = request.nextUrl.searchParams.get("next") ?? "/";
+  const next = safeNext(request.nextUrl.searchParams.get("next"));
 
   const target = request.nextUrl.clone();
   target.search = "";
@@ -21,8 +22,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const db = await createClient();
   const { error } = await db.auth.exchangeCodeForSession(code);
 
-  // المسار النسبي وحده يُقبل — رابط خارجي في `next` تحويلٌ مفتوح.
-  target.pathname = error ? "/sign-in" : next.startsWith("/") ? next : "/";
-  if (error) target.searchParams.set("error", "انتهت صلاحية الرابط. اطلب رابطاً جديداً.");
-  return NextResponse.redirect(target);
+  if (error) {
+    target.pathname = "/sign-in";
+    target.searchParams.set("error", "انتهت صلاحية الرابط. اطلب رابطاً جديداً.");
+    return NextResponse.redirect(target);
+  }
+
+  // الوجهة تمرّ بالقاعدة نفسها التي يمرّ بها الدخول — لا نسخة ثانية منها هنا.
+  return NextResponse.redirect(new URL(next, request.nextUrl.origin));
 }
