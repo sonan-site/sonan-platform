@@ -19,11 +19,14 @@ describe("حدّ الوعاء — الكتالوج", () => {
     expect(withExams).toEqual(["competition"]);
   });
 
-  it("النمط غير المبنيّ يقول ما لا يعطيك — لا وسم «محجوز» غامض", () => {
+  it("وصف النمط يقول ما فيه — بلا وعد ولا اعتذار ولا رمز تنسيق", () => {
     for (const code of PROGRAM_KIND_CODES) {
-      const entry = PROGRAM_KINDS[code];
-      if (entry.built) continue;
-      expect(entry.lede, code).toContain("لم تُبنَ");
+      const { lede } = PROGRAM_KINDS[code];
+      expect(lede, code).not.toMatch(/لم تُبن|لم يُبن|لاحقاً|بعد\b|\*\*/);
+      // ما يخصّ المسابقة لا يُنسب لغيرها.
+      expect(lede.includes("اختبارات") && !lede.includes("بلا اختبارات"), code).toBe(
+        kindAllowsExams(code),
+      );
     }
   });
 

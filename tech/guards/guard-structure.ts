@@ -14,11 +14,36 @@ import { scan, type Finding, type Guard } from "./harness.ts";
  */
 const SELF = "tech/guards/";
 
+/** ما لا يظهر في نصّ للمستخدم — وسببه. */
+const UI_FORBIDDEN: [RegExp, string][] = [
+  [/adr\/\d/, "مرجع قرار معماري"],
+  [/\bBR-[A-Z]+-\d/, "رمز قاعدة عمل"],
+  [/المرحلة الثانية/, "وعدٌ بمرحلة قادمة"],
+  [/لاحقاً|قريباً/, "وعدٌ بما سيأتي"],
+  [/لم يُبنَ|لم تُبنَ|لم يُبن|لم تُبن|يُبنى مع|قيد البناء/, "إعلانٌ عن غير المبني"],
+  [/["'`][^"'`]*\*\*[^"'`]*["'`]/, "رمز تنسيق ** يظهر حرفياً"],
+];
+
+/**
+ * ينزع التعليقات ويُبقي الأسطر في مواضعها — فرقم السطر في البلاغ صحيح.
+ * تقريبيّ عمداً: `//` بعد `:` (عنوان) أو داخل نصّ لا يُعدّ تعليقاً.
+ */
+function stripComments(text: string): string {
+  const blank = (m: string) => m.replace(/[^\n]/g, " ");
+  // `\r` يُنزع أولاً: في ملفات نهايات Windows لا يطابق `.` ما قبله فيبقى التعليق.
+  return text
+    .replace(/\r/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+    .split(String.fromCharCode(10))
+    .map((line) => line.replace(/(^|[^:"'`\\])\/\/.*$/, "$1"))
+    .join(String.fromCharCode(10));
+}
+
 export const guardStructure: Guard = {
   name: "guard-structure",
   claim:
     "يكشف: <table> خام · تخطيط موضعي · <nav> خارج مصدره · تصدير غير دالّة من " +
-    "ملف \"use server\" · قراءة الإنجاز صفوفاً خاماً في شاشة. لا يكشف: صحّة استخدام الجامع.",
+    "ملف \"use server\" · قراءة الإنجاز صفوفاً خاماً · شرحٌ برمجي أو وعدٌ في نصّ الواجهة · Zod بلا مدخله العربي. لا يكشف: جودة الصياغة ولا صحّة استخدام الجامع.",
 
   run(files) {
     const findings: Finding[] = [];
@@ -72,6 +97,43 @@ export const guardStructure: Guard = {
             "التشغيل ولا يكشفه البناء — انقل القيمة إلى وحدة عادية.",
         });
       });
+    }
+
+    // ── لا شرح برمجي ولا وعود فيما يراه المستخدم ──
+    // «المرحلة الثانية» و«لم تُبنَ بعد» و`adr/0022` كانت تُعرض للمُعِدّ والمشارك.
+    // ما لم يُبنَ لا يُعرض ولا يُعتذر عنه، ورموز التوثيق للمطوّر لا للشاشة.
+    // يُفحص النصّ **بعد نزع التعليقات** — فالتعليق يبقى حرّاً في مراجعه.
+    for (const f of files) {
+      if (f.ext !== ".ts" && f.ext !== ".tsx") continue;
+      const inScope = f.path.startsWith("app/") || f.path.startsWith("components/") || f.path.startsWith("lib/");
+      if (!inScope || /\.(db-)?test\.tsx?$/.test(f.path)) continue;
+
+      stripComments(f.text)
+        .split(String.fromCharCode(10))
+        .forEach((line, index) => {
+          for (const [pattern, what] of UI_FORBIDDEN) {
+            if (!pattern.test(line)) continue;
+            findings.push({
+              rule: "dev-text-in-ui",
+              file: f.path,
+              line: index + 1,
+              message: `${what} في نصّ قد يراه المستخدم. اكتب ما هو موجود بلغة الشاشة، أو انقله إلى تعليق.`,
+            });
+          }
+        });
+    }
+
+    // ── Zod من مدخله العربي وحده ──
+    // استيراده مباشرة يتجاوز إعداد الرسائل العربية، فتظهر تحت الحقل رسالة
+    // إنجليزية. `lib/env.ts` خارجها: رسائله لمن يُشغّل الخادم لا للمستخدم.
+    for (const f of files) {
+      if (f.ext !== ".ts" && f.ext !== ".tsx") continue;
+      if (f.path === "lib/validation/z.ts" || f.path === "lib/env.ts" || f.path.startsWith(SELF)) continue;
+      findings.push(
+        ...scan(f, /from\s+["']zod["']/, "zod-direct-import", () =>
+          "استيراد zod مباشرة. استورد z من @/lib/validation/z لتبقى رسائل التحقق عربية.",
+        ),
+      );
     }
 
     // ── الإنجاز لا يُقرأ صفوفاً خاماً في الشاشات ──

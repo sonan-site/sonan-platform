@@ -1,10 +1,11 @@
 "use client";
 
+import { reportAction } from "@/components/shared/action-notice";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { BLOCK_CATEGORY, BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
+import { BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
 import {
   addAdmissionQuestion,
   removeAdmissionQuestion,
@@ -24,6 +25,13 @@ export type AdmissionRow = {
   question: string;
   required: boolean;
   trackName: string | null;
+};
+
+/** تلميح العناصر التي تُملأ من بيانات البرنامج نفسه. */
+const BLOCK_HINT: Partial<Record<BlockType, string>> = {
+  tracks: "تُعرض مسارات البرنامج كما أدخلتها",
+  faq: "تُعرض الأسئلة الشائعة المنشورة أدناه",
+  registration: "يُفتح الزر حين يكون التسجيل مفتوحاً",
 };
 
 const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-6)" } as const;
@@ -72,7 +80,7 @@ export function PageBuilder({
     <>
       <h2 style={H2}>الصفحة المعلنة</h2>
       <p style={META}>
-        الأنواع مغلقة والتركيب حرّ: أي عدد من أي نوع بأي ترتيب، ويجوز تكرار النوع الواحد.
+        ما يراه الزائر حين يفتح رابط البرنامج. أضف العناصر ورتّبها كما تشاء، ويجوز تكرار النوع.
       </p>
 
       <div style={LIST}>
@@ -89,7 +97,7 @@ export function PageBuilder({
                   disabled={i === 0}
                   pending={busy}
                   onClick={() =>
-                    startTransition(async () => void (await moveBlock(b.id, programId, "up")))
+                    startTransition(async () => reportAction(await moveBlock(b.id, programId, "up")))
                   }
                 >
                   <ChevronUp size={ICON} aria-hidden />
@@ -99,7 +107,7 @@ export function PageBuilder({
                   disabled={i === blocks.length - 1}
                   pending={busy}
                   onClick={() =>
-                    startTransition(async () => void (await moveBlock(b.id, programId, "down")))
+                    startTransition(async () => reportAction(await moveBlock(b.id, programId, "down")))
                   }
                 >
                   <ChevronDown size={ICON} aria-hidden />
@@ -109,7 +117,7 @@ export function PageBuilder({
                   variant="danger"
                   pending={busy}
                   onClick={() =>
-                    startTransition(async () => void (await removeBlock(b.id, programId)))
+                    startTransition(async () => reportAction(await removeBlock(b.id, programId)))
                   }
                 >
                   <Trash2 size={ICON} aria-hidden />
@@ -135,10 +143,10 @@ export function PageBuilder({
               onChange={(e) => setType(e.target.value as BlockType)}
               required
             >
-              {BLOCK_TYPES.map((t) => (
+              {/* الصورة لا تُعرض دون رفع الصور، فلا تُعرض خياراً. */}
+              {BLOCK_TYPES.filter((t) => t !== "image").map((t) => (
                 <option key={t} value={t}>
                   {BLOCK_LABEL[t]}
-                  {BLOCK_CATEGORY[t] === "data" ? " — مولَّد" : ""}
                 </option>
               ))}
             </Select>
@@ -166,28 +174,11 @@ export function PageBuilder({
             </>
           ) : null}
 
-          {type === "image" ? (
-            <>
-              <Field
-                id="attachmentId"
-                label="معرّف الصورة"
-                required
-                hint="رفع الصور يُبنى مع المرفقات — حتى ذلك الحين يُتخطّى العنصر في العرض"
-                error={blockState.fieldErrors?.["attachmentId"]}
-              >
-                <Input id="attachmentId" name="attachmentId" latin required />
-              </Field>
-              <Field id="alt" label="وصف الصورة" hint="لقارئ الشاشة">
-                <Input id="alt" name="alt" />
-              </Field>
-            </>
-          ) : null}
-
           {type === "tracks" || type === "faq" || type === "registration" ? (
             <Field
               id="heading"
               label="العنوان"
-              hint="بيانات هذا العنصر مولَّدة — لا يُدخَل محتواه يدوياً"
+              hint={BLOCK_HINT[type]}
             >
               <Input id="heading" name="heading" />
             </Field>
@@ -207,8 +198,8 @@ export function PageBuilder({
         </form>
       </section>
 
-      <h2 style={H2}>سجل المساعدة</h2>
-      <p style={META}>مصدر عنصر الأسئلة الشائعة. المنشور منها وحده يظهر للعموم.</p>
+      <h2 style={H2}>الأسئلة الشائعة</h2>
+      <p style={META}>تظهر في عنصر «الأسئلة الشائعة» بالصفحة. المنشور منها وحده يراه الزائر.</p>
 
       <div style={LIST}>
         {help.length === 0 ? (
@@ -224,7 +215,7 @@ export function PageBuilder({
                   onClick={() =>
                     startTransition(
                       async () =>
-                        void (await setHelpStatus(
+                        reportAction(await setHelpStatus(
                           h.id,
                           programId,
                           h.published ? "draft" : "published",
@@ -242,7 +233,7 @@ export function PageBuilder({
 
       <h2 style={H2}>أسئلة القبول التلقائي</h2>
       <p style={META}>
-        كيان منفصل تماماً عن بنك الأسئلة. إكمال الإلزامية منها = قبول فوري بلا مراجعة.
+        يجيب عنها المتقدّم عند التسجيل. من أجاب عن الإلزامية منها قُبل فوراً.
       </p>
 
       <div style={LIST}>
@@ -262,7 +253,7 @@ export function PageBuilder({
                   pending={busy}
                   onClick={() =>
                     startTransition(
-                      async () => void (await removeAdmissionQuestion(q.id, programId)),
+                      async () => reportAction(await removeAdmissionQuestion(q.id, programId)),
                     )
                   }
                 >

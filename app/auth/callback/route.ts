@@ -15,7 +15,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (!code) {
     target.pathname = "/sign-in";
-    target.searchParams.set("error", "رابط غير صالح أو منتهٍ.");
+    target.searchParams.set("error", "invalid-link");
     return NextResponse.redirect(target);
   }
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (error) {
     target.pathname = "/sign-in";
-    target.searchParams.set("error", "انتهت صلاحية الرابط. اطلب رابطاً جديداً.");
+    target.searchParams.set("error", "expired-link");
     return NextResponse.redirect(target);
   }
 

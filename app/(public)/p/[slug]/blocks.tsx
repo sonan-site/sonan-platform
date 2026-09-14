@@ -132,11 +132,7 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
               {REGISTRATION_LABEL[data.registration]}
             </span>
           )}
-          <span className={styles.hint}>
-            {open
-              ? "يتطلب حساباً — يُنشأ في الخطوة التالية"
-              : "تابع إعلانات الجمعية لمعرفة موعد الفتح"}
-          </span>
+          {open ? <span className={styles.hint}>التسجيل بحسابك في المنصة</span> : null}
         </div>
       );
     }

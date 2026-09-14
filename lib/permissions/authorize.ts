@@ -53,7 +53,7 @@ export async function authorize(
   // ── ١ · مصادقة ──
   const userId = await checker.currentUserId();
   if (!userId) {
-    return { ok: false, stage: "auth", message: "لا جلسة مصادَق عليها" };
+    return { ok: false, stage: "auth", message: "انتهت جلستك. سجّل الدخول من جديد." };
   }
 
   // ── ٢ · صلاحية ──
@@ -62,7 +62,8 @@ export async function authorize(
     return {
       ok: false,
       stage: "permission",
-      message: `لا تملك صلاحية ${input.permission}`,
+      // الرمز للسجل والمطوّر، والرسالة للمستخدم: لا يُعرض له `programs.write`.
+      message: "لا تملك صلاحية لهذا الإجراء.",
     };
   }
 
@@ -70,10 +71,10 @@ export async function authorize(
   // تُفحَص فقط حين يقع الفعل على مورد بعينه. وغياب البيانات **رفضٌ** لا تساهل.
   if (input.resourceProgramId !== undefined) {
     if (input.resourceProgramId === null) {
-      return { ok: false, stage: "scope", message: "المورد بلا نطاق معروف" };
+      return { ok: false, stage: "scope", message: "هذا العنصر غير موجود." };
     }
     if (programId !== null && input.resourceProgramId !== programId) {
-      return { ok: false, stage: "scope", message: "المورد خارج النطاق المصرَّح به" };
+      return { ok: false, stage: "scope", message: "لا تملك صلاحية على هذا العنصر." };
     }
   }
 
@@ -84,7 +85,7 @@ export async function authorize(
       return {
         ok: false,
         stage: "state",
-        message: input.stateMessage ?? "حالة المورد لا تسمح بهذا الفعل",
+        message: input.stateMessage ?? "لا يمكن تنفيذ هذا الإجراء الآن.",
       };
     }
   }

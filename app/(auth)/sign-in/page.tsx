@@ -17,16 +17,30 @@ export default function SignInPage() {
   );
 }
 
+/**
+ * رسائل الرابط برموز لا بنصوص: نصٌّ حرّ في العنوان يُعرض كما هو، فيصير
+ * أداة لمن يرسل رابطاً مصنوعاً برسالة يكتبها هو.
+ */
+const LINK_ERRORS: Record<string, string> = {
+  "invalid-link": "الرابط غير صالح. اطلب رابطاً جديداً.",
+  "expired-link": "انتهت صلاحية الرابط. اطلب رابطاً جديداً.",
+};
+
 function SignInForm() {
   const params = useSearchParams();
   const [state, action, pending] = useActionState(signIn, EMPTY_FORM_STATE);
+  const linkError = LINK_ERRORS[params.get("error") ?? ""];
 
   return (
     <>
       <h1 className={styles.title}>تسجيل الدخول</h1>
       <p className={styles.lede}>ادخل ببريدك وكلمة مرورك.</p>
 
-      {state.error ? <p className={styles.alert}>{state.error}</p> : null}
+      {state.error ? (
+        <p className={styles.alert}>{state.error}</p>
+      ) : linkError ? (
+        <p className={styles.alert}>{linkError}</p>
+      ) : null}
 
       <form action={action}>
         <input type="hidden" name="next" value={params.get("next") ?? DEFAULT_LANDING} />

@@ -44,7 +44,7 @@ export function registrationState(
 
 export const REGISTRATION_LABEL: Record<RegistrationState, string> = {
   unpublished: "غير منشور",
-  not_open_yet: "قريباً",
+  not_open_yet: "لم يبدأ التسجيل",
   open: "التسجيل مفتوح",
   full: "اكتمل العدد",
   closed: "مغلق",

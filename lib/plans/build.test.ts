@@ -172,12 +172,12 @@ describe("الفحص قبل الكتابة", () => {
   });
 
   it("يوم عادي بلا قالب يُرصد", () => {
-    expect(planIssues([{ ...good, dayTemplateId: null }])).toContain("اليوم 1: يوم عادي بلا قالب.");
+    expect(planIssues([{ ...good, dayTemplateId: null }])).toContain("اليوم 1: يوم عادي بلا شكل يوم.");
   });
 
   it("قالب على يوم راحة يُرصد", () => {
     expect(planIssues([{ ...good, dayType: "rest" }])).toContain(
-      "اليوم 1: قالب على يوم ليس عادياً.",
+      "اليوم 1: شكل يوم على يوم راحة أو اختبار.",
     );
   });
 
@@ -188,6 +188,6 @@ describe("الفحص قبل الكتابة", () => {
   });
 
   it("مضاعف صفر يُرصد", () => {
-    expect(planIssues([{ ...good, amountMultiplier: 0 }])).toContain("اليوم 1: مضاعف غير موجب.");
+    expect(planIssues([{ ...good, amountMultiplier: 0 }])).toContain("اليوم 1: ضِعف المقدار يجب أن يكون أكبر من صفر.");
   });
 });

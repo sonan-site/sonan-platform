@@ -1,5 +1,6 @@
 "use client";
 
+import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
@@ -91,13 +92,11 @@ export function ParticipantsView({
             aria-label="حالة المشارك"
             value={p.status}
             onChange={(e) =>
-              startTransition(async () => {
-                await setParticipantStatus(
+              startTransition(async () => reportAction(await setParticipantStatus(
                   p.id,
                   programId,
                   e.target.value as ParticipantRow["status"] as never,
-                );
-              })
+                )))
             }
           >
             {/* الحالات المسموحة تتبع نمط البرنامج — والقاعدة ترفض ما عداها. */}
@@ -108,14 +107,8 @@ export function ParticipantsView({
             ))}
           </Select>
         ) : (
-          (PARTICIPANT_STATUS_LABEL[p.status as keyof typeof PARTICIPANT_STATUS_LABEL] ?? p.status)
+          PARTICIPANT_STATUS_LABEL[p.status as keyof typeof PARTICIPANT_STATUS_LABEL] ?? "—"
         ),
-    },
-    {
-      key: "baseline",
-      header: "نقطة الانطلاق",
-      align: "end",
-      render: (p) => (p.baseline === null ? "—" : formatPercent(p.baseline / 100)),
     },
     { key: "joined", header: "منذ", render: (p) => formatDateBoth(p.joinedAt) },
   ];
@@ -142,7 +135,7 @@ export function ParticipantsView({
     { key: "reason", header: "السبب", render: (r) => r.reason },
     {
       key: "baseline",
-      header: "نقطة الانطلاق",
+      header: "تقدير المستوى",
       align: "end",
       render: (r) => formatPercent(r.baseline / 100),
     },
@@ -173,7 +166,7 @@ export function ParticipantsView({
                     pending={busy}
                     onClick={() =>
                       startTransition(
-                        async () => void (await decideTrackChange(r.id, programId, "rejected")),
+                        async () => reportAction(await decideTrackChange(r.id, programId, "rejected")),
                       )
                     }
                   >
@@ -212,7 +205,7 @@ export function ParticipantsView({
       <Step
         n={1}
         title="طلبات تغيير المسار"
-        why="قرار إداري بتقدير بشري: لا يبدّل المشارك مساره بنفسه، ولا تُحسب نسبته بمعادلة. وبعد القبول تصير النسبة نقطة انطلاق، ثم يمضي كأي مشارك."
+        why="يسجّل المُعِدّ طلب نقل المشارك إلى مسار آخر مع سببه. ولا يبدّل المشارك مساره بنفسه."
         done={requests.length === 0}
         state={
           requests.length === 0 ? (
@@ -258,9 +251,9 @@ export function ParticipantsView({
 
             <Field
               id="baselinePercentage"
-              label="نقطة الانطلاق"
+              label="تقدير مستواه (٪)"
               required
-              hint="نسبة تقديرية من ٠ إلى ١٠٠ — تُدخلها الإدارة، ولا تُحسب آلياً"
+              hint="من ٠ إلى ١٠٠ بحسب تقديرك"
               error={state.fieldErrors?.["baselinePercentage"]}
             >
               <Input id="baselinePercentage" name="baselinePercentage" numeric latin required />

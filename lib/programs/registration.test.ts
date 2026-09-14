@@ -25,7 +25,7 @@ describe("BR-CAP-01 — حالة التسجيل مشتقّة", () => {
     ).toBe("closed");
   });
 
-  it("قبل تاريخ الفتح: قريباً", () => {
+  it("قبل تاريخ الفتح: لم يبدأ التسجيل", () => {
     expect(registrationState({ ...base, opensAt: "2026-10-01T00:00:00Z" }, AT)).toBe(
       "not_open_yet",
     );

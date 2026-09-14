@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { ActionNotice } from "./action-notice";
 import { useStoredState } from "./use-stored-state";
 import {
   splitForBottomBar,
@@ -176,6 +177,7 @@ export function AppLayout({
         </header>
 
         <main className={styles.content}>{children}</main>
+        <ActionNotice />
       </div>
 
       <nav

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
@@ -78,11 +78,13 @@ export async function addContentUnits(_prev: FormState, form: FormData): Promise
 
 // ── مقاطع المسار ──
 
+const FROZEN_RANGES = "بدأ مشاركو هذا المسار الإرسال، فنصيبه من المادة لا يُعدَّل الآن.";
+
 const rangeSchema = z.object({
   programId: z.uuid(),
   trackId: z.uuid("اختر مساراً"),
-  fromSequence: z.coerce.number().int().min(1, "بداية المقطع عدد موجب"),
-  toSequence: z.coerce.number().int().min(1, "نهاية المقطع عدد موجب"),
+  fromSequence: z.coerce.number().int().min(1, "بداية النصيب رقم من ١ فأكثر"),
+  toSequence: z.coerce.number().int().min(1, "نهاية النصيب رقم من ١ فأكثر"),
   sortOrder: z.coerce.number().int().min(0).default(0),
 });
 
@@ -118,13 +120,15 @@ export async function addTrackRange(_prev: FormState, form: FormData): Promise<F
   if (error) {
     return {
       error: /exclusion|overlap/i.test(error.message)
-        ? "المقطع يتداخل مع مقطع قائم في المسار نفسه. المقاطع لا تتقاطع."
-        : "تعذّر إضافة المقطع.",
+        ? "هذا النصيب يتداخل مع نصيب آخر لهذا المسار. اختر أرقاماً لا تتقاطع معه."
+        : /ذوو إنجاز/.test(error.message)
+          ? FROZEN_RANGES
+          : "تعذّر إضافة النصيب.",
     };
   }
 
   revalidatePath(`/programs/${parsed.data.programId}/content`);
-  return { notice: "أُضيف المقطع." };
+  return { notice: "أُضيف النصيب." };
 }
 
 export async function removeTrackRange(rangeId: string, programId: string): Promise<FormState> {
@@ -139,7 +143,7 @@ export async function removeTrackRange(rangeId: string, programId: string): Prom
     .eq("id", rangeId)
     .eq("tracks.program_id", programId)
     .maybeSingle();
-  if (!owned) return { error: "تعذّر حذف المقطع." };
+  if (!owned) return { error: "تعذّر حذف النصيب." };
 
   const { data, error } = await db
     .from("track_content_ranges")
@@ -147,7 +151,8 @@ export async function removeTrackRange(rangeId: string, programId: string): Prom
     .eq("id", rangeId)
     .is("deleted_at", null)
     .select("id");
-  if (error || !data?.length) return { error: "تعذّر حذف المقطع." };
+  if (error && /ذوو إنجاز/.test(error.message)) return { error: FROZEN_RANGES };
+  if (error || !data?.length) return { error: "تعذّر حذف النصيب." };
 
   revalidatePath(`/programs/${programId}/content`);
   return EMPTY_FORM_STATE;
@@ -157,7 +162,7 @@ export async function removeTrackRange(rangeId: string, programId: string): Prom
 
 const fieldSchema = z.object({
   programId: z.uuid(),
-  label: z.string().trim().min(2, "مسمّى الحقل مطلوب"),
+  label: z.string().trim().min(2, "اسم الواجب مطلوب"),
   kind: z.enum(["ranged", "counted"]),
   sortOrder: z.coerce.number().int().min(0).default(0),
 });
@@ -183,19 +188,19 @@ export async function addTaskField(_prev: FormState, form: FormData): Promise<Fo
   });
   if (error) {
     return {
-      error: error.code === "23505" ? "مسمّى مستخدَم سلفاً في هذا البرنامج." : "تعذّر إضافة الحقل.",
+      error: error.code === "23505" ? "هذا الاسم مستخدَم لواجب آخر في البرنامج." : "تعذّر إضافة الواجب.",
     };
   }
 
   revalidatePath(`/programs/${parsed.data.programId}/content`);
-  return { notice: "أُضيف الحقل." };
+  return { notice: "أُضيف الواجب." };
 }
 
 // ── قوالب الأيام ──
 
 export async function addDayTemplate(_prev: FormState, form: FormData): Promise<FormState> {
   const parsed = z
-    .object({ programId: z.uuid(), name: z.string().trim().min(2, "اسم القالب مطلوب") })
+    .object({ programId: z.uuid(), name: z.string().trim().min(2, "اسم شكل اليوم مطلوب") })
     .safeParse({ programId: form.get("programId"), name: form.get("name") });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
 
@@ -208,18 +213,18 @@ export async function addDayTemplate(_prev: FormState, form: FormData): Promise<
     .insert({ program_id: parsed.data.programId, name: parsed.data.name });
   if (error) {
     return {
-      error: error.code === "23505" ? "اسم قالب مستخدَم سلفاً." : "تعذّر إنشاء القالب.",
+      error: error.code === "23505" ? "هذا الاسم مستخدَم لشكل يوم آخر." : "تعذّر إنشاء شكل اليوم.",
     };
   }
 
   revalidatePath(`/programs/${parsed.data.programId}/content`);
-  return { notice: "أُنشئ القالب. أضف حقوله ومقاديرها." };
+  return { notice: "أُنشئ شكل اليوم. أضف إليه الواجبات ومقاديرها." };
 }
 
 const templateFieldSchema = z.object({
   programId: z.uuid(),
-  dayTemplateId: z.uuid("اختر قالباً"),
-  taskFieldId: z.uuid("اختر حقلاً"),
+  dayTemplateId: z.uuid("اختر شكل اليوم"),
+  taskFieldId: z.uuid("اختر الواجب"),
   baseAmount: z.coerce.number().positive("المقدار عدد موجب"),
 });
 
@@ -243,10 +248,10 @@ export async function addTemplateField(_prev: FormState, form: FormData): Promis
   });
   if (error) {
     return {
-      error: error.code === "23505" ? "الحقل مضاف لهذا القالب سلفاً." : "تعذّر إضافة الحقل للقالب.",
+      error: error.code === "23505" ? "هذا الواجب مضاف لشكل اليوم سلفاً." : "تعذّر إضافة الواجب إلى شكل اليوم.",
     };
   }
 
   revalidatePath(`/programs/${parsed.data.programId}/content`);
-  return { notice: "أُضيف الحقل للقالب." };
+  return { notice: "أُضيف الواجب إلى شكل اليوم." };
 }

@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { isBlockType } from "@/lib/programs/blocks";
 import { registrationStates } from "@/lib/programs/registration-server";
 import { BlockList, type BlockData, type PageBlock } from "./blocks";
+import styles from "./blocks.module.css";
 
 /**
  * صفحة البرنامج المعلن — رابط منشور مستقل، بلا حساب.
@@ -16,10 +18,13 @@ export const dynamic = "force-dynamic";
 
 export default async function ProgramLandingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ registered?: string }>;
 }) {
   const { slug } = await params;
+  const { registered } = await searchParams;
   const db = await createClient();
 
   const { data: program, error } = await db
@@ -78,13 +83,20 @@ export default async function ProgramLandingPage({
       <EmptyState
         kind="no-data"
         title={program.name}
-        body={
-          program.summary ||
-          "لم تُبنَ صفحة هذا البرنامج بعد. تابع إعلانات الجمعية."
-        }
+        body={program.summary || "تفاصيل هذا البرنامج غير متاحة الآن."}
       />
     );
   }
 
-  return <BlockList blocks={blocks} data={data} />;
+  return (
+    <>
+      {/* بعد التسجيل يعود المتقدّم هنا: يُقال له إنه تمّ، وأين يجد واجبه. */}
+      {registered === "1" ? (
+        <p role="status" className={styles.registered}>
+          تمّ تسجيلك في البرنامج. <Link href="/journey">افتح رحلتي</Link>
+        </p>
+      ) : null}
+      <BlockList blocks={blocks} data={data} />
+    </>
+  );
 }

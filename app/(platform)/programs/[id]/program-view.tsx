@@ -1,5 +1,6 @@
 "use client";
 
+import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useTransition } from "react";
 import Link from "next/link";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -85,7 +86,7 @@ export function ProgramView({
               <Button
                 pending={busy}
                 onClick={() =>
-                  startTransition(async () => void (await archiveTrack(t.id, program.id)))
+                  startTransition(async () => reportAction(await archiveTrack(t.id, program.id)))
                 }
               >
                 أرشفة
@@ -137,7 +138,10 @@ export function ProgramView({
 
       <div style={META}>
         <span>
-          الرابط: <code dir="ltr">{program.slug}</code>
+          الصفحة المعلنة:{" "}
+          <Link href={`/p/${program.slug}`} dir="ltr">
+            /p/{program.slug}
+          </Link>
         </span>
         <span>مسمّى المشارك: {program.participantLabel}</span>
         <span>
@@ -176,7 +180,7 @@ export function ProgramView({
               variant="primary"
               pending={busy}
               onClick={() =>
-                startTransition(async () => void (await setProgramStatus(program.id, "published")))
+                startTransition(async () => reportAction(await setProgramStatus(program.id, "published")))
               }
             >
               نشر البرنامج
@@ -186,7 +190,7 @@ export function ProgramView({
             <Button
               pending={busy}
               onClick={() =>
-                startTransition(async () => void (await setProgramStatus(program.id, "draft")))
+                startTransition(async () => reportAction(await setProgramStatus(program.id, "draft")))
               }
             >
               إعادة لمسوّدة
@@ -197,7 +201,7 @@ export function ProgramView({
               variant="danger"
               pending={busy}
               onClick={() =>
-                startTransition(async () => void (await setProgramStatus(program.id, "closed")))
+                startTransition(async () => reportAction(await setProgramStatus(program.id, "closed")))
               }
             >
               إغلاق

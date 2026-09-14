@@ -57,9 +57,7 @@ export default async function DashboardPage() {
   return (
     <>
       <h1>لوحة المتابعة</h1>
-      <p style={NOTE}>
-        الإحصائيات ومؤشّرات المتابعة من المرحلة الثانية. وما هنا مداخل ما يخصّك اليوم.
-      </p>
+      <p style={NOTE}>ما يخصّك اليوم.</p>
 
       {mine.map((row) => {
         const program = row.programs as unknown as { name: string };

@@ -54,7 +54,7 @@ export function SetupView({
             state={
               <span>
                 ستُوزَّع كاملةً على {formatNumber(tracks.length)}{" "}
-                {tracks.length === 1 ? "مسار" : "مسارات"}، والتفريق يُضبَط لاحقاً.
+                {tracks.length === 1 ? "مسار" : "مسارات"}. ويمكنك تخصيص نصيب كل مسار من صفحة المادة.
               </span>
             }
           >

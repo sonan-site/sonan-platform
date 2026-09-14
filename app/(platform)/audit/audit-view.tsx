@@ -14,7 +14,7 @@ export type AuditRow = {
 
 const columns: Column<AuditRow>[] = [
   { key: "action", header: "الفعل", sortable: true, primary: true, render: (r) => r.action },
-  { key: "entity", header: "على", render: (r) => r.entityTable },
+  { key: "entity", header: "القسم", render: (r) => r.entityTable },
   { key: "actor", header: "الفاعل", render: (r) => r.actor },
   { key: "at", header: "متى", align: "end", sortable: true, render: (r) => formatDateTime(r.at) },
 ];
@@ -25,7 +25,7 @@ export function AuditView({ rows }: { rows: AuditRow[] }) {
       <PageHead
         crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
         title="سجل التدقيق"
-        lede="من فعل ماذا على ماذا ومتى. يُقرأ ولا يُعدَّل ولا يُحذف — لا من الشاشة ولا من القاعدة، فسجلٌّ يقبل التعديل لا يشهد على شيء."
+        lede="من فعل ماذا ومتى — آخر ٢٠٠ فعل. السجل يُقرأ ولا يُعدَّل ولا يُحذف."
       />
       <DataTable
         columns={columns}

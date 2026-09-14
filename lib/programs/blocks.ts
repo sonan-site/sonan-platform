@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 
 /**
  * أنواع عناصر صفحة البرنامج — **مغلقة** (`adr/0011`).

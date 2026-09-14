@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
+import { Button, Field, FormActions, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { registerInProgram } from "./actions";
@@ -80,12 +80,6 @@ export function RegisterForm({
             <Textarea id={`q:${q.id}`} name={`q:${q.id}`} rows={2} required={q.required} />
           </Field>
         ))}
-
-        {visible.length === 0 && tracks.length === 0 ? (
-          <Field id="confirm" label="تأكيد الرغبة في الالتحاق" required>
-            <Input id="confirm" name="confirm" defaultValue="نعم" readOnly />
-          </Field>
-        ) : null}
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>

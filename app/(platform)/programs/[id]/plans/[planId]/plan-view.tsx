@@ -1,5 +1,6 @@
 "use client";
 
+import { reportAction } from "@/components/shared/action-notice";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
@@ -95,7 +96,7 @@ function MultiplierCell({
         if (!Number.isFinite(next) || next <= 0 || next === day.multiplier) return;
         startTransition(
           async () =>
-            void (await updatePlanDay(day.id, { amountMultiplier: next }, planId, programId)),
+            reportAction(await updatePlanDay(day.id, { amountMultiplier: next }, planId, programId)),
         );
       }}
     />
@@ -124,7 +125,7 @@ function ExamNameCell({
         const next = e.currentTarget.value.trim();
         if (next.length < 2 || next === exam.name) return;
         startTransition(
-          async () => void (await renameExam(exam.id, next, planId, programId)),
+          async () => reportAction(await renameExam(exam.id, next, planId, programId)),
         );
       }}
     />
@@ -159,7 +160,7 @@ function TemplateCell({
         if (!next || next === day.templateId) return;
         startTransition(
           async () =>
-            void (await updatePlanDay(day.id, { dayTemplateId: next }, planId, programId)),
+            reportAction(await updatePlanDay(day.id, { dayTemplateId: next }, planId, programId)),
         );
       }}
     >
@@ -256,7 +257,7 @@ export function PlanView({
             onClick={() =>
               startTransition(
                 async () =>
-                  void (await movePlanDay(d.id, d.dayNumber - 1, planId, programId)),
+                  reportAction(await movePlanDay(d.id, d.dayNumber - 1, planId, programId)),
               )
             }
           >
@@ -270,7 +271,7 @@ export function PlanView({
             onClick={() =>
               startTransition(
                 async () =>
-                  void (await movePlanDay(d.id, d.dayNumber + 1, planId, programId)),
+                  reportAction(await movePlanDay(d.id, d.dayNumber + 1, planId, programId)),
               )
             }
           >
@@ -281,7 +282,7 @@ export function PlanView({
             variant="danger"
             pending={busy}
             onClick={() =>
-              startTransition(async () => void (await removePlanDay(d.id, planId, programId)))
+              startTransition(async () => reportAction(await removePlanDay(d.id, planId, programId)))
             }
           >
             <Trash2 size={16} aria-hidden />
@@ -411,7 +412,7 @@ export function PlanView({
           <h2 style={H2}>أو الصق قائمة جاهزة</h2>
           <p style={NOTE}>
             سطر لكل يوم: النوع ثم فاصلة ثم الضِّعف. المقبول <bdi>عادي</bdi> و<bdi>راحة</bdi>،
-            ورقم اليوم من ترتيب السطر لا من عمود مكتوب. أيام الاختبار تُضاف بعده.
+            والسطر الأول هو اليوم الأول. أيام الاختبار تُضاف بعد اللصق.
           </p>
           {templates.length > 0 ? (
             <form action={upAction} style={PANEL}>
@@ -432,14 +433,14 @@ export function PlanView({
                 </Select>
               </Field>
 
-              <Field id="text" label="محتوى الملف" required error={upState.fieldErrors?.text}>
+              <Field id="text" label="أيام الخطة" required error={upState.fieldErrors?.text}>
                 <Textarea id="text" name="text" rows={8} required
                           placeholder={"عادي,1\nعادي,1\nراحة"} />
               </Field>
 
               <FormActions>
                 <Button type="submit" pending={upPending}>
-                  ارفع الخطة
+                  أنشئ الأيام
                 </Button>
               </FormActions>
 
@@ -530,7 +531,7 @@ export function PlanView({
               variant="danger"
               pending={busy}
               onClick={() =>
-                startTransition(async () => void (await clearPlanDays(planId, programId)))
+                startTransition(async () => reportAction(await clearPlanDays(planId, programId)))
               }
             >
               امسح كل الأيام
@@ -547,9 +548,8 @@ export function PlanView({
       <>
       <h2 style={H2}>الاختبارات</h2>
       <p style={NOTE}>
-        تعريفاً فقط في هذه المرحلة (<code>adr/0022</code>): بنك الأسئلة والجلسات والتحكيم
-        والنتائج في المرحلة الثانية. يُعرَّف هنا ليشير إليه يوم الاختبار في الخطة. واختبارٌ
-        بمسار محدَّد يتقدّم على اختبار بمسار فارغ.
+        عرّف الاختبار هنا، ثم أضف له يوماً في الخطة. واختبارٌ لمسار محدَّد يتقدّم على اختبار
+        لكل المسارات.
       </p>
 
       <DataTable

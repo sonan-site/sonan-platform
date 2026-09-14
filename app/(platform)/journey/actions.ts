@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 
@@ -43,7 +43,7 @@ export async function submitDay(
       return { error: "أُرسل هذا اليوم سلفاً. لا يُرسَل مرتين." };
     }
     if (/اليوم الجاري وحده/.test(error.message)) {
-      return { error: "يُرسَل يومك الجاري وحده. السلسلة تمضي للأمام فقط." };
+      return { error: "يُرسَل يومك الجاري وحده. أكمل أيامك بالترتيب." };
     }
     if (/الحساب موقوف/.test(error.message)) {
       return { error: "حسابك موقوف. راجع الإدارة." };

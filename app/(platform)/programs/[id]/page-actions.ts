@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
@@ -33,7 +33,8 @@ export async function addBlock(_prev: FormState, form: FormData): Promise<FormSt
   const programId = String(form.get("programId") ?? "");
   const rawType = String(form.get("blockType") ?? "");
 
-  if (!isBlockType(rawType)) return { error: "نوع عنصر غير معروف." };
+  // الصورة لا تُعرض دون رفع الصور، فلا تُضاف عنصراً يبقى فارغاً في الصفحة.
+  if (!isBlockType(rawType) || rawType === "image") return { error: "اختر نوع العنصر من القائمة." };
   const type: BlockType = rawType;
 
   // المحتوى يُتحقَّق بمخطّط نوعه — لا مخطّط عام يقبل كل شيء.

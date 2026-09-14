@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { MAX_PLAN_DAYS } from "@/lib/plans/build";

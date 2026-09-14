@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";

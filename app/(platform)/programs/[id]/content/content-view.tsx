@@ -1,5 +1,6 @@
 "use client";
 
+import { reportAction } from "@/components/shared/action-notice";
 import { Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -117,7 +118,7 @@ export function ContentView({
             <h2 className={styles.previewTitle}>ما سيراه المشارك في يومه الأول</h2>
           </div>
           <p className={styles.previewWhy}>
-            محسوبة بالطريقة نفسها التي تعمل بها المنصة — لا تقريباً.
+            هذا بالضبط ما سيظهر للمشارك.
           </p>
 
           {tracks.length > 1 || templates.length > 1 ? (
@@ -290,7 +291,7 @@ export function ContentView({
                         label={`حذف الجزء ${p.from} إلى ${p.to}`}
                         disabled={busy}
                         onClick={() =>
-                          startTransition(async () => void (await removeTrackRange(p.id, programId)))
+                          startTransition(async () => reportAction(await removeTrackRange(p.id, programId)))
                         }
                       >
                         <Trash2 size={14} aria-hidden />

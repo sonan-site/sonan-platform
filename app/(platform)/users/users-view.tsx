@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { reportAction } from "@/components/shared/action-notice";
+import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { formatNumber } from "@/lib/format";
@@ -21,8 +22,6 @@ export type UserRow = {
 export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boolean }) {
   const [state, action, pending] = useActionState(inviteUser, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
-  const [allMatching, setAllMatching] = useState(false);
 
   const columns: Column<UserRow>[] = [
     { key: "fullName", header: "الاسم", sortable: true, primary: true, render: (r) => r.fullName },
@@ -44,9 +43,7 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
               <Button
                 pending={busy}
                 onClick={() =>
-                  startTransition(async () => {
-                    await (r.suspended ? restoreUser(r.userId) : suspendUser(r.userId));
-                  })
+                  startTransition(async () => reportAction(await (r.suspended ? restoreUser(r.userId) : suspendUser(r.userId))))
                 }
               >
                 {r.suspended ? "إعادة تفعيل" : "إيقاف"}
@@ -62,7 +59,7 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
       <PageHead
         crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
         title="المستخدمون"
-        lede="من يعمل على المنصة — لا المشاركون. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمته بنفسه، فلا تمرّ كلمة مرور بينكما. والإيقاف ينفذ في الحال."
+        lede="من يعمل على المنصة. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمة مروره بنفسه، والإيقاف ينفذ في الحال."
       />
 
       {canWrite ? (
@@ -112,16 +109,6 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
         total={rows.length}
         page={1}
         searchPlaceholder="ابحث بالاسم…"
-        selection={
-          canWrite
-            ? {
-                selected,
-                onChange: setSelected,
-                allMatching,
-                onSelectAllMatching: setAllMatching,
-              }
-            : undefined
-        }
         empty={{
           title: "لا مستخدمين بعد",
           body: canWrite

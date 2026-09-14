@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { getSession } from "@/lib/auth/session";

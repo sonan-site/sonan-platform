@@ -142,7 +142,7 @@ export function parseUploadedPlan(text: string, dayTemplateId: string): ParseRes
 
     const amount = rawAmount === "" ? 1 : Number(rawAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      issues.push({ line: row.line, message: `مضاعف غير صالح: «${row.cells[1]}».` });
+      issues.push({ line: row.line, message: `ضِعف المقدار غير صالح: «${row.cells[1]}».` });
       continue;
     }
 
@@ -180,19 +180,19 @@ export function planIssues(days: DayDraft[]): string[] {
   for (const day of days) {
     const where = `اليوم ${day.dayNumber}`;
     if (day.dayType === "normal" && !day.dayTemplateId) {
-      issues.push(`${where}: يوم عادي بلا قالب.`);
+      issues.push(`${where}: يوم عادي بلا شكل يوم.`);
     }
     if (day.dayType === "exam" && !day.examId) {
       issues.push(`${where}: يوم اختبار بلا اختبار.`);
     }
     if (day.dayType !== "normal" && day.dayTemplateId) {
-      issues.push(`${where}: قالب على يوم ليس عادياً.`);
+      issues.push(`${where}: شكل يوم على يوم راحة أو اختبار.`);
     }
     if (day.dayType !== "exam" && day.examId) {
       issues.push(`${where}: اختبار على يوم ليس اختباراً.`);
     }
     if (!(day.amountMultiplier > 0)) {
-      issues.push(`${where}: مضاعف غير موجب.`);
+      issues.push(`${where}: ضِعف المقدار يجب أن يكون أكبر من صفر.`);
     }
   }
 

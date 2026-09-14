@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
@@ -33,6 +33,18 @@ async function liveDayCount(
     .eq("plan_id", planId)
     .is("deleted_at", null);
   return count ?? 0;
+}
+
+/**
+ * رسالة القاعدة بلغة المُعِدّ. القيود تتكلّم بمصطلحها («القالب»)، والشاشة
+ * بمصطلحها («شكل اليوم») — فلا يُمرَّر نصّ القاعدة كما هو.
+ */
+function planMessage(dbMessage: string, fallback: string): string {
+  if (/القالب ليس من برنامج الخطة/.test(dbMessage)) return "شكل اليوم المختار ليس من هذا البرنامج.";
+  if (/الاختبار ليس من برنامج الخطة/.test(dbMessage)) return "الاختبار المختار ليس من هذا البرنامج.";
+  if (/الحدّ الأقصى/.test(dbMessage)) return dbMessage;
+  if (/إنجاز مسجَّل/.test(dbMessage)) return "أرسل مشاركٌ هذا اليوم، فلا يُحذف ولا يُغيَّر نوعه.";
+  return fallback;
 }
 
 // ── الخطة ──
@@ -77,8 +89,8 @@ const generateSchema = z.object({
   programId: z.uuid(),
   planId: z.uuid(),
   dayCount: z.coerce.number().int().min(1, "عدد الأيام واحد فأكثر").max(MAX_PLAN_DAYS),
-  dayTemplateId: z.uuid("اختر قالباً"),
-  amountMultiplier: z.coerce.number().positive("المضاعف عدد موجب").default(1),
+  dayTemplateId: z.uuid("اختر شكل اليوم"),
+  amountMultiplier: z.coerce.number().positive("ضِعف المقدار أكبر من صفر").default(1),
   restEvery: z.coerce.number().int().min(0).max(MAX_PLAN_DAYS).default(0),
 });
 
@@ -104,7 +116,7 @@ export async function generatePlan(_prev: FormState, form: FormData): Promise<Fo
 
   const db = await createClient();
   if ((await liveDayCount(db, parsed.data.planId)) > 0) {
-    return { error: "الخطة ليست فارغة. امسح أيامها قبل التوليد." };
+    return { error: "الخطة فيها أيام. امسحها أولاً ثم أنشئ الخطة من جديد." };
   }
 
   const days = generateDays({
@@ -123,8 +135,8 @@ export async function generatePlan(_prev: FormState, form: FormData): Promise<Fo
 const uploadSchema = z.object({
   programId: z.uuid(),
   planId: z.uuid(),
-  dayTemplateId: z.uuid("اختر قالباً"),
-  text: z.string().min(1, "ألصق محتوى الملف"),
+  dayTemplateId: z.uuid("اختر شكل اليوم"),
+  text: z.string().min(1, "ألصق أيام الخطة"),
 });
 
 /** الرفع صورة من اليدوي: يُترجَم إلى الصفوف نفسها ثم يُحرَّر كأي خطة. */
@@ -142,7 +154,7 @@ export async function uploadPlan(_prev: FormState, form: FormData): Promise<Form
 
   const db = await createClient();
   if ((await liveDayCount(db, parsed.data.planId)) > 0) {
-    return { error: "الخطة ليست فارغة. امسح أيامها قبل الرفع." };
+    return { error: "الخطة فيها أيام. امسحها أولاً ثم الصق القائمة." };
   }
 
   const result = parseUploadedPlan(parsed.data.text, parsed.data.dayTemplateId);
@@ -183,7 +195,7 @@ async function writeDays(
   );
   if (error) {
     return {
-      error: /برنامج الخطة/.test(error.message) ? error.message : "تعذّر كتابة أيام الخطة.",
+      error: planMessage(error.message, "تعذّر كتابة أيام الخطة."),
     };
   }
 
@@ -206,17 +218,17 @@ const daySchema = z
     planId: z.uuid(),
     atNumber: z.coerce.number().int().min(1).optional(),
     dayType: z.enum(["normal", "rest", "exam"]),
-    dayTemplateId: z.uuid("اختر قالباً").optional(),
-    amountMultiplier: z.coerce.number().positive("المضاعف عدد موجب").default(1),
+    dayTemplateId: z.uuid("اختر شكل اليوم").optional(),
+    amountMultiplier: z.coerce.number().positive("ضِعف المقدار أكبر من صفر").default(1),
     examId: z.uuid("اختر اختباراً").optional(),
   })
   .refine((v) => v.dayType !== "normal" || !!v.dayTemplateId, {
     path: ["dayTemplateId"],
-    message: "اليوم العادي يلزمه قالب",
+    message: "اختر شكل اليوم لهذا اليوم",
   })
   .refine((v) => v.dayType !== "exam" || !!v.examId, {
     path: ["examId"],
-    message: "يوم الاختبار يلزمه اختبار",
+    message: "اختر الاختبار لهذا اليوم",
   });
 
 export async function addPlanDay(_prev: FormState, form: FormData): Promise<FormState> {
@@ -251,9 +263,7 @@ export async function addPlanDay(_prev: FormState, form: FormData): Promise<Form
   });
   if (error) {
     return {
-      error: /برنامج الخطة|الحدّ الأقصى/.test(error.message)
-        ? error.message
-        : "تعذّر إضافة اليوم.",
+      error: planMessage(error.message, "تعذّر إضافة اليوم."),
     };
   }
   // الدالة تُرجع فارغاً حين تُصفّي سياسة الصفوف الخطة: رفضٌ لا نجاح صامت.
@@ -280,7 +290,7 @@ export async function updatePlanDay(
   if (denied) return denied;
 
   if (patch.amountMultiplier !== undefined && !(patch.amountMultiplier > 0)) {
-    return { error: "المضاعف عدد موجب." };
+    return { error: "ضِعف المقدار أكبر من صفر." };
   }
   if (patch.dayTemplateId === undefined && patch.amountMultiplier === undefined) {
     return EMPTY_FORM_STATE;
@@ -303,7 +313,7 @@ export async function updatePlanDay(
     .select("id");
 
   if (error) {
-    return { error: /برنامج الخطة/.test(error.message) ? error.message : "تعذّر تعديل اليوم." };
+    return { error: planMessage(error.message, "تعذّر تعديل اليوم.") };
   }
   if ((data?.length ?? 0) === 0) return { error: "لم يُعدَّل اليوم — تحقّق من صلاحيتك." };
 
@@ -321,7 +331,7 @@ export async function removePlanDay(
 
   const db = await createClient();
   const { data, error } = await db.rpc("fn_plan_remove_day", { p_plan_day_id: planDayId });
-  if (error) return { error: "تعذّر حذف اليوم." };
+  if (error) return { error: planMessage(error.message, "تعذّر حذف اليوم.") };
   if (!data) return { error: "لم يُحذف اليوم — تحقّق من صلاحيتك." };
 
   revalidateBoth(programId, planId);
@@ -366,7 +376,7 @@ export async function clearPlanDays(planId: string, programId: string): Promise<
     .eq("plan_id", planId)
     .is("deleted_at", null)
     .select("id");
-  if (error) return { error: "تعذّر مسح الأيام." };
+  if (error) return { error: planMessage(error.message, "تعذّر مسح الأيام.") };
   if ((data?.length ?? 0) === 0) return { error: "لم يُمسح شيء — تحقّق من صلاحيتك." };
 
   await db.rpc("fn_write_audit", {

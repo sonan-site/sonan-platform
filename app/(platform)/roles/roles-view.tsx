@@ -1,5 +1,6 @@
 "use client";
 
+import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
@@ -17,6 +18,16 @@ export type AssignmentRow = {
   roleName: string;
   scope: string;
 };
+
+/** صلاحيات بلا شاشة بعد لا تُعرض — ذكرها يوحي بقدرة غير موجودة. */
+const HIDDEN_SECTIONS = new Set<string>(["settings", "attachments"]);
+
+function visibleCodes(codes: string[]): PermissionCode[] {
+  return codes.filter(
+    (c): c is PermissionCode =>
+      c in PERMISSIONS && !HIDDEN_SECTIONS.has(PERMISSIONS[c as PermissionCode].section),
+  );
+}
 
 export function RolesView({
   roles,
@@ -38,22 +49,22 @@ export function RolesView({
       key: "kind",
       header: "النوع",
       align: "center",
-      render: (r) => (r.isSystem ? "دور نظام" : "دور مخصَّص"),
+      render: (r) => (r.isSystem ? "أساسي" : "مخصَّص"),
     },
     {
       key: "count",
       header: "عدد الصلاحيات",
       align: "end",
       sortable: true,
-      render: (r) => formatNumber(r.codes.length),
+      render: (r) => formatNumber(visibleCodes(r.codes).length),
     },
     {
       key: "codes",
       header: "الصلاحيات",
       render: (r) => (
         <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-          {r.codes
-            .map((c) => PERMISSIONS[c as PermissionCode]?.label ?? c)
+          {visibleCodes(r.codes)
+            .map((c) => PERMISSIONS[c].label)
             .join(" · ")}
         </span>
       ),
@@ -73,7 +84,7 @@ export function RolesView({
             render: (a: AssignmentRow) => (
               <Button
                 pending={busy}
-                onClick={() => startTransition(async () => void (await revokeRole(a.id)))}
+                onClick={() => startTransition(async () => reportAction(await revokeRole(a.id)))}
               >
                 سحب
               </Button>
@@ -88,7 +99,7 @@ export function RolesView({
       <PageHead
         crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
         title="الأدوار والصلاحيات"
-        lede="الدور حزمة صلاحيات تُسنَد لشخص. والإسناد قد يكون عامّاً على المنصة كلها، أو محصوراً ببرنامج واحد — فمنسّق برنامج لا يرى غيره."
+        lede="الدور مجموعة صلاحيات تُسنَد لشخص، فيعمل على المنصة بما فيها."
       />
 
       <DataTable

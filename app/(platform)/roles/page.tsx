@@ -42,7 +42,7 @@ export default async function RolesPage() {
   const assignments: AssignmentRow[] = (assignResult.data ?? []).map((a) => ({
     id: a.id,
     userId: a.user_id,
-    userName: nameByUser.get(a.user_id) ?? a.user_id.slice(0, 8),
+    userName: nameByUser.get(a.user_id) ?? "—",
     roleName: nameByRole.get(a.role_id) ?? "—",
     scope: a.scope_program_id ? "برنامج محدَّد" : "عام على المنصة",
   }));

@@ -21,13 +21,14 @@ describe("الفاحص رباعي الطبقات", () => {
     expect(r).toMatchObject({ ok: false, stage: "auth" });
   });
 
-  it("يرفض عند طبقة الصلاحية ويسمّي الرمز", async () => {
+  it("يرفض عند طبقة الصلاحية ويسمّي الطبقة — **والرسالة بلا رمز**", async () => {
     const r = await authorize(
       { permission: "roles.assign" },
       checker({ hasPermission: async () => false }),
     );
     expect(r).toMatchObject({ ok: false, stage: "permission" });
-    if (!r.ok) expect(r.message).toContain("roles.assign");
+    // الطبقة تُعرف من `stage`؛ والرسالة تُعرض للمستخدم فلا تحمل `roles.assign`.
+    if (!r.ok) expect(r.message).not.toMatch(/[A-Za-z]/);
   });
 
   it("يرفض مورداً خارج النطاق المصرَّح به", async () => {

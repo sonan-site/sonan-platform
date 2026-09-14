@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 
 /**
  * مخططات التحقّق — **يُستهلَك في الخادم إلزاماً**.

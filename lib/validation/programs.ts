@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { kindIsScored, PROGRAM_KIND_CODES } from "@/lib/programs/kinds";
 
 /** مخططات البرامج والأقسام والمسارات — الخادم هو الحجّة. */

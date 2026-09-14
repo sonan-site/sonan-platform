@@ -162,7 +162,7 @@ export function JourneyView({
         <EmptyState
           kind="no-data"
           title={examName ?? "يوم اختبار"}
-          body="يوم الاختبار يستبدل واجبات اليوم بالكامل. تفاصيله تُعلَن قبل موعده."
+          body="لا واجبات حفظ في يوم الاختبار."
         />
       ) : null}
 
@@ -178,18 +178,8 @@ export function JourneyView({
             const done = day.submitted ? task.isDone : marked.has(task.fieldId);
             return (
               <div key={task.fieldId} style={done ? TASK_DONE : TASK}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "var(--space-3)",
-                    marginBlockEnd: "var(--space-2)",
-                  }}
-                >
+                <div style={{ marginBlockEnd: "var(--space-2)" }}>
                   <strong>{task.label}</strong>
-                  <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-                    {task.kind === "ranged" ? "نطاقي" : "عددي"}
-                  </span>
                 </div>
 
                 {task.kind === "counted" ? (
@@ -198,7 +188,7 @@ export function JourneyView({
                   </p>
                 ) : task.trackEmpty ? (
                   <p style={{ ...NOTE, marginBlockEnd: "var(--space-3)" }}>
-                    لم يُحدَّد نصيب مسارك من المادة بعد. تضبطه الإدارة قبل انطلاق البرنامج.
+                    لم يُحدَّد نصيب مسارك من المادة. تواصل مع إدارة البرنامج.
                   </p>
                 ) : task.exhausted ? (
                   <p style={{ ...NOTE, marginBlockEnd: "var(--space-3)" }}>
@@ -243,7 +233,7 @@ export function JourneyView({
           })}
 
           {tasks.length === 0 ? (
-            <EmptyState kind="no-data" title="لا واجب في هذا اليوم" body="لم تُضبَط حقول قالب هذا اليوم بعد." />
+            <EmptyState kind="no-data" title="لا واجب في هذا اليوم" body="لا واجبات مضبوطة لهذا اليوم. تواصل مع إدارة البرنامج." />
           ) : null}
 
           {!day.submitted && tasks.length > 0 ? (

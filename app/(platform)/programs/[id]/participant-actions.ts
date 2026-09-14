@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";

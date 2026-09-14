@@ -46,14 +46,14 @@ export default async function JourneyDayPage({
     return (
       <EmptyState
         kind="no-data"
-        title="لم يُسنَد لك مسار بعد"
-        body="الإدارة تُسنِد المسار بعد قبول التسجيل. يظهر واجبك هنا حين يُسنَد."
+        title="لم يُحدَّد مسارك"
+        body="تواصل مع إدارة البرنامج ليُحدَّد مسارك، وبعدها يظهر واجبك هنا."
       />
     );
   }
 
   // من انتهت رحلته لا خطة تُقرأ له (`fn_follows_plan` تحصر السياسة)، فيُقال
-  // له ذلك — لا «الخطة تُبنى قبل الانطلاق، عُد لاحقاً» لمن أنهى البرنامج.
+  // له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
   if (!FOLLOWS_PLAN.has(participant.status)) {
     return (
       <EmptyState
@@ -82,8 +82,8 @@ export default async function JourneyDayPage({
     return (
       <EmptyState
         kind="no-data"
-        title="لا خطة لمسارك بعد"
-        body="الخطة تُبنى قبل انطلاق البرنامج. عُد لاحقاً."
+        title="لا خطة لمسارك"
+        body="تواصل مع إدارة البرنامج."
       />
     );
   }
@@ -106,7 +106,7 @@ export default async function JourneyDayPage({
 
   if (shown === null) {
     return (
-      <EmptyState kind="no-data" title="الخطة بلا أيام" body="لم تُبنَ أيام خطة مسارك بعد." />
+      <EmptyState kind="no-data" title="الخطة بلا أيام" body="تواصل مع إدارة البرنامج." />
     );
   }
 
@@ -133,15 +133,16 @@ export default async function JourneyDayPage({
   const spansByField = new Map<string, SpanPart[]>();
   const neededSequences = new Set<number>();
 
-  await Promise.all(
+  // خطأٌ هنا صفحة خطأ عربية لا استثناء يُظهر صفحة الإطار الإنجليزية.
+  const spanResults = await Promise.all(
     rawTasks.map(async (task) => {
-      if (task.ordinal_start === null || task.ordinal_end === null) return;
+      if (task.ordinal_start === null || task.ordinal_end === null) return true;
       const { data: parts, error } = await db.rpc("fn_track_ordinal_span", {
         p_track_id: participant.track_id!,
         p_from: task.ordinal_start,
         p_to: task.ordinal_end,
       });
-      if (error) throw new Error("تعذّر حساب نطاق الواجب.");
+      if (error) return false;
       const span = (parts ?? []).map((p) => ({
         from: p.from_sequence,
         to: p.to_sequence,
@@ -153,8 +154,11 @@ export default async function JourneyDayPage({
         neededSequences.add(p.to);
       }
       spansByField.set(task.task_field_id, span);
+      return true;
     }),
   );
+
+  if (spanResults.includes(false)) return <ErrorState body="تعذّر جلب واجب اليوم." />;
 
   const labels = new Map<number, string>();
   if (neededSequences.size > 0) {

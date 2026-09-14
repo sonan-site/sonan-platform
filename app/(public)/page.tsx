@@ -53,7 +53,7 @@ export default async function StorePage() {
         <EmptyState
           kind="no-data"
           title="لا برامج معلنة الآن"
-          body="لم يُنشر برنامج بعد. عُد لاحقاً أو تابع إعلانات الجمعية."
+          body="لا برامج مفتوحة الآن. تابع إعلانات الجمعية."
         />
       ) : (
         <div className={styles.grid}>
