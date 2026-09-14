@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { DEFAULT_LANDING } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
 
@@ -30,14 +31,19 @@ export async function setPassword(_prev: FormState, form: FormData): Promise<For
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
+  // يُنشئه مشغّل القاعدة عند الدعوة (الهجرة ٠٣١)، وهذا احتياطٌ لمن سبقه.
+  // وفشله لا يُتجاوَز: حسابٌ بلا ملف يُعامَل موقوفاً فلا يدخل شيئاً.
   if (!profile) {
-    await db.from("profiles").insert({
+    const { error: profileError } = await db.from("profiles").insert({
       user_id: auth.user.id,
       full_name: String(auth.user.user_metadata?.["full_name"] ?? auth.user.email ?? ""),
       phone: String(auth.user.user_metadata?.["phone"] ?? ""),
     });
+    if (profileError) {
+      return { error: "حُفظت كلمة المرور، لكن تعذّر إكمال حسابك. تواصل مع إدارة المنصة." };
+    }
   }
 
-  redirect("/");
+  redirect(DEFAULT_LANDING);
 }
 

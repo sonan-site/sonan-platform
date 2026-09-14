@@ -77,6 +77,11 @@ function SignInForm() {
 
       <div className={styles.links}>
         <Link href="/recover">نسيت كلمة المرور</Link>
+        <Link
+          href={`/sign-up?next=${encodeURIComponent(params.get("next") ?? DEFAULT_LANDING)}`}
+        >
+          ليس لديك حساب؟ أنشئ حساباً
+        </Link>
       </div>
     </>
   );

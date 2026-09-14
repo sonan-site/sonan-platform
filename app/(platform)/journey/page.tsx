@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageHead } from "@/components/shared/steps";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
@@ -24,6 +25,9 @@ export default async function JourneyListPage() {
   if (session.status !== "active") {
     return <ErrorState title="غير مصرَّح" body="سجّل الدخول لترى رحلتك." />;
   }
+
+  // لا مدخل «رحلتي» لمن لا مشاركة له، ومن كتب الرابط بيده يعود إلى لوحته.
+  if (!session.isParticipant) redirect("/dashboard");
 
   const db = await createClient();
   const { data, error } = await db

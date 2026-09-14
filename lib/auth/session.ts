@@ -23,6 +23,8 @@ export type SessionState =
       email: string;
       /** المفتاح: الرمز · القيمة: مجموعة النطاقات (null فيها = نطاق عام). */
       permissions: Map<string, Set<string | null>>;
+      /** له مشاركة قائمة في برنامج — جارية أو منتهية. يُظهر «رحلتي» لصاحبها وحده. */
+      isParticipant: boolean;
     };
 
 export const getSession = cache(async (): Promise<SessionState> => {
@@ -31,9 +33,15 @@ export const getSession = cache(async (): Promise<SessionState> => {
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { status: "anonymous" };
 
-  const [{ data: active }, { data: rows }] = await Promise.all([
+  const [{ data: active }, { data: rows }, { count: participations }] = await Promise.all([
     db.rpc("fn_is_active"),
     db.rpc("fn_my_permissions"),
+    // عدٌّ لا جلب: السؤال «هل له مشاركة؟» لا «ما مشاركاته؟».
+    db
+      .from("participants")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", auth.user.id)
+      .is("deleted_at", null),
   ]);
   if (active !== true) return { status: "suspended", userId: auth.user.id };
 
@@ -49,5 +57,6 @@ export const getSession = cache(async (): Promise<SessionState> => {
     userId: auth.user.id,
     email: auth.user.email ?? "",
     permissions,
+    isParticipant: (participations ?? 0) > 0,
   };
 });

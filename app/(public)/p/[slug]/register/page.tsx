@@ -14,10 +14,11 @@ export default async function RegisterPage({
 }) {
   const { slug } = await params;
 
-  // التسجيل يشترط حساباً؛ والوجهة تُحفظ فيعود بعد الدخول إلى حيث كان.
+  // التسجيل يشترط حساباً. الزائر يُنشئه أولاً — ومن له حساب يجد رابط الدخول
+  // في الصفحة نفسها. والوجهة تُحفظ فيعود بعدها إلى حيث كان.
   const session = await getSession();
   if (session.status !== "active") {
-    redirect(`/sign-in?next=${encodeURIComponent(`/p/${slug}/register`)}`);
+    redirect(`/sign-up?next=${encodeURIComponent(`/p/${slug}/register`)}`);
   }
 
   const db = await createClient();

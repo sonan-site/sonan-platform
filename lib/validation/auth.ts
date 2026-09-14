@@ -36,16 +36,34 @@ export const setPasswordSchema = z
     path: ["confirm"],
   });
 
+/** يُخزَّن بصيغة موحّدة `+9665…`. الإدخال لاتيني (§١١.١). ومشغّل الملف في القاعدة يفرض الصيغة نفسها. */
+export const phoneSchema = z
+  .string()
+  .trim()
+  .regex(/^(?:\+9665|05)\d{8}$/, "رقم جوال سعودي غير صالح (05xxxxxxxx)")
+  .transform((v) => (v.startsWith("05") ? `+966${v.slice(1)}` : v));
+
+export const fullNameSchema = z.string().trim().min(3, "الاسم مطلوب");
+
 export const inviteSchema = z.object({
   email: emailSchema,
-  fullName: z.string().trim().min(3, "الاسم مطلوب"),
-  /** يُخزَّن بصيغة موحّدة. الإدخال لاتيني (§١١.١). */
-  phone: z
-    .string()
-    .trim()
-    .regex(/^(?:\+9665|05)\d{8}$/, "رقم جوال سعودي غير صالح (05xxxxxxxx)")
-    .transform((v) => (v.startsWith("05") ? `+966${v.slice(1)}` : v)),
+  fullName: fullNameSchema,
+  phone: phoneSchema,
 });
+
+/** إنشاء الزائر حسابه بنفسه — الحقول نفسها التي تحملها الدعوة، وكلمة المرور. */
+export const signUpSchema = z
+  .object({
+    fullName: fullNameSchema,
+    phone: phoneSchema,
+    email: emailSchema,
+    password: passwordSchema,
+    confirm: z.string(),
+  })
+  .refine((v) => v.password === v.confirm, {
+    message: "الكلمتان غير متطابقتين",
+    path: ["confirm"],
+  });
 
 export const assignRoleSchema = z.object({
   userId: z.uuid(),

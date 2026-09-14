@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 /** مسارات عامة لا تشترط جلسة. ما عداها محمي. */
-const PUBLIC_PREFIXES = ["/sign-in", "/recover", "/activate", "/auth", "/p/"];
+const PUBLIC_PREFIXES = ["/sign-in", "/sign-up", "/recover", "/activate", "/auth", "/p/"];
 
 /** الجذر هو المتجر العام: طبقة تسويقية لا تشترط حساباً (adr/0004). */
 const PUBLIC_EXACT = new Set(["/"]);
@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return NextResponse.redirect(url);
   }
 
-  const isAuthScreen = ["/sign-in", "/recover"].includes(path);
+  const isAuthScreen = ["/sign-in", "/sign-up", "/recover"].includes(path);
   if (user && isAuthScreen) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";

@@ -24,8 +24,13 @@ export type NavItem = {
   title: string;
   href: string;
   icon: IconName;
-  /** `null` = يراه كل مصادَق عليه. وإلا فالرمز شرط الظهور. */
+  /** `null` = لا يُشترط رمز. وإلا فالرمز شرط الظهور. */
   permission: PermissionCode | null;
+  /**
+   * للمشاركين وحدهم: يظهر لمن له مشاركة في برنامج — ولو انتهت رحلته فيه،
+   * ليصل إلى سجلّه. ومن لا مشاركة له (كالمدير) لا يرى مدخلاً لا يخصّه.
+   */
+  participantsOnly?: true;
   /** يظهر في الشريط السفلي على الجوال. الحدّ ٥ (§١١.٣)، والزائد في «المزيد». */
   primary: boolean;
 };
@@ -68,9 +73,9 @@ export const NAVIGATION: readonly NavItem[] = [
     title: "رحلتي",
     href: "/journey",
     icon: "CalendarDays",
-    // بلا رمز: المشارك ليس له صلاحية إدارية واحدة، ورحلته له لا لغيره.
-    // ومن ليس مشاركاً يجد صفحةً تقول ذلك — أهون من مدخل يظهر ويختفي.
+    // بلا رمز: المشارك ليس له صلاحية إدارية. وشرطه أن يكون مشاركاً، لا أن يملك شيئاً.
     permission: null,
+    participantsOnly: true,
     primary: true,
   },
   // الإعدادات: لا شاشة لها بعد، فلا مدخل. مدخلٌ يفتح 404 وعدٌ كاذب.
@@ -87,12 +92,18 @@ export const NAVIGATION: readonly NavItem[] = [
 /** الحدّ الأقصى لتبويبات الشريط السفلي قبل ظهور «المزيد» (§١١.٣). */
 export const BOTTOM_BAR_LIMIT = 5;
 
-/** يرشّح ما يملك المستخدم صلاحيته. الباقي **يُخفى** لا يُعطَّل. */
-export function visibleNavigation(
-  granted: ReadonlySet<PermissionCode>,
-): NavItem[] {
+export type Viewer = {
+  granted: ReadonlySet<PermissionCode>;
+  /** له مشاركة قائمة في برنامج — جارية أو منتهية. */
+  isParticipant: boolean;
+};
+
+/** يرشّح ما يخصّ المستخدم. الباقي **يُخفى** لا يُعطَّل. */
+export function visibleNavigation({ granted, isParticipant }: Viewer): NavItem[] {
   return NAVIGATION.filter(
-    (item) => item.permission === null || granted.has(item.permission),
+    (item) =>
+      (item.permission === null || granted.has(item.permission)) &&
+      (!item.participantsOnly || isParticipant),
   );
 }
 
