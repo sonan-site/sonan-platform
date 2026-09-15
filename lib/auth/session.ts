@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/db/server";
+import { accountState, suggestedName } from "./account-state";
 
 /**
  * حالة الجلسة الحالية.
@@ -17,6 +18,8 @@ import { createClient } from "@/lib/db/server";
 export type SessionState =
   | { status: "anonymous" }
   | { status: "suspended"; userId: string }
+  /** دخل ولم يستكمل اسمه وجواله — لا تُفتح له شاشة قبل ذلك (`adr/0025`). */
+  | { status: "incomplete"; userId: string; email: string; suggestedName: string }
   | {
       status: "active";
       userId: string;
@@ -33,8 +36,10 @@ export const getSession = cache(async (): Promise<SessionState> => {
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { status: "anonymous" };
 
-  const [{ data: active }, { data: rows }, { count: participations }] = await Promise.all([
-    db.rpc("fn_is_active"),
+  const [{ data: profile }, { data: rows }, { count: participations }] = await Promise.all([
+    // الملف نفسه لا `fn_is_active`: غيابه «ناقص»، وحذفه الليّن «موقوف» — والدالة
+    // تُرجع «لا» للحالتين فلا تفرّق بينهما.
+    db.from("profiles").select("deleted_at").eq("user_id", auth.user.id).maybeSingle(),
     db.rpc("fn_my_permissions"),
     // عدٌّ لا جلب: السؤال «هل له مشاركة؟» لا «ما مشاركاته؟».
     db
@@ -43,7 +48,17 @@ export const getSession = cache(async (): Promise<SessionState> => {
       .eq("user_id", auth.user.id)
       .is("deleted_at", null),
   ]);
-  if (active !== true) return { status: "suspended", userId: auth.user.id };
+
+  const state = accountState(profile);
+  if (state === "incomplete") {
+    return {
+      status: "incomplete",
+      userId: auth.user.id,
+      email: auth.user.email ?? "",
+      suggestedName: suggestedName(auth.user.user_metadata),
+    };
+  }
+  if (state === "suspended") return { status: "suspended", userId: auth.user.id };
 
   const permissions = new Map<string, Set<string | null>>();
   for (const row of rows ?? []) {

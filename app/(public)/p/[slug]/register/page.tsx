@@ -17,9 +17,10 @@ export default async function RegisterPage({
   // التسجيل يشترط حساباً. الزائر يُنشئه أولاً — ومن له حساب يجد رابط الدخول
   // في الصفحة نفسها. والوجهة تُحفظ فيعود بعدها إلى حيث كان.
   const session = await getSession();
-  if (session.status !== "active") {
-    redirect(`/sign-up?next=${encodeURIComponent(`/p/${slug}/register`)}`);
-  }
+  const back = encodeURIComponent(`/p/${slug}/register`);
+  // الناقص (دخل بـ Google ولم يكتب جواله) يُستكمل ثم يعود — لا يُعاد إلى إنشاء حساب له.
+  if (session.status === "incomplete") redirect(`/complete-profile?next=${back}`);
+  if (session.status !== "active") redirect(`/sign-up?next=${back}`);
 
   const db = await createClient();
   const { data: program, error } = await db

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, useTransition } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
+import { GoogleButton } from "@/components/shared/google-button";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/browser";
@@ -82,6 +83,8 @@ function SignUpForm() {
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
       {state.notice ? <p className={styles.notice}>{state.notice}</p> : null}
+
+      <GoogleButton next={next} />
 
       <form action={submit}>
         <Field id="fullName" label="الاسم الكامل" required error={state.fieldErrors?.["fullName"]}>

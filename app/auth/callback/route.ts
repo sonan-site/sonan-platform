@@ -28,6 +28,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(target);
   }
 
+  // من دخل بـ Google أول مرة لا ملف له: يُستكمل اسمه وجواله قبل وجهته (`adr/0025`).
+  const { data: auth } = await db.auth.getUser();
+  if (auth.user) {
+    const { data: profile } = await db
+      .from("profiles")
+      .select("id")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+    if (!profile) {
+      const complete = new URL("/complete-profile", request.nextUrl.origin);
+      complete.searchParams.set("next", next);
+      return NextResponse.redirect(complete);
+    }
+  }
+
   // الوجهة تمرّ بالقاعدة نفسها التي يمرّ بها الدخول — لا نسخة ثانية منها هنا.
   return NextResponse.redirect(new URL(next, request.nextUrl.origin));
 }

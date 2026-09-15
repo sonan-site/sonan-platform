@@ -51,6 +51,12 @@ export const inviteSchema = z.object({
   phone: phoneSchema,
 });
 
+/** استكمال حسابٍ أُنشئ بـ Google: الاسم والجوال إلزاميان (`adr/0025`). */
+export const completeProfileSchema = z.object({
+  fullName: fullNameSchema,
+  phone: phoneSchema,
+});
+
 /** إنشاء الزائر حسابه بنفسه — الحقول نفسها التي تحملها الدعوة، وكلمة المرور. */
 export const signUpSchema = z
   .object({

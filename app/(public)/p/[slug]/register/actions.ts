@@ -28,6 +28,9 @@ export async function registerInProgram(
   if (!programId.success) return { error: "برنامج غير معروف." };
 
   const session = await getSession();
+  if (session.status === "incomplete") {
+    return { error: "أكمل حسابك (الاسم والجوال) أولاً ثم أعد المحاولة." };
+  }
   if (session.status !== "active") {
     return { error: "سجّل الدخول أولاً ثم أعد المحاولة." };
   }

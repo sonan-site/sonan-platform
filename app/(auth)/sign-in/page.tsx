@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { DEFAULT_LANDING } from "@/lib/auth/safe-next";
 import { Suspense, useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
+import { GoogleButton } from "@/components/shared/google-button";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { signIn } from "./actions";
@@ -41,6 +42,8 @@ function SignInForm() {
       ) : linkError ? (
         <p className={styles.alert}>{linkError}</p>
       ) : null}
+
+      <GoogleButton next={params.get("next") ?? DEFAULT_LANDING} />
 
       <form action={action}>
         <input type="hidden" name="next" value={params.get("next") ?? DEFAULT_LANDING} />
