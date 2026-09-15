@@ -9,6 +9,7 @@ import { GoogleButton } from "@/components/shared/google-button";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { signIn } from "./actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export default function SignInPage() {
   return (
@@ -59,7 +60,7 @@ function SignInForm() {
 
       <GoogleButton next={params.get("next") ?? DEFAULT_LANDING} />
 
-      <form action={action}>
+      <ActionForm action={action} state={state}>
         <input type="hidden" name="next" value={params.get("next") ?? DEFAULT_LANDING} />
 
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
@@ -90,7 +91,7 @@ function SignInForm() {
             دخول
           </Button>
         </FormActions>
-      </form>
+      </ActionForm>
 
       <div className={styles.links}>
         <Link href="/recover">نسيت كلمة المرور</Link>

@@ -7,6 +7,7 @@ import { Messages, PageHead, Step } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { quickSetup } from "./actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 /**
  * الإعداد السريع — خمسة أسئلة بدل أحد عشر مفهوماً.
@@ -43,7 +44,7 @@ export function SetupView({
           body="الإعداد السريع يبني خطة لكل مسار — وبلا مسار لا شيء يُبنى عليه."
         />
       ) : (
-        <form action={action}>
+        <ActionForm action={action} state={state}>
           <input type="hidden" name="programId" value={programId} />
 
           <Step
@@ -170,7 +171,7 @@ export function SetupView({
 
             <Messages state={state} />
           </Step>
-        </form>
+        </ActionForm>
       )}
     </>
   );

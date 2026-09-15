@@ -22,6 +22,7 @@ import {
   updatePlanDay,
   uploadPlan,
 } from "../actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export type DayRow = {
   id: string;
@@ -418,7 +419,7 @@ export function PlanView({
               <Link href={`/programs/${programId}/content`}>عرّف شكل يوم أولاً</Link>.
             </p>
           ) : (
-            <form action={genAction} style={PANEL}>
+            <ActionForm action={genAction} state={genState} style={PANEL}>
               <input type="hidden" name="programId" value={programId} />
               <input type="hidden" name="planId" value={planId} />
 
@@ -462,7 +463,7 @@ export function PlanView({
 
               {genState.error ? <p style={ERR}>{genState.error}</p> : null}
               {genState.notice ? <p style={OK}>{genState.notice}</p> : null}
-            </form>
+            </ActionForm>
           )}
 
           <h2 style={H2}>أو الصق قائمة جاهزة</h2>
@@ -471,7 +472,7 @@ export function PlanView({
             والسطر الأول هو اليوم الأول. أيام الاختبار تُضاف بعد اللصق.
           </p>
           {templates.length > 0 ? (
-            <form action={upAction} style={PANEL}>
+            <ActionForm action={upAction} state={upState} style={PANEL}>
               <input type="hidden" name="programId" value={programId} />
               <input type="hidden" name="planId" value={planId} />
 
@@ -502,7 +503,7 @@ export function PlanView({
 
               {upState.error ? <p style={ERR}>{upState.error}</p> : null}
               {upState.notice ? <p style={OK}>{upState.notice}</p> : null}
-            </form>
+            </ActionForm>
           ) : null}
         </>
       ) : null}
@@ -512,7 +513,7 @@ export function PlanView({
       <p style={NOTE}>
         اليوم يُدرَج في موضعه، وما بعده ينزاح يوماً واحداً. اترك الموضع فارغاً ليُضاف في الآخر.
       </p>
-      <form action={dayAction} style={PANEL}>
+      <ActionForm action={dayAction} state={dayState} style={PANEL}>
         <input type="hidden" name="programId" value={programId} />
         <input type="hidden" name="planId" value={planId} />
 
@@ -597,7 +598,7 @@ export function PlanView({
 
         {dayState.error ? <p style={ERR}>{dayState.error}</p> : null}
         {dayState.notice ? <p style={OK}>{dayState.notice}</p> : null}
-      </form>
+      </ActionForm>
 
       {/* ══ الاختبار: تعريفاً فقط، وللمسابقة وحدها `[BR-KIND-01]` ══ */}
       {allowsExams ? (
@@ -617,7 +618,7 @@ export function PlanView({
         empty={{ title: "لا اختبارات معرَّفة", body: "عرّف اختباراً من النموذج أدناه." }}
       />
 
-      <form action={examAction} style={{ ...PANEL, marginBlockStart: "var(--space-6)" }}>
+      <ActionForm action={examAction} state={examState} style={{ ...PANEL, marginBlockStart: "var(--space-6)" }}>
         <input type="hidden" name="programId" value={programId} />
         <input type="hidden" name="planId" value={planId} />
 
@@ -704,7 +705,7 @@ export function PlanView({
 
         {examState.error ? <p style={ERR}>{examState.error}</p> : null}
         {examState.notice ? <p style={OK}>{examState.notice}</p> : null}
-      </form>
+      </ActionForm>
       </>
       ) : null}
     </>

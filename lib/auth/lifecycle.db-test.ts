@@ -118,7 +118,7 @@ describe("إعدادات دورة الحياة مبذورة بقيم افترا�
   it("كل حدّ معدل رقم موجب", async () => {
     const { rows } = await db.query<{ key: string }>(
       `select key from public.settings
-        where key like 'auth.%' and deleted_at is null
+        where key like 'auth.%' and key <> 'auth.showcase' and deleted_at is null
           and (value #>> '{}') ~ '^[0-9]+$' = false`,
     );
     expect(rows.map((r) => r.key)).toEqual([]);

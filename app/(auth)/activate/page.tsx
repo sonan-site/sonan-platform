@@ -6,6 +6,7 @@ import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { MIN_PASSWORD_LENGTH } from "@/lib/validation/auth";
 import styles from "../layout.module.css";
 import { setPassword } from "./actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export default function ActivatePage() {
   const [state, action, pending] = useActionState(setPassword, EMPTY_FORM_STATE);
@@ -17,7 +18,7 @@ export default function ActivatePage() {
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 
-      <form action={action}>
+      <ActionForm action={action} state={state}>
         <Field
           id="password"
           label="كلمة المرور"
@@ -51,7 +52,7 @@ export default function ActivatePage() {
             حفظ ودخول
           </Button>
         </FormActions>
-      </form>
+      </ActionForm>
     </>
   );
 }

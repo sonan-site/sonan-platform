@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { FormState } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
+import { ActionForm } from "./action-form";
 import styles from "./steps.module.css";
 
 /**
@@ -147,17 +148,20 @@ export function Muted({ children }: { children: ReactNode }) {
 export function StepForm({
   title,
   action,
+  state,
   children,
 }: {
   title: string;
   action: (payload: FormData) => void;
+  /** حالة الإجراء — بها يُعرف أنجح الحفظ فيُفرَّغ النموذج، أم فشل فيبقى ما كُتب. */
+  state: FormState;
   children: ReactNode;
 }) {
   return (
-    <form action={action} className={styles.form}>
+    <ActionForm action={action} state={state} className={styles.form}>
       <p className={styles.formTitle}>{title}</p>
       {children}
-    </form>
+    </ActionForm>
   );
 }
 

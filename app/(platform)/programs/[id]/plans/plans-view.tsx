@@ -91,7 +91,7 @@ export function PlansView({
         }
       >
         {withoutPlan.length === 0 ? null : (
-        <StepForm title="أنشئ خطة" action={action}>
+        <StepForm title="أنشئ خطة" action={action} state={state}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field id="trackId" label="المسار" required error={state.fieldErrors?.trackId}>

@@ -63,7 +63,7 @@ export function AccountView({
         <p>
           <Muted>طريقة الدخول: {methods || "—"}</Muted>
         </p>
-        <StepForm title="بياناتي" action={profileAction}>
+        <StepForm title="بياناتي" action={profileAction} state={profileState}>
           <ProfileFields values={profile} errors={profileState.fieldErrors} />
           <FormActions>
             <Button type="submit" variant="primary" pending={profilePending}>
@@ -86,7 +86,7 @@ export function AccountView({
         done
         state={<span>{hasPassword ? "لحسابك كلمة مرور" : "بلا كلمة مرور"}</span>}
       >
-        <StepForm title={hasPassword ? "كلمة مرور جديدة" : "كلمة المرور"} action={pwAction}>
+        <StepForm title={hasPassword ? "كلمة مرور جديدة" : "كلمة المرور"} action={pwAction} state={pwState}>
           {hasPassword ? (
             <Field id="current" label="كلمة المرور الحالية" required error={pwState.fieldErrors?.["current"]}>
               <Input id="current" name="current" type="password" autoComplete="current-password" required />
@@ -184,7 +184,7 @@ export function AccountView({
         {isStaff ? (
           <Muted>لديك دور إداري في المنصة. اطلب سحب أدوارك أولاً، ثم تستطيع إغلاق حسابك.</Muted>
         ) : (
-          <StepForm title="أغلق حسابي" action={closeAction}>
+          <StepForm title="أغلق حسابي" action={closeAction} state={closeState}>
             <Field
               id="confirm-close"
               label="للتأكيد اكتب: أغلق حسابي"

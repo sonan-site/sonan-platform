@@ -263,7 +263,7 @@ export function ProgramView({
           <summary style={{ cursor: "pointer", fontWeight: "var(--weight-medium)" }}>
             عدّل بيانات البرنامج
           </summary>
-          <StepForm title="بيانات البرنامج" action={editAction}>
+          <StepForm title="بيانات البرنامج" action={editAction} state={editState}>
             <input type="hidden" name="programId" value={program.id} />
             <Field id="pname" label="الاسم" required error={editState.fieldErrors?.["name"]}>
               <Input id="pname" name="name" defaultValue={program.name} required />
@@ -400,7 +400,7 @@ export function ProgramView({
         />
 
         {canWrite ? (
-          <StepForm title="أضِف مساراً" action={action}>
+          <StepForm title="أضِف مساراً" action={action} state={state}>
             <input type="hidden" name="programId" value={program.id} />
 
             <Field id="tname" label="اسم المسار" required error={state.fieldErrors?.["name"]}>

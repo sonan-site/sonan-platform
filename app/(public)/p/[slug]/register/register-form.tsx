@@ -5,6 +5,7 @@ import { Button, Field, FormActions, Select, Textarea } from "@/components/share
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { registerInProgram } from "./actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export type QuestionRow = {
   id: string;
@@ -52,7 +53,7 @@ export function RegisterForm({
 
       {state.error ? <p style={ERR}>{state.error}</p> : null}
 
-      <form action={action} style={{ maxInlineSize: "34rem" }}>
+      <ActionForm action={action} state={state} style={{ maxInlineSize: "34rem" }}>
         <input type="hidden" name="programId" value={programId} />
         <input type="hidden" name="slug" value={slug} />
 
@@ -86,7 +87,7 @@ export function RegisterForm({
             إتمام التسجيل
           </Button>
         </FormActions>
-      </form>
+      </ActionForm>
     </>
   );
 }

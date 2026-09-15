@@ -10,6 +10,7 @@ import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/browser";
 import { signUpSchema } from "@/lib/validation/auth";
 import styles from "../layout.module.css";
+import { ActionForm } from "@/components/shared/action-form";
 
 export default function SignUpPage() {
   return (
@@ -85,7 +86,7 @@ function SignUpForm() {
 
       <GoogleButton next={next} />
 
-      <form action={submit}>
+      <ActionForm action={submit} state={state}>
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
           <Input id="email" name="email" type="email" autoComplete="email" latin required />
         </Field>
@@ -103,7 +104,7 @@ function SignUpForm() {
             أنشئ الحساب
           </Button>
         </FormActions>
-      </form>
+      </ActionForm>
 
       <div className={styles.links}>
         <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>لديك حساب؟ ادخل</Link>

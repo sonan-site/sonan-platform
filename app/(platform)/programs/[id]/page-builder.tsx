@@ -17,6 +17,7 @@ import {
   removeBlock,
   setHelpStatus,
 } from "./page-actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export type BlockRow = { id: string; type: BlockType; summary: string };
 export type HelpRow = { id: string; question: string; published: boolean };
@@ -132,7 +133,7 @@ export function PageBuilder({
         {blockState.error ? <p style={ERR}>{blockState.error}</p> : null}
         {blockState.notice ? <p style={OK}>{blockState.notice}</p> : null}
 
-        <form action={blockAction}>
+        <ActionForm action={blockAction} state={blockState}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field id="blockType" label="نوع العنصر" required>
@@ -195,7 +196,7 @@ export function PageBuilder({
               إضافة العنصر
             </Button>
           </FormActions>
-        </form>
+        </ActionForm>
       </section>
 
       <h2 style={H2}>الأسئلة الشائعة</h2>
@@ -269,7 +270,7 @@ export function PageBuilder({
         {admState.error ? <p style={ERR}>{admState.error}</p> : null}
         {admState.notice ? <p style={OK}>{admState.notice}</p> : null}
 
-        <form action={admAction}>
+        <ActionForm action={admAction} state={admState}>
           <input type="hidden" name="programId" value={programId} />
           <Field
             id="admQuestion"
@@ -297,14 +298,14 @@ export function PageBuilder({
               إضافة سؤال قبول
             </Button>
           </FormActions>
-        </form>
+        </ActionForm>
       </section>
 
       <section style={PANEL}>
         {helpState.error ? <p style={ERR}>{helpState.error}</p> : null}
         {helpState.notice ? <p style={OK}>{helpState.notice}</p> : null}
 
-        <form action={helpAction}>
+        <ActionForm action={helpAction} state={helpState}>
           <input type="hidden" name="programId" value={programId} />
           <Field id="question" label="السؤال" required error={helpState.fieldErrors?.["question"]}>
             <Input id="question" name="question" required />
@@ -317,7 +318,7 @@ export function PageBuilder({
               إضافة سؤال
             </Button>
           </FormActions>
-        </form>
+        </ActionForm>
       </section>
     </>
   );

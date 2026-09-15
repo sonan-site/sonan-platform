@@ -12,6 +12,7 @@
 export const AUDIT_ACTION_LABEL: Record<string, string> = {
   bootstrap_admin: "تهيئة المدير الأول",
   user_invited: "دعوة مستخدم",
+  auth_showcase_updated: "تعديل شرائح واجهة الدخول",
   user_suspended: "إيقاف حساب",
   user_restored: "إعادة تفعيل حساب",
   account_closed: "إغلاق حساب بطلب صاحبه",

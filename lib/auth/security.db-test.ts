@@ -420,7 +420,9 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
        order by 1`,
     );
     // `fn_has_permission` تُجيب الزائر بـ`false` دائماً، وسياسات القراءة العامة تستدعيها.
+    // `fn_auth_showcase` تُرجع شرائح شاشة الدخول وحدها، لا جدول الإعدادات (الهجرة ٠٣٨).
     expect(rows.map((r) => r.name)).toEqual([
+      "fn_auth_showcase",
       "fn_has_permission",
       "fn_registration_state",
       "fn_track_unit_count",

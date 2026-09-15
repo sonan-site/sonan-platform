@@ -76,7 +76,7 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
             )
           }
         >
-          <StepForm title="أرسِل دعوة" action={action}>
+          <StepForm title="أرسِل دعوة" action={action} state={state}>
             <Field id="fullName" label="الاسم" required error={state.fieldErrors?.["fullName"]}>
               <Input id="fullName" name="fullName" required />
             </Field>

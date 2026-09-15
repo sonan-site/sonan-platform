@@ -20,7 +20,7 @@ export type AssignmentRow = {
 };
 
 /** صلاحيات بلا شاشة بعد لا تُعرض — ذكرها يوحي بقدرة غير موجودة. */
-const HIDDEN_SECTIONS = new Set<string>(["settings", "attachments"]);
+const HIDDEN_SECTIONS = new Set<string>(["attachments"]);
 
 function visibleCodes(codes: string[]): PermissionCode[] {
   return codes.filter(
@@ -128,7 +128,7 @@ export function RolesView({
         }
       >
         {canAssign ? (
-          <StepForm title="أسنِد دوراً" action={action}>
+          <StepForm title="أسنِد دوراً" action={action} state={state}>
             <Field id="userId" label="المستخدم" required>
               <Select id="userId" name="userId" required defaultValue="">
                 <option value="" disabled>

@@ -1,30 +1,137 @@
+/* نصفان: الأول (اليمين في RTL) للشعار والشرائح، والثاني للنموذج. */
 .shell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   min-block-size: 100dvh;
-  padding: var(--space-6) var(--space-4);
   background: var(--color-bg);
 }
 
-.card {
-  inline-size: 100%;
-  max-inline-size: 26rem;
-  padding: var(--space-8);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+.panel {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-10) var(--space-12);
+  background: var(--color-brand-deep);
+  color: var(--color-text-on-brand);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-block-end: var(--space-6);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: var(--weight-bold);
-  color: var(--color-brand);
+}
+
+.showcase {
+  display: flex;
+  flex: 1;
+  align-items: center;
+}
+
+.slides {
+  inline-size: 100%;
+}
+
+.slide {
+  max-inline-size: 30rem;
+  animation: slide-in var(--motion-slow) var(--ease-out);
+}
+
+.slideTitle {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.slideBody {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  opacity: 0.85;
+}
+
+.dots {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-start: var(--space-8);
+}
+
+.dot {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-brand-divider);
+  cursor: pointer;
+  transition: inline-size var(--motion-base) var(--ease-out);
+}
+
+.dot[aria-current="true"] {
+  inline-size: var(--space-6);
+  background: var(--color-text-on-brand);
+}
+
+.dot:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+}
+
+.card {
+  inline-size: 100%;
+  max-inline-size: 26rem;
+}
+
+/* الجوال واللوحي: عمود واحد — الشعار شريطاً أعلى، ثم النموذج. الشرائح تُخفى. */
+@media (max-width: 1023px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .panel {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .brand {
+    font-size: var(--text-lg);
+  }
+
+  .showcase {
+    display: none;
+  }
+
+  .main {
+    align-items: flex-start;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .card {
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .title {

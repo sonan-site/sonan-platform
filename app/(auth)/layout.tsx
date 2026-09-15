@@ -1,22 +1,41 @@
 import { BookOpen } from "lucide-react";
 import type { ReactNode } from "react";
+import { getShowcase } from "@/lib/settings/showcase-server";
 import styles from "./layout.module.css";
+import { ShowcaseSlides } from "./showcase-slides";
 
 /**
- * تخطيط ما قبل المصادقة.
- * **لا يمرّ بـ AppLayout بقصد**: لا شريط جانبي ولا تنقّل لمن لم يدخل بعد —
- * إظهار أقسام لا تُفتح إعلانٌ عن قدرة غير موجودة. مستثنى في allowlist بحجّته.
+ * شاشات ما قبل الدخول — نصفان على الحاسوب: الشعار والشرائح جهة اليمين،
+ * والنموذج جهة اليسار. وعلى الجوال عمودٌ واحد: الشعار ثم النموذج، والشرائح
+ * تُخفى فلا تدفع النموذج إلى أسفل الشاشة.
+ *
+ * الشرائح من «الإعدادات» (الهجرة ٠٣٨). وبلا شرائح يبقى اسم المنصة وترحيبها.
  */
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  const { slides } = await getShowcase();
+
   return (
     <div className={styles.shell}>
-      <div className={styles.card}>
+      <aside className={styles.panel}>
         <div className={styles.brand}>
-          <BookOpen size={20} aria-hidden />
+          <BookOpen size={24} aria-hidden />
           منصة سنن
         </div>
-        {children}
-      </div>
+        <div className={styles.showcase}>
+          {slides.length > 0 ? (
+            <ShowcaseSlides slides={slides} />
+          ) : (
+            <div className={styles.slide}>
+              <p className={styles.slideTitle}>أهلاً بك في منصة سنن</p>
+              <p className={styles.slideBody}>برامج الجمعية ورحلتك فيها، في مكان واحد.</p>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main className={styles.main}>
+        <div className={styles.card}>{children}</div>
+      </main>
     </div>
   );
 }

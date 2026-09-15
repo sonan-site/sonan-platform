@@ -257,7 +257,7 @@ export function ContentView({
           />
         ) : null}
 
-        <StepForm title="إضافة" action={unitAction}>
+        <StepForm title="إضافة" action={unitAction} state={unitState}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field
@@ -342,7 +342,7 @@ export function ContentView({
         </Cards>
 
         {tracks.length > 0 && unitSummary.count > 0 ? (
-          <StepForm title="إضافة جزء" action={partAction}>
+          <StepForm title="إضافة جزء" action={partAction} state={partState}>
             <input type="hidden" name="programId" value={programId} />
 
             <Field id="trackId" label="المسار" required error={partState.fieldErrors?.trackId}>
@@ -448,7 +448,7 @@ export function ContentView({
           ))}
         </Cards>
 
-        <StepForm title="إضافة واجب" action={fieldAction}>
+        <StepForm title="إضافة واجب" action={fieldAction} state={fieldState}>
           <input type="hidden" name="programId" value={programId} />
 
           <Field
@@ -574,7 +574,7 @@ export function ContentView({
           ))}
         </Cards>
 
-        <StepForm title="شكل جديد" action={tplAction}>
+        <StepForm title="شكل جديد" action={tplAction} state={tplState}>
           <input type="hidden" name="programId" value={programId} />
           <Field
             id="name"
@@ -594,7 +594,7 @@ export function ContentView({
         </StepForm>
 
         {templates.length > 0 && fields.length > 0 ? (
-          <StepForm title="إضافة واجب إلى شكل" action={tfAction}>
+          <StepForm title="إضافة واجب إلى شكل" action={tfAction} state={tfState}>
             <input type="hidden" name="programId" value={programId} />
 
             <Field

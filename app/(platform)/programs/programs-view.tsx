@@ -103,7 +103,7 @@ export function ProgramsView({
             )
           }
         >
-          <StepForm title="أنشئ قسماً" action={sectionAction}>
+          <StepForm title="أنشئ قسماً" action={sectionAction} state={sectionState}>
             <Field id="sname" label="اسم القسم" required error={sectionState.fieldErrors?.["name"]}>
               <Input id="sname" name="name" required />
             </Field>
@@ -143,7 +143,7 @@ export function ProgramsView({
             )
           }
         >
-          <StepForm title="أنشئ برنامجاً" action={programAction}>
+          <StepForm title="أنشئ برنامجاً" action={programAction} state={programState}>
             <Field
               id="sectionId"
               label="القسم"

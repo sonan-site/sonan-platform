@@ -6,6 +6,7 @@ import { ProfileFields, type ProfileValues } from "@/components/shared/profile-f
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { completeProfile } from "./actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export function CompleteProfileForm({
   email,
@@ -28,7 +29,7 @@ export function CompleteProfileForm({
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 
-      <form action={action}>
+      <ActionForm action={action} state={state}>
         <input type="hidden" name="next" value={next} />
 
         <Field id="email" label="البريد الإلكتروني">
@@ -42,7 +43,7 @@ export function CompleteProfileForm({
             احفظ وتابع
           </Button>
         </FormActions>
-      </form>
+      </ActionForm>
     </>
   );
 }

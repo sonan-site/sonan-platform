@@ -1286,6 +1286,7 @@ export type Database = {
     }
     Functions: {
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
+      fn_auth_showcase: { Args: never; Returns: Json }
       fn_bootstrap_admin: {
         Args: { p_full_name: string; p_phone: string; p_user_id: string }
         Returns: string

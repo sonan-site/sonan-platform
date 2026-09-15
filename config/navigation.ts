@@ -79,7 +79,14 @@ export const NAVIGATION: readonly NavItem[] = [
     participantsOnly: true,
     primary: true,
   },
-  // الإعدادات: لا شاشة لها بعد، فلا مدخل. مدخلٌ يفتح 404 وعدٌ كاذب.
+  {
+    key: "settings",
+    title: "الإعدادات",
+    href: "/settings",
+    icon: "Settings",
+    permission: "settings.read",
+    primary: false,
+  },
   {
     key: "audit",
     title: "سجل التدقيق",

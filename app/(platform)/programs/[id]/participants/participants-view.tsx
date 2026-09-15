@@ -257,7 +257,7 @@ export function ParticipantsView({
         }
       >
         {canWrite && participants.length > 0 && tracks.length > 1 ? (
-          <StepForm title="سجّل طلباً" action={action}>
+          <StepForm title="سجّل طلباً" action={action} state={state}>
             <input type="hidden" name="programId" value={programId} />
 
             <Field id="participantId" label="المشارك" required>

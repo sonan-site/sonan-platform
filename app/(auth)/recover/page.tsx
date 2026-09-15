@@ -6,6 +6,7 @@ import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { requestRecovery } from "./actions";
+import { ActionForm } from "@/components/shared/action-form";
 
 export default function RecoverPage() {
   const [state, action, pending] = useActionState(requestRecovery, EMPTY_FORM_STATE);
@@ -18,7 +19,7 @@ export default function RecoverPage() {
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
       {state.notice ? <p className={styles.notice}>{state.notice}</p> : null}
 
-      <form action={action}>
+      <ActionForm action={action} state={state}>
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
           <Input
             id="email"
@@ -36,7 +37,7 @@ export default function RecoverPage() {
             أرسل الرابط
           </Button>
         </FormActions>
-      </form>
+      </ActionForm>
 
       <div className={styles.links}>
         <Link href="/sign-in">العودة لتسجيل الدخول</Link>
