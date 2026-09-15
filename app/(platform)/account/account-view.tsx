@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
-import { InlineText } from "@/components/shared/inline-edit";
+import { ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
 import { Card, Cards, Messages, Muted, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
@@ -21,8 +21,7 @@ export type AvailableProgram = { id: string; name: string; summary: string; slug
 
 export function AccountView({
   email,
-  fullName,
-  phone,
+  profile,
   hasPassword,
   hasGoogle,
   isStaff,
@@ -30,14 +29,14 @@ export function AccountView({
   available,
 }: {
   email: string;
-  fullName: string;
-  phone: string;
+  profile: ProfileValues;
   hasPassword: boolean;
   hasGoogle: boolean;
   isStaff: boolean;
   participations: Participation[];
   available: AvailableProgram[];
 }) {
+  const [profileState, profileAction, profilePending] = useActionState(updateMyProfile, EMPTY_FORM_STATE);
   const [pwState, pwAction, pwPending] = useActionState(changePassword, EMPTY_FORM_STATE);
   const [closeState, closeAction, closePending] = useActionState(closeMyAccount, EMPTY_FORM_STATE);
 
@@ -57,32 +56,22 @@ export function AccountView({
       <Step
         n={1}
         title="بياناتي"
-        why="الاسم كما يظهر لإدارة البرنامج، والجوال لتتواصل معك. يُحفظ كلٌّ منهما حين تغادر حقله."
+        why="اسمك وجوالك وبياناتك كما تراها إدارة البرنامج. عدّل ما شئت ثم احفظ."
         done
         state={<span>{email}</span>}
       >
-        <Cards>
-          <Card name="الاسم">
-            <InlineText
-              label="الاسم"
-              value={fullName}
-              maxInlineSize="100%"
-              onSave={(next) => updateMyProfile("fullName", next)}
-            />
-          </Card>
-          <Card name="الجوال">
-            <InlineText
-              label="الجوال"
-              value={phone}
-              latin
-              maxInlineSize="100%"
-              onSave={(next) => updateMyProfile("phone", next)}
-            />
-          </Card>
-          <Card name="طريقة الدخول">
-            <Muted>{methods || "—"}</Muted>
-          </Card>
-        </Cards>
+        <p>
+          <Muted>طريقة الدخول: {methods || "—"}</Muted>
+        </p>
+        <StepForm title="بياناتي" action={profileAction}>
+          <ProfileFields values={profile} errors={profileState.fieldErrors} />
+          <FormActions>
+            <Button type="submit" variant="primary" pending={profilePending}>
+              احفظ
+            </Button>
+          </FormActions>
+          <Messages state={profileState} />
+        </StepForm>
       </Step>
 
       {/* ══ ٢ · كلمة المرور ══ */}

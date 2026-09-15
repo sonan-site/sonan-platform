@@ -1,20 +1,64 @@
 /**
  * حالة الحساب من ملفه — وحدة نقيّة.
  *
- * **ثلاث لا اثنتان** (`adr/0025`): الحساب بلا ملفٍ لم يكن «موقوفاً» بل **ناقصاً** —
- * دخل بـ Google ولم يكتب جواله بعد. وخلطهما كان يعرض على صاحبه صفحة إيقاف لم
- * يستحقّها، ولا يقول له ما ينقصه.
+ * **ثلاث لا اثنتان** (`adr/0025`): الحساب بلا ملفٍ، أو بملفٍ تنقصه بياناته، ليس
+ * «موقوفاً» بل **ناقصاً** — يُستكمل مرة ثم يدخل. وخلطهما كان يعرض على صاحبه صفحة
+ * إيقاف لم يستحقّها.
+ *
+ * **المكتمل** نظيرُ `fn_profile_is_complete` في القاعدة (الهجرة ٠٣٦)، واختبار
+ * التكافؤ في `lib/auth/profile-details.db-test.ts` يُبقيهما متطابقين.
  */
 
 export type AccountState = "active" | "suspended" | "incomplete";
 
-export function accountState(profile: { deleted_at: string | null } | null): AccountState {
-  if (!profile) return "incomplete";
-  return profile.deleted_at === null ? "active" : "suspended";
+export type ProfileCompleteness = {
+  deleted_at: string | null;
+  first_name: string | null;
+  father_name: string | null;
+  family_name: string | null;
+  gender: string | null;
+  birth_date: string | null;
+  nationality: string | null;
+  phone: string | null;
+};
+
+/** الأعمدة التي تقرؤها الجلسة لتحكم بالاكتمال. */
+export const COMPLETENESS_COLUMNS =
+  "deleted_at, first_name, father_name, family_name, gender, birth_date, nationality, phone";
+
+const E164 = /^\+[1-9][0-9]{7,14}$/;
+
+export function isProfileComplete(p: ProfileCompleteness): boolean {
+  return Boolean(
+    p.first_name &&
+      p.father_name &&
+      p.family_name &&
+      p.gender &&
+      p.birth_date &&
+      p.nationality &&
+      p.phone &&
+      E164.test(p.phone),
+  );
 }
 
-/** الاسم الذي يقترحه مزوّد الدخول — Google يرسله `full_name` أو `name`. */
-export function suggestedName(metadata: Record<string, unknown> | undefined): string {
-  const value = metadata?.["full_name"] ?? metadata?.["name"];
-  return typeof value === "string" ? value.trim() : "";
+export function accountState(profile: ProfileCompleteness | null): AccountState {
+  if (!profile) return "incomplete";
+  if (profile.deleted_at !== null) return "suspended";
+  return isProfileComplete(profile) ? "active" : "incomplete";
+}
+
+/** الاسم الذي يقترحه مزوّد الدخول — Google يرسل `given_name` و`family_name` و`full_name`. */
+export function suggestedName(metadata: Record<string, unknown> | undefined): {
+  first: string;
+  family: string;
+} {
+  const text = (key: string) => {
+    const value = metadata?.[key];
+    return typeof value === "string" ? value.trim() : "";
+  };
+  const full = text("full_name") || text("name");
+  return {
+    first: text("given_name") || full.split(/\s+/)[0] || "",
+    family: text("family_name") || (full.includes(" ") ? full.split(/\s+/).slice(-1)[0]! : ""),
+  };
 }

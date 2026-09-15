@@ -24,8 +24,8 @@ export default function SignUpPage() {
  *
  * **من المتصفح لا من الخادم:** حدّ Supabase لإنشاء الحسابات يُحسب لكل عنوان.
  * لو مرّ الطلب بالخادم لحُسب كل الزوّار على عنوانه، فيُرفض الثلاثون الأوائل
- * يوم الإعلان. والاسم والجوال يُحملان مع الحساب، ومشغّل القاعدة يُنشئ منهما
- * الملف ويفرض صيغتهما (الهجرة ٠٣١) — فالتحقّق هنا تحسين تجربة لا حجّة.
+ * يوم الإعلان. والبيانات الشخصية لا تُطلب هنا: الجلسة تجد الحساب ناقصاً فتحوّله
+ * إلى «أكمل حسابك» — النموذج الواحد لكل الحسابات (الهجرة ٠٣٦).
  */
 function SignUpForm() {
   const router = useRouter();
@@ -36,8 +36,6 @@ function SignUpForm() {
 
   function submit(form: FormData) {
     const parsed = signUpSchema.safeParse({
-      fullName: form.get("fullName"),
-      phone: form.get("phone"),
       email: form.get("email"),
       password: form.get("password"),
       confirm: form.get("confirm"),
@@ -51,7 +49,6 @@ function SignUpForm() {
       const { data, error } = await createClient().auth.signUp({
         email: parsed.data.email,
         password: parsed.data.password,
-        options: { data: { full_name: parsed.data.fullName, phone: parsed.data.phone } },
       });
 
       if (error) {
@@ -79,7 +76,9 @@ function SignUpForm() {
   return (
     <>
       <h1 className={styles.title}>إنشاء حساب</h1>
-      <p className={styles.lede}>حسابٌ واحد تسجّل به في برامج الجمعية وتتابع رحلتك.</p>
+      <p className={styles.lede}>
+        حسابٌ واحد تسجّل به في برامج الجمعية وتتابع رحلتك. بعده خطوة واحدة لبياناتك.
+      </p>
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
       {state.notice ? <p className={styles.notice}>{state.notice}</p> : null}
@@ -87,14 +86,6 @@ function SignUpForm() {
       <GoogleButton next={next} />
 
       <form action={submit}>
-        <Field id="fullName" label="الاسم الكامل" required error={state.fieldErrors?.["fullName"]}>
-          <Input id="fullName" name="fullName" autoComplete="name" required />
-        </Field>
-
-        <Field id="phone" label="الجوال" required hint="05xxxxxxxx" error={state.fieldErrors?.["phone"]}>
-          <Input id="phone" name="phone" autoComplete="tel" latin numeric required />
-        </Field>
-
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
           <Input id="email" name="email" type="email" autoComplete="email" latin required />
         </Field>

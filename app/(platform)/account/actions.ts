@@ -10,7 +10,8 @@ import { userMessage } from "@/lib/db/messages";
 import { createClient } from "@/lib/db/server";
 import { env } from "@/lib/env.server";
 import { setSignInBlocked } from "@/lib/mail";
-import { fullNameSchema, phoneSchema, setPasswordSchema } from "@/lib/validation/auth";
+import { setPasswordSchema } from "@/lib/validation/auth";
+import { profileInput, profileSchema } from "@/lib/validation/profile";
 
 /**
  * «حسابي» — ما يفعله المستخدم بحسابه هو.
@@ -19,27 +20,25 @@ import { fullNameSchema, phoneSchema, setPasswordSchema } from "@/lib/validation
  * من الجلسة، والسياسات تقصر التعديل على صاحب الملف.
  */
 
-export async function updateMyProfile(
-  field: "fullName" | "phone",
-  value: string,
-): Promise<FormState> {
+/** بياناتي — بالقواعد نفسها التي يُستكمل بها الحساب (`lib/validation/profile.ts`). */
+export async function updateMyProfile(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = profileSchema.safeParse(profileInput(form));
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
   const session = await getSession();
   if (session.status !== "active") return { error: "انتهت جلستك. سجّل الدخول من جديد." };
-
-  const parsed = (field === "fullName" ? fullNameSchema : phoneSchema).safeParse(value);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "القيمة غير صالحة." };
 
   const db = await createClient();
   const { data, error } = await db
     .from("profiles")
-    .update(field === "fullName" ? { full_name: parsed.data } : { phone: parsed.data })
+    .update(parsed.data)
     .eq("user_id", session.userId)
     .is("deleted_at", null)
     .select("id");
-  if (error || !data?.length) return { error: userMessage(error, "تعذّر حفظ التعديل.") };
+  if (error || !data?.length) return { error: userMessage(error, "تعذّر حفظ بياناتك.") };
 
   revalidatePath("/account");
-  return { notice: field === "fullName" ? "حُفظ الاسم." : "حُفظ الجوال." };
+  return { notice: "حُفظت بياناتك." };
 }
 
 /**

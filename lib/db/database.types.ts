@@ -759,29 +759,53 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_date: string | null
           created_at: string
           deleted_at: string | null
+          family_name: string | null
+          father_name: string | null
+          first_name: string | null
           full_name: string
+          gender: Database["public"]["Enums"]["gender"] | null
+          grandfather_name: string | null
           id: string
-          phone: string
+          nationality: string | null
+          phone: string | null
+          phone_secondary: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          birth_date?: string | null
           created_at?: string
           deleted_at?: string | null
+          family_name?: string | null
+          father_name?: string | null
+          first_name?: string | null
           full_name: string
+          gender?: Database["public"]["Enums"]["gender"] | null
+          grandfather_name?: string | null
           id?: string
-          phone: string
+          nationality?: string | null
+          phone?: string | null
+          phone_secondary?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          birth_date?: string | null
           created_at?: string
           deleted_at?: string | null
+          family_name?: string | null
+          father_name?: string | null
+          first_name?: string | null
           full_name?: string
+          gender?: Database["public"]["Enums"]["gender"] | null
+          grandfather_name?: string | null
           id?: string
-          phone?: string
+          nationality?: string | null
+          phone?: string | null
+          phone_secondary?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1354,6 +1378,10 @@ export type Database = {
       }
       fn_plan_program_id: { Args: { p_plan_id: string }; Returns: string }
       fn_plan_remove_day: { Args: { p_plan_day_id: string }; Returns: number }
+      fn_profile_is_complete: {
+        Args: { p: Database["public"]["Tables"]["profiles"]["Row"] }
+        Returns: boolean
+      }
       fn_program_participants: {
         Args: { p_limit?: number; p_offset?: number; p_program_id: string }
         Returns: {
@@ -1436,6 +1464,7 @@ export type Database = {
       exam_stage: "interim" | "final"
       exam_type: "remote" | "oral"
       field_kind: "ranged" | "counted"
+      gender: "male" | "female"
       notification_status: "pending" | "sent" | "failed" | "read"
       participant_status:
         | "registered"
@@ -1588,6 +1617,7 @@ export const Constants = {
       exam_stage: ["interim", "final"],
       exam_type: ["remote", "oral"],
       field_kind: ["ranged", "counted"],
+      gender: ["male", "female"],
       notification_status: ["pending", "sent", "failed", "read"],
       participant_status: [
         "registered",

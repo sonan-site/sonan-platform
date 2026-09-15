@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { accountState, COMPLETENESS_COLUMNS } from "@/lib/auth/account-state";
 import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 
@@ -42,15 +43,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(target);
   }
 
-  // من دخل بـ Google أول مرة لا ملف له: يُستكمل اسمه وجواله قبل وجهته (`adr/0025`).
+  // من لا ملف له أو ملفه ناقص يُستكمل قبل وجهته (`adr/0025`) — بالقاعدة نفسها التي تحكم بها الجلسة.
   const { data: auth } = await db.auth.getUser();
   if (auth.user) {
     const { data: profile } = await db
       .from("profiles")
-      .select("id")
+      .select(COMPLETENESS_COLUMNS)
       .eq("user_id", auth.user.id)
       .maybeSingle();
-    if (!profile) {
+    if (accountState(profile) === "incomplete") {
       const complete = new URL("/complete-profile", request.nextUrl.origin);
       complete.searchParams.set("next", next);
       return NextResponse.redirect(complete);

@@ -16,13 +16,13 @@ export type MailResult = { ok: true } | { ok: false; reason: string };
 export async function sendInvite(
   email: string,
   redirectTo: string,
-  profile: { fullName: string; phone: string },
+  profile: { fullName: string },
 ): Promise<MailResult> {
   const admin = createServiceRoleClient();
   const { error } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo,
-    // يقرؤها التفعيل فيُنشئ الملف باسم صاحبه وجواله لا ببريده.
-    data: { full_name: profile.fullName, phone: profile.phone },
+    // الاسم للعرض في قائمة المستخدمين حتى يستكمل المدعوّ بياناته بنفسه.
+    data: { full_name: profile.fullName },
   });
   return error ? { ok: false, reason: error.message } : { ok: true };
 }

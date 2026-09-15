@@ -66,7 +66,7 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
         <Step
           n={1}
           title="دعوة مستخدم"
-          why="تُرسَل رسالة يضبط بها كلمته ويدخل. ولا يملك شيئاً حتى يُسنَد له دور — والدعوة وحدها لا تفتح باباً."
+          why="تُرسَل رسالة يضبط بها كلمته، ثم يكتب بياناته ويدخل. ولا يملك شيئاً حتى يُسنَد له دور — والدعوة وحدها لا تفتح باباً."
           done={rows.length > 0}
           state={
             rows.length === 0 ? (
@@ -82,15 +82,6 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
             </Field>
             <Field id="email" label="البريد" required error={state.fieldErrors?.["email"]}>
               <Input id="email" name="email" type="email" latin required />
-            </Field>
-            <Field
-              id="phone"
-              label="الجوال"
-              required
-              hint="05xxxxxxxx"
-              error={state.fieldErrors?.["phone"]}
-            >
-              <Input id="phone" name="phone" latin numeric required />
             </Field>
             <FormActions>
               <Button type="submit" variant="primary" pending={pending}>

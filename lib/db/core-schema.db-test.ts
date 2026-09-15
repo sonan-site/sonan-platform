@@ -194,7 +194,7 @@ describe("بذر المدير الأول", () => {
       onUnseeded(async () =>
         db.query(
           `select public.fn_bootstrap_admin(
-             '00000000-0000-0000-0000-000000000000'::uuid, 'اسم', '0500000000')`,
+             '00000000-0000-0000-0000-000000000000'::uuid, 'اسم', '+966500000000')`,
         ),
       ),
     ).rejects.toThrow(/لا مستخدم بهذا المعرّف/);
@@ -211,7 +211,7 @@ describe("بذر المدير الأول", () => {
     await expect(
       db.query(
         `select public.fn_bootstrap_admin(
-           '00000000-0000-0000-0000-000000000000'::uuid, 'اسم', '0500000000')`,
+           '00000000-0000-0000-0000-000000000000'::uuid, 'اسم', '+966500000000')`,
       ),
     ).rejects.toThrow(/مبذور سلفاً/);
   });
@@ -224,7 +224,7 @@ describe("بذر المدير الأول", () => {
 
     await expect(
       onUnseeded(async () =>
-        db.query(`select public.fn_bootstrap_admin($1::uuid, '  ', '0500000000')`, [
+        db.query(`select public.fn_bootstrap_admin($1::uuid, '  ', '+966500000000')`, [
           rows[0]!.id,
         ]),
       ),

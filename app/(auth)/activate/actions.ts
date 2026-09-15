@@ -37,7 +37,8 @@ export async function setPassword(_prev: FormState, form: FormData): Promise<For
     const { error: profileError } = await db.from("profiles").insert({
       user_id: auth.user.id,
       full_name: String(auth.user.user_metadata?.["full_name"] ?? auth.user.email ?? ""),
-      phone: String(auth.user.user_metadata?.["phone"] ?? ""),
+      // الجوال وبقية البيانات تُكتب في «أكمل حسابك» بعد هذه الصفحة مباشرة.
+      phone: null,
     });
     if (profileError) {
       return { error: "حُفظت كلمة المرور، لكن تعذّر إكمال حسابك. تواصل مع إدارة المنصة." };

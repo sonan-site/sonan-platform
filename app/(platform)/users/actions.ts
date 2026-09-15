@@ -21,7 +21,6 @@ export async function inviteUser(_prev: FormState, form: FormData): Promise<Form
   const parsed = inviteSchema.safeParse({
     email: form.get("email"),
     fullName: form.get("fullName"),
-    phone: form.get("phone"),
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
 
@@ -36,7 +35,6 @@ export async function inviteUser(_prev: FormState, form: FormData): Promise<Form
   const origin = (await headers()).get("origin") ?? "";
   const sent = await sendInvite(parsed.data.email, `${origin}/auth/callback?next=/activate`, {
     fullName: parsed.data.fullName,
-    phone: parsed.data.phone,
   });
   // سبب المزوّد لا يُعرض: نصّه إنجليزي، ويكشف إن كان البريد مسجَّلاً سلفاً.
   if (!sent.ok) return { error: "تعذّر إرسال الدعوة. تحقّق من البريد أو أعد المحاولة بعد قليل." };

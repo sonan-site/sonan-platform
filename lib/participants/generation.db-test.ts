@@ -186,8 +186,8 @@ beforeAll(async () => {
   // `fn_is_active` تفحص ملف التعريف لا حساب المصادقة — والإرسال يشترطها.
   await db.query(
     `insert into public.profiles (user_id, full_name, phone) values
-       ($1, 'مشارك منضبط', '0500000001'),
-       ($2, 'مشارك متعثّر', '0500000002')`,
+       ($1, 'مشارك منضبط', '+966500000001'),
+       ($2, 'مشارك متعثّر', '+966500000002')`,
     [STEADY_USER, STRUGGLING_USER],
   );
 
@@ -630,7 +630,7 @@ describe("الإرسال — الجاري وحده، في القاعدة لا ف
     );
     await db.query(
       `insert into public.profiles (user_id, full_name, phone)
-       values ($1, 'مشارك جديد', '0500000003')`,
+       values ($1, 'مشارك جديد', '+966500000003')`,
       [freeUser],
     );
     const row = await db.query<{ id: string }>(

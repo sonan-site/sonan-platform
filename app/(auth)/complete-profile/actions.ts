@@ -5,19 +5,17 @@ import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { safeNext } from "@/lib/auth/safe-next";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
-import { completeProfileSchema } from "@/lib/validation/auth";
+import { profileInput, profileSchema } from "@/lib/validation/profile";
 
 /**
- * استكمال الحساب — الاسم والجوال لمن دخل بـ Google (`adr/0025`).
+ * استكمال الحساب — البيانات كلها لكل حساب ناقص (`adr/0025`، الهجرة ٠٣٦).
  *
- * يُدرج الملف بعميل المستخدم نفسه: سياسة `profiles_insert_self` تقصره على
- * صاحبه، فلا يُكمل أحدٌ ملف غيره.
+ * **إدراج أو تحديث:** من دخل بـ Google أول مرة لا ملف له، والحساب القديم له ملفٌ
+ * تنقصه الحقول الجديدة. والكتابة بعميل المستخدم نفسه: السياسات تقصرها على صاحب
+ * الملف، والحارس يمنعه من تعديل حالته.
  */
 export async function completeProfile(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = completeProfileSchema.safeParse({
-    fullName: form.get("fullName"),
-    phone: form.get("phone"),
-  });
+  const parsed = profileSchema.safeParse(profileInput(form));
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
 
   const next = safeNext(form.get("next"));
@@ -26,15 +24,20 @@ export async function completeProfile(_prev: FormState, form: FormData): Promise
   if (session.status !== "incomplete") redirect(next);
 
   const db = await createClient();
-  // لا تدقيق هنا: إنشاء الملف بالبريد (مشغّل القاعدة) لا يُدقَّق كذلك، والسجل
-  // للأفعال الإدارية. ومن لا صلاحية له لا يكتب فيه أصلاً (الهجرة ٠٢٦).
-  const { error } = await db
+  const { data: existing } = await db
     .from("profiles")
-    .insert({ user_id: session.userId, full_name: parsed.data.fullName, phone: parsed.data.phone });
+    .select("id")
+    .eq("user_id", session.userId)
+    .maybeSingle();
 
-  // 23505 = أُنشئ الملف في طلبٍ سابق (نقرة مزدوجة) — الحساب مكتمل، فيتابع.
+  // `full_name` يُحسب من الأجزاء بمشغّل القاعدة؛ القيمة المرسلة هنا لا تُحفظ.
+  const { error } = existing
+    ? await db.from("profiles").update(parsed.data).eq("id", existing.id)
+    : await db.from("profiles").insert({ user_id: session.userId, full_name: "", ...parsed.data });
+
+  // 23505 = أُنشئ الملف في طلبٍ سابق (نقرة مزدوجة) — يتابع، والجلسة تحكم بالاكتمال.
   if (error && error.code !== "23505") {
-    return { error: "تعذّر حفظ بياناتك. أعد المحاولة." };
+    return { error: "تعذّر حفظ بياناتك. تحقّق منها وأعد المحاولة." };
   }
 
   redirect(next);

@@ -16,7 +16,13 @@ export default async function AccountPage() {
   const db = await createClient();
   const [{ data: auth }, profileResult, participationsResult, programsResult] = await Promise.all([
     db.auth.getUser(),
-    db.from("profiles").select("full_name, phone").eq("user_id", session.userId).maybeSingle(),
+    db
+      .from("profiles")
+      .select(
+        "first_name, father_name, grandfather_name, family_name, gender, birth_date, nationality, phone, phone_secondary",
+      )
+      .eq("user_id", session.userId)
+      .maybeSingle(),
     db
       .from("participants")
       .select("id, status, program_id, programs!inner(name, slug), tracks(name)")
@@ -60,8 +66,17 @@ export default async function AccountPage() {
   return (
     <AccountView
       email={session.email}
-      fullName={profileResult.data.full_name}
-      phone={profileResult.data.phone}
+      profile={{
+        firstName: profileResult.data.first_name ?? "",
+        fatherName: profileResult.data.father_name ?? "",
+        grandfatherName: profileResult.data.grandfather_name ?? "",
+        familyName: profileResult.data.family_name ?? "",
+        gender: profileResult.data.gender ?? "",
+        birthDate: profileResult.data.birth_date ?? "",
+        nationality: profileResult.data.nationality ?? "",
+        phone: profileResult.data.phone,
+        phoneSecondary: profileResult.data.phone_secondary,
+      }}
       hasPassword={providers.has("email")}
       hasGoogle={providers.has("google")}
       isStaff={session.permissions.size > 0}

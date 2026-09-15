@@ -2,17 +2,18 @@
 
 import { useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
+import { ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { completeProfile } from "./actions";
 
 export function CompleteProfileForm({
   email,
-  suggestedName,
+  values,
   next,
 }: {
   email: string;
-  suggestedName: string;
+  values: ProfileValues;
   next: string;
 }) {
   const [state, action, pending] = useActionState(completeProfile, EMPTY_FORM_STATE);
@@ -21,7 +22,8 @@ export function CompleteProfileForm({
     <>
       <h1 className={styles.title}>أكمل حسابك</h1>
       <p className={styles.lede}>
-        خطوة واحدة: اسمك كما تريد أن يظهر، وجوالك لتتواصل معك إدارة البرنامج.
+        تُطلب مرة واحدة: اسمك كما في هويّتك، وجوالك لتتواصل معك إدارة البرنامج، وبيانات تبني عليها
+        البرامج شروطها.
       </p>
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
@@ -33,28 +35,7 @@ export function CompleteProfileForm({
           <Input id="email" value={email} readOnly latin />
         </Field>
 
-        <Field id="fullName" label="الاسم الكامل" required error={state.fieldErrors?.["fullName"]}>
-          <Input
-            id="fullName"
-            name="fullName"
-            autoComplete="name"
-            defaultValue={suggestedName}
-            required
-            invalid={Boolean(state.fieldErrors?.["fullName"])}
-          />
-        </Field>
-
-        <Field id="phone" label="الجوال" required hint="05xxxxxxxx" error={state.fieldErrors?.["phone"]}>
-          <Input
-            id="phone"
-            name="phone"
-            autoComplete="tel"
-            latin
-            numeric
-            required
-            invalid={Boolean(state.fieldErrors?.["phone"])}
-          />
-        </Field>
+        <ProfileFields values={values} errors={state.fieldErrors} />
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>

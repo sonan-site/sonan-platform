@@ -121,7 +121,7 @@ beforeAll(async () => {
   );
   await db.query(
     `insert into public.profiles (user_id, full_name, phone)
-     values ($1, 'معِدّ اختبار', '0500000009')`,
+     values ($1, 'معِدّ اختبار', '+966500000009')`,
     [TEST_USER],
   );
 

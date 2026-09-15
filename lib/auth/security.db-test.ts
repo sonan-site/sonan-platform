@@ -89,7 +89,7 @@ beforeAll(async () => {
       [id, `security-${i}@test.local`],
     );
     await db.query(
-      `insert into public.profiles (user_id, full_name, phone) values ($1, 'اختبار', '0500000000')`,
+      `insert into public.profiles (user_id, full_name, phone) values ($1, 'اختبار', '+966500000000')`,
       [id],
     );
   }

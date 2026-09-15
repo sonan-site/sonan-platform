@@ -46,7 +46,7 @@ beforeAll(async () => {
       [uid, `journey-days-${i}@test.local`],
     );
     await db.query(
-      `insert into public.profiles (user_id, full_name, phone) values ($1, $2, '0500000000')`,
+      `insert into public.profiles (user_id, full_name, phone) values ($1, $2, '+966500000000')`,
       [uid, i === 0 ? "صاحب الرحلة" : "غريب"],
     );
   }

@@ -1,5 +1,6 @@
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
+import { formatPhone } from "@/lib/profile/phone";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { UsersView, type UserRow } from "./users-view";
 
@@ -26,7 +27,7 @@ export default async function UsersPage() {
     id: p.id,
     userId: p.user_id,
     fullName: p.full_name,
-    phone: p.phone,
+    phone: p.phone ? formatPhone(p.phone) : "—",
     joinedAt: p.created_at,
     suspended: p.deleted_at !== null,
   }));

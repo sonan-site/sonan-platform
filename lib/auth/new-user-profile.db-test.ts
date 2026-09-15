@@ -2,10 +2,10 @@ import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /**
- * ملف المستخدم مع حسابه — الهجرة ٠٣١.
+ * ملف المستخدم مع حسابه — الهجرتان ٠٣١ و٠٣٦.
  *
  * الإدراج في `auth.users` هنا هو ما تفعله خدمة المصادقة عند إنشاء الحساب أو
- * الدعوة: صفٌّ ببيانات `raw_user_meta_data`.
+ * الدعوة: صفٌّ ببيانات `raw_user_meta_data`. **والملف يُنشأ مكتملاً أو لا يُنشأ.**
  */
 
 let db: Client;
@@ -14,9 +14,21 @@ const IDS = {
   valid: "00000000-0000-4000-8000-0000000008a1",
   bare: "00000000-0000-4000-8000-0000000008a2",
   badPhone: "00000000-0000-4000-8000-0000000008a3",
-  shortName: "00000000-0000-4000-8000-0000000008a4",
+  partial: "00000000-0000-4000-8000-0000000008a4",
+  future: "00000000-0000-4000-8000-0000000008a5",
 };
 const ALL = Object.values(IDS);
+
+const FULL = {
+  first_name: "إبراهيم",
+  father_name: "محمد",
+  grandfather_name: "",
+  family_name: "الحسين",
+  gender: "male",
+  birth_date: "1990-01-01",
+  nationality: "SA",
+  phone: "+966512345678",
+};
 
 async function createUser(id: string, meta: Record<string, string> | null) {
   await db.query(
@@ -27,8 +39,8 @@ async function createUser(id: string, meta: Record<string, string> | null) {
 }
 
 async function profileOf(id: string) {
-  const { rows } = await db.query<{ full_name: string; phone: string; deleted_at: string | null }>(
-    `select full_name, phone, deleted_at from public.profiles where user_id = $1`,
+  const { rows } = await db.query<{ full_name: string; phone: string; grandfather_name: string | null }>(
+    `select full_name, phone, grandfather_name from public.profiles where user_id = $1`,
     [id],
   );
   return rows[0] ?? null;
@@ -48,12 +60,12 @@ afterAll(async () => {
 });
 
 describe("ملف المستخدم يُنشأ مع حسابه", () => {
-  it("**حسابٌ باسم وجوال صالحين ← ملفٌ حيّ بهما**", async () => {
-    await createUser(IDS.valid, { full_name: "  مشارك جديد ", phone: "+966512345678" });
+  it("**بيانات كاملة صالحة ← ملفٌ باسمه المركّب**، والجد الفارغ فراغ", async () => {
+    await createUser(IDS.valid, FULL);
     expect(await profileOf(IDS.valid)).toEqual({
-      full_name: "مشارك جديد",
+      full_name: "إبراهيم محمد الحسين",
       phone: "+966512345678",
-      deleted_at: null,
+      grandfather_name: null,
     });
   });
 
@@ -62,13 +74,18 @@ describe("ملف المستخدم يُنشأ مع حسابه", () => {
     expect(await profileOf(IDS.bare)).toBeNull();
   });
 
-  it("**جوالٌ بغير الصيغة ← لا ملف** — من التفّ على الشاشة لا يحصل على وصول", async () => {
-    await createUser(IDS.badPhone, { full_name: "مشارك", phone: "0512345678" });
+  it("**جوالٌ بغير الصيغة الدولية ← لا ملف**", async () => {
+    await createUser(IDS.badPhone, { ...FULL, phone: "0512345678" });
     expect(await profileOf(IDS.badPhone)).toBeNull();
   });
 
-  it("اسمٌ أقصر من ثلاثة أحرف ← لا ملف", async () => {
-    await createUser(IDS.shortName, { full_name: "أب", phone: "+966512345678" });
-    expect(await profileOf(IDS.shortName)).toBeNull();
+  it("**بيانات ناقصة ← لا ملف ناقص** — يُستكمل في صفحته", async () => {
+    await createUser(IDS.partial, { ...FULL, nationality: "" });
+    expect(await profileOf(IDS.partial)).toBeNull();
+  });
+
+  it("تاريخ ميلاد في المستقبل ← لا ملف، ولا يُرفض إنشاء الحساب", async () => {
+    await createUser(IDS.future, { ...FULL, birth_date: "2999-01-01" });
+    expect(await profileOf(IDS.future)).toBeNull();
   });
 });
