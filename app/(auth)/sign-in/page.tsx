@@ -26,12 +26,15 @@ const LINK_ERRORS: Record<string, string> = {
   "invalid-link": "الرابط غير صالح. اطلب رابطاً جديداً.",
   "expired-link": "انتهت صلاحية الرابط. اطلب رابطاً جديداً.",
   "account-closed": "أُغلق حسابك. لإعادة فتحه تواصل مع إدارة المنصة.",
+  "provider-failed": "تعذّر الدخول بحساب Google. أعد المحاولة، أو ادخل بالبريد وكلمة المرور.",
 };
 
 function SignInForm() {
   const params = useSearchParams();
   const [state, action, pending] = useActionState(signIn, EMPTY_FORM_STATE);
   const linkError = LINK_ERRORS[params.get("error") ?? ""];
+  // رمز السبب لاتيني قصير يمرّره مسار الاستدعاء — يُعرض صغيراً للتشخيص لا للقراءة.
+  const reason = (params.get("reason") ?? "").replace(/[^a-z0-9_]/gi, "").slice(0, 40);
 
   return (
     <>
@@ -41,7 +44,17 @@ function SignInForm() {
       {state.error ? (
         <p className={styles.alert}>{state.error}</p>
       ) : linkError ? (
-        <p className={styles.alert}>{linkError}</p>
+        <p className={styles.alert}>
+          {linkError}
+          {reason ? (
+            <>
+              <br />
+              <bdi dir="ltr" style={{ fontSize: "var(--text-xs)" }}>
+                {reason}
+              </bdi>
+            </>
+          ) : null}
+        </p>
       ) : null}
 
       <GoogleButton next={params.get("next") ?? DEFAULT_LANDING} />

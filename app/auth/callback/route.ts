@@ -15,7 +15,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (!code) {
     target.pathname = "/sign-in";
-    target.searchParams.set("error", "invalid-link");
+    // حين يرفض Supabase الدخول (مزوّدٌ خارجي، أو خطأ في إنشاء الحساب) يعيده بلا
+    // رمز ومعه `error_code`. يُمرَّر الرمز وحده — حروفاً لاتينية لا نصّاً حرّاً —
+    // فتعرف الشاشة أنه رفضٌ من الدخول لا رابطٌ تالف، ويُعرف السبب عند التشخيص.
+    const reason = (request.nextUrl.searchParams.get("error_code") ??
+      request.nextUrl.searchParams.get("error") ??
+      "")
+      .replace(/[^a-z0-9_]/gi, "")
+      .slice(0, 40);
+    if (reason) {
+      console.error("auth callback rejected:", reason, request.nextUrl.searchParams.get("error_description"));
+      target.searchParams.set("error", "provider-failed");
+      target.searchParams.set("reason", reason);
+    } else {
+      target.searchParams.set("error", "invalid-link");
+    }
     return NextResponse.redirect(target);
   }
 
