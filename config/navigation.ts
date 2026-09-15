@@ -16,7 +16,8 @@ export type IconName =
   | "Settings"
   | "ScrollText"
   | "BookOpen"
-  | "CalendarDays";
+  | "CalendarDays"
+  | "UserRound";
 
 export type NavItem = {
   /** مفتاح ثابت — لا يتغيّر بتغيّر العنوان، فيصلح للاختبار وحفظ الحالة. */
@@ -85,6 +86,15 @@ export const NAVIGATION: readonly NavItem[] = [
     href: "/audit",
     icon: "ScrollText",
     permission: "audit.read",
+    primary: false,
+  },
+  {
+    key: "account",
+    title: "حسابي",
+    href: "/account",
+    icon: "UserRound",
+    // لكل داخل. وليس رئيسياً: رأس الصفحة يحمل رابطه على كل شاشة، فلا يأخذ مكاناً في الشريط السفلي.
+    permission: null,
     primary: false,
   },
 ] as const;

@@ -1274,6 +1274,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      fn_close_my_account: { Args: never; Returns: undefined }
       fn_day_template_program_id: {
         Args: { p_template_id: string }
         Returns: string

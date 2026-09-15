@@ -15,11 +15,12 @@ describe("التنقّل بحسب من يدخل", () => {
       "programs",
       "roles",
       "audit",
+      "account",
     ]);
   });
 
   it("المشارك بلا صلاحية يرى لوحته ورحلته فقط", () => {
-    expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey"]);
+    expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey", "account"]);
   });
 
   it("الموظف المشارك في برنامج يرى ما تسمح به صلاحياته ورحلته", () => {
@@ -27,10 +28,11 @@ describe("التنقّل بحسب من يدخل", () => {
       "dashboard",
       "programs",
       "journey",
+      "account",
     ]);
   });
 
   it("الحساب الجديد بلا صلاحية ولا مشاركة يرى لوحته فقط", () => {
-    expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard"]);
+    expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "account"]);
   });
 });

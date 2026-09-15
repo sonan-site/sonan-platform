@@ -25,6 +25,7 @@ export default function SignInPage() {
 const LINK_ERRORS: Record<string, string> = {
   "invalid-link": "الرابط غير صالح. اطلب رابطاً جديداً.",
   "expired-link": "انتهت صلاحية الرابط. اطلب رابطاً جديداً.",
+  "account-closed": "أُغلق حسابك. لإعادة فتحه تواصل مع إدارة المنصة.",
 };
 
 function SignInForm() {

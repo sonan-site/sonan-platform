@@ -14,6 +14,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   user_invited: "دعوة مستخدم",
   user_suspended: "إيقاف حساب",
   user_restored: "إعادة تفعيل حساب",
+  account_closed: "إغلاق حساب بطلب صاحبه",
   role_assigned: "إسناد دور",
   role_revoked: "سحب دور",
   section_created: "إنشاء قسم",

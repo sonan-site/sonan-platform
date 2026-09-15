@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldCheck,
   Sun,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   ScrollText,
   BookOpen,
   CalendarDays,
+  UserRound,
 };
 
 const ICON_SIZE = 20;
@@ -166,6 +168,9 @@ export function AppLayout({
           </button>
           {crumb ? <span className={styles.crumb}>{crumb}</span> : null}
           <div className={styles.headerEnd}>
+            <Link href="/account" className={styles.iconButton} aria-label="حسابي" title="حسابي">
+              <UserRound size={ICON_SIZE} aria-hidden />
+            </Link>
             {onSignOut ? (
               <form action={onSignOut}>
                 <button type="submit" className={styles.iconButton} aria-label="تسجيل الخروج">
