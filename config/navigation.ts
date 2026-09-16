@@ -34,6 +34,12 @@ export type NavItem = {
   participantsOnly?: true;
   /** يظهر في الشريط السفلي على الجوال. الحدّ ٥ (§١١.٣)، والزائد في «المزيد». */
   primary: boolean;
+  /**
+   * موضعه **رأس الصفحة وحده**: يبقى مدخلاً مسجَّلاً هنا (فلكل صفحة مدخل)،
+   * ولا يُكرَّر في القائمة الجانبية ولا في الشريط السفلي. تكرار المدخل الواحد
+   * في ثلاثة مواضع يجعل الشاشة أزرارَ تنقّلٍ لا محتوى.
+   */
+  headerOnly?: true;
 };
 
 export const NAVIGATION: readonly NavItem[] = [
@@ -100,9 +106,10 @@ export const NAVIGATION: readonly NavItem[] = [
     title: "حسابي",
     href: "/account",
     icon: "UserRound",
-    // لكل داخل. وليس رئيسياً: رأس الصفحة يحمل رابطه على كل شاشة، فلا يأخذ مكاناً في الشريط السفلي.
+    // لكل داخل. ورأس الصفحة يحمل رابطه على كل شاشة، فلا يُكرَّر في غيره.
     permission: null,
     primary: false,
+    headerOnly: true,
   },
 ] as const;
 
@@ -122,6 +129,11 @@ export function visibleNavigation({ granted, isParticipant }: Viewer): NavItem[]
       (item.permission === null || granted.has(item.permission)) &&
       (!item.participantsOnly || isParticipant),
   );
+}
+
+/** ما يُعرَض في القائمة الجانبية والشريط السفلي — بلا ما موضعه الرأس. */
+export function listNavigation(items: NavItem[]): NavItem[] {
+  return items.filter((item) => !item.headerOnly);
 }
 
 /** تقسيم الشريط السفلي: ما يظهر مباشرة، وما ينزوي تحت «المزيد». */

@@ -26,9 +26,9 @@ export function Field({ id, label, required, hint, error, children }: FieldProps
   return (
     <div className={styles.field}>
       <label htmlFor={id} className={`${styles.label} ${required ? styles.required : ""}`}>
-        {label}
+        <span className={styles.labelText}>{label}</span>
+        {hint ? <span className={styles.hint}>{hint}</span> : null}
       </label>
-      {hint ? <span className={styles.hint}>{hint}</span> : null}
       {children}
       {error ? (
         <span id={`${id}-error`} className={styles.error} role="alert">

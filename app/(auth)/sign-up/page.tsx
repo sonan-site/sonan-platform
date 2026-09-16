@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, useTransition } from "react";
+import { Suspense, useEffect, useState, useTransition } from "react";
+import { Modal } from "@/components/shared/modal";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { GoogleButton } from "@/components/shared/google-button";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/db/browser";
 import { signUpSchema } from "@/lib/validation/auth";
 import styles from "../layout.module.css";
 import { ActionForm } from "@/components/shared/action-form";
+import { PasswordInput } from "@/components/shared/password-input";
 
 export default function SignUpPage() {
   return (
@@ -33,7 +35,27 @@ function SignUpForm() {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const [state, setState] = useState<FormState>({});
+  const [awaitingEmail, setAwaitingEmail] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  /**
+   * **الانتظار لا يقف:** رابط التأكيد يُفتح في تبويب آخر، وجلسته تُكتب في
+   * الكوكيز نفسها. فتسأل هذه الصفحة عن الجلسة كل خمس ثوانٍ، وحين تجدها تنتقل
+   * وحدها — فلا يبقى المسجِّل أمام شاشةٍ لا تتغيّر.
+   */
+  useEffect(() => {
+    if (!awaitingEmail) return;
+    const db = createClient();
+    const timer = window.setInterval(async () => {
+      const { data } = await db.auth.getSession();
+      if (data.session) {
+        window.clearInterval(timer);
+        router.replace(next);
+        router.refresh();
+      }
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [awaitingEmail, next, router]);
 
   function submit(form: FormData) {
     const parsed = signUpSchema.safeParse({
@@ -50,6 +72,9 @@ function SignUpForm() {
       const { data, error } = await createClient().auth.signUp({
         email: parsed.data.email,
         password: parsed.data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}`,
+        },
       });
 
       if (error) {
@@ -65,7 +90,7 @@ function SignUpForm() {
 
       // حين يُفعَّل تأكيد البريد لا تُفتح جلسة حتى يُضغط الرابط.
       if (!data.session) {
-        setState({ notice: "أرسلنا رابط التأكيد إلى بريدك. افتحه لإكمال حسابك." });
+        setAwaitingEmail(true);
         return;
       }
 
@@ -82,7 +107,11 @@ function SignUpForm() {
       </p>
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
-      {state.notice ? <p className={styles.notice}>{state.notice}</p> : null}
+
+      <Modal open={awaitingEmail} title="أُنشئ حسابك">
+        أرسلنا رسالة إلى بريدك فيها رابط التأكيد. افتح الرسالة واضغط الرابط، وتنتقل هذه الصفحة
+        وحدها إلى حسابك. وإن لم تجد الرسالة فانظر في «غير المرغوب فيه».
+      </Modal>
 
       <GoogleButton next={next} />
 
@@ -92,11 +121,11 @@ function SignUpForm() {
         </Field>
 
         <Field id="password" label="كلمة المرور" required hint="٨ أحرف فأكثر" error={state.fieldErrors?.["password"]}>
-          <Input id="password" name="password" type="password" autoComplete="new-password" required />
+          <PasswordInput id="password" name="password" autoComplete="new-password" required />
         </Field>
 
         <Field id="confirm" label="تأكيد كلمة المرور" required error={state.fieldErrors?.["confirm"]}>
-          <Input id="confirm" name="confirm" type="password" autoComplete="new-password" required />
+          <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required />
         </Field>
 
         <FormActions>

@@ -1,0 +1,118 @@
+.wrap {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-block-size: var(--touch-target);
+  padding: var(--space-3) var(--space-3);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.trigger:hover {
+  border-color: var(--color-accent);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.invalid {
+  border-color: var(--color-danger);
+}
+
+.value {
+  flex: 1;
+  text-align: start;
+}
+
+.placeholder {
+  flex: 1;
+  text-align: start;
+  color: var(--color-text-subtle);
+}
+
+.panel {
+  position: absolute;
+  z-index: 10;
+  inset-inline-start: 0;
+  inset-block-start: calc(100% + 2px);
+  inline-size: 20rem;
+  max-inline-size: 90vw;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.pick {
+  min-block-size: var(--touch-target);
+  padding: var(--space-2) var(--space-2);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.weekdays,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+}
+
+.weekdays {
+  margin-block-end: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.day:hover {
+  background: var(--color-surface-sunken);
+}
+
+.day[aria-current="date"] {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.day:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}

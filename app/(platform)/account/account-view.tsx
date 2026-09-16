@@ -9,6 +9,7 @@ import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { PARTICIPANT_STATUS_LABEL, type ParticipantStatus } from "@/lib/programs/kinds";
 import { changePassword, closeMyAccount, updateMyProfile } from "./actions";
+import { PasswordInput } from "@/components/shared/password-input";
 
 export type Participation = {
   id: string;
@@ -89,7 +90,7 @@ export function AccountView({
         <StepForm title={hasPassword ? "كلمة مرور جديدة" : "كلمة المرور"} action={pwAction} state={pwState}>
           {hasPassword ? (
             <Field id="current" label="كلمة المرور الحالية" required error={pwState.fieldErrors?.["current"]}>
-              <Input id="current" name="current" type="password" autoComplete="current-password" required />
+              <PasswordInput id="current" name="current" autoComplete="current-password" required />
             </Field>
           ) : null}
           <Field
@@ -99,10 +100,10 @@ export function AccountView({
             hint="٨ أحرف فأكثر"
             error={pwState.fieldErrors?.["password"]}
           >
-            <Input id="password" name="password" type="password" autoComplete="new-password" required />
+            <PasswordInput id="password" name="password" autoComplete="new-password" required />
           </Field>
           <Field id="confirm" label="تأكيدها" required error={pwState.fieldErrors?.["confirm"]}>
-            <Input id="confirm" name="confirm" type="password" autoComplete="new-password" required />
+            <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required />
           </Field>
           <FormActions>
             <Button type="submit" variant="primary" pending={pwPending}>

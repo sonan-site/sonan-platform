@@ -22,10 +22,6 @@ export function CompleteProfileForm({
   return (
     <>
       <h1 className={styles.title}>أكمل حسابك</h1>
-      <p className={styles.lede}>
-        تُطلب مرة واحدة: اسمك كما في هويّتك، وجوالك لتتواصل معك إدارة البرنامج، وبيانات تبني عليها
-        البرامج شروطها.
-      </p>
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 
@@ -40,7 +36,7 @@ export function CompleteProfileForm({
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>
-            احفظ وتابع
+            ابدأ
           </Button>
         </FormActions>
       </ActionForm>

@@ -21,6 +21,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ActionNotice } from "./action-notice";
 import { useStoredState } from "./use-stored-state";
 import {
+  listNavigation,
   splitForBottomBar,
   type IconName,
   type NavItem,
@@ -97,7 +98,9 @@ export function AppLayout({
 
   const toggleCollapse = () => setCollapsedValue(collapsed ? "0" : "1");
 
-  const { tabs, more } = splitForBottomBar(items);
+  // «حسابي» في الرأس وحده — فلا يُعاد في القائمة ولا في الشريط السفلي.
+  const listed = listNavigation(items);
+  const { tabs, more } = splitForBottomBar(listed);
   const isCurrent = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -117,7 +120,7 @@ export function AppLayout({
           <span className={styles.brandName}>{brand}</span>
         </div>
         <ul className={styles.navList}>
-          {items.map((item) => {
+          {listed.map((item) => {
             const Icon = ICONS[item.icon];
             const current = isCurrent(item.href);
             return (

@@ -6,25 +6,33 @@
 }
 
 /* التسمية **فوق** الحقل — لا نائبة بديلاً عنها (§١١.٦):
-   النائبة تختفي عند الكتابة، فيفقد المستخدم اسم ما يملؤه. */
+   النائبة تختفي عند الكتابة، فيفقد المستخدم اسم ما يملؤه.
+
+   والتلميح **في سطرها** لا فوق الخانة: سطرٌ زائد في حقلٍ دون قرينه يُنزل
+   خانته عنه، فتبدو الخانتان المتقابلتان غير متحاذيتين. */
 .label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--color-text);
 }
 
-.required::after {
+.required .labelText::after {
   content: " *";
   color: var(--color-danger);
 }
 
 .hint {
   font-size: var(--text-xs);
+  font-weight: var(--weight-normal);
   color: var(--color-text-muted);
 }
 
 .control {
   inline-size: 100%;
+  min-block-size: var(--touch-target);
   padding: var(--space-3) var(--space-3);
   font-family: inherit;
   font-size: var(--text-sm);
@@ -67,8 +75,11 @@
   color: var(--color-danger);
 }
 
+/* الأساسي **جهة النهاية** — قرار الراعي (١٦ سبتمبر ٢٠٢٦): موضع الإتمام
+   في نهاية النموذج لا في بدايته، كما اعتادته الشاشات العربية اليوم. */
 .actions {
   display: flex;
+  justify-content: flex-end;
   gap: var(--space-3);
   margin-block-start: var(--space-6);
 }

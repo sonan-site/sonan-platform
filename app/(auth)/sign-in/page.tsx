@@ -10,6 +10,7 @@ import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { signIn } from "./actions";
 import { ActionForm } from "@/components/shared/action-form";
+import { PasswordInput } from "@/components/shared/password-input";
 
 export default function SignInPage() {
   return (
@@ -76,10 +77,10 @@ function SignInForm() {
         </Field>
 
         <Field id="password" label="كلمة المرور" required error={state.fieldErrors?.["password"]}>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
+           
             autoComplete="current-password"
             required
             invalid={Boolean(state.fieldErrors?.["password"])}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { COUNTRIES, DEFAULT_COUNTRY, formatPhone, normalizePhone, splitPhone } from "@/lib/profile/phone";
+import { DEFAULT_COUNTRY, formatPhone, normalizePhone, splitPhone } from "@/lib/profile/phone";
+import { CountrySelect } from "./country-select";
+import { DateField } from "./date-field";
 import { Field, Input, Select } from "./form";
 import styles from "./profile-fields.module.css";
 
@@ -67,19 +69,16 @@ export function ProfileFields({
           </Select>
         </Field>
         <Field id="birthDate" label="تاريخ الميلاد" required error={errors?.["birthDate"]}>
-          <Input id="birthDate" name="birthDate" type="date" defaultValue={values.birthDate} latin required />
+          <DateField
+            id="birthDate"
+            name="birthDate"
+            defaultValue={values.birthDate}
+            invalid={Boolean(errors?.["birthDate"])}
+          />
         </Field>
       </div>
 
-      <Field id="nationality" label="الجنسية" required error={errors?.["nationality"]}>
-        <Select id="nationality" name="nationality" defaultValue={values.nationality || DEFAULT_COUNTRY} required>
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <NationalityField value={values.nationality} error={errors?.["nationality"]} />
 
       <PhoneField
         id="phone"
@@ -98,6 +97,24 @@ export function ProfileFields({
         countryName="phoneSecondaryCountry"
       />
     </>
+  );
+}
+
+/** الجنسية — بالاسم كاملاً، من قائمة الدول نفسها. */
+function NationalityField({ value, error }: { value: string; error?: string }) {
+  const [country, setCountry] = useState(value || DEFAULT_COUNTRY);
+
+  return (
+    <Field id="nationality" label="الجنسية" required error={error}>
+      <CountrySelect
+        name="nationality"
+        label="الجنسية"
+        mode="name"
+        value={country}
+        onChange={setCountry}
+        invalid={Boolean(error)}
+      />
+    </Field>
   );
 }
 
@@ -135,19 +152,6 @@ function PhoneField({
   return (
     <Field id={id} label={label} required={required} hint={hint} error={error}>
       <div className={styles.phone}>
-        <Select
-          aria-label={`مفتاح دولة ${label}`}
-          name={countryName}
-          value={country}
-          onChange={(e) => setCountry(e.target.value as typeof country)}
-          className={styles.dial}
-        >
-          {COUNTRIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.dial} {c.name}
-            </option>
-          ))}
-        </Select>
         <Input
           id={id}
           name={id}
@@ -158,7 +162,14 @@ function PhoneField({
           placeholder="5xxxxxxxx"
           latin
           required={required}
+          invalid={Boolean(error)}
           onBlur={(e) => check(e.currentTarget.value, country)}
+        />
+        <CountrySelect
+          name={countryName}
+          label={`مفتاح دولة ${label}`}
+          value={country}
+          onChange={(code) => setCountry(code as typeof country)}
         />
       </div>
       {preview ? <span className={styles.preview}>{preview}</span> : null}

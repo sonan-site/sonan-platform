@@ -36,7 +36,7 @@ export function GoogleButton({ next }: { next: string }) {
   return (
     <div className={styles.wrap}>
       <Button type="button" pending={pending} onClick={() => void start()} className={styles.button}>
-        <LogIn size={16} aria-hidden />
+        <LogIn size={16} aria-hidden className={styles.icon} />
         المتابعة بحساب Google
       </Button>
       {failed ? (

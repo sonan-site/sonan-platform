@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Field, FormActions, Input } from "@/components/shared/form";
+import { Button, Field, FormActions } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { MIN_PASSWORD_LENGTH } from "@/lib/validation/auth";
 import styles from "../layout.module.css";
 import { setPassword } from "./actions";
 import { ActionForm } from "@/components/shared/action-form";
+import { PasswordInput } from "@/components/shared/password-input";
 
 export default function ActivatePage() {
   const [state, action, pending] = useActionState(setPassword, EMPTY_FORM_STATE);
@@ -26,10 +27,10 @@ export default function ActivatePage() {
           hint={`${MIN_PASSWORD_LENGTH} محارف على الأقل`}
           error={state.fieldErrors?.["password"]}
         >
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
+           
             autoComplete="new-password"
             required
             invalid={Boolean(state.fieldErrors?.["password"])}
@@ -37,10 +38,10 @@ export default function ActivatePage() {
         </Field>
 
         <Field id="confirm" label="تأكيد كلمة المرور" required error={state.fieldErrors?.["confirm"]}>
-          <Input
+          <PasswordInput
             id="confirm"
             name="confirm"
-            type="password"
+           
             autoComplete="new-password"
             required
             invalid={Boolean(state.fieldErrors?.["confirm"])}

@@ -31,7 +31,10 @@ export function ActionForm({
     submitted.current = false;
 
     if (state.error || state.fieldErrors) {
-      for (const input of form.querySelectorAll<HTMLInputElement>('input[type="password"]')) {
+      // `data-password` لا `type`: الخانة المعروضة بالعين نوعها `text` حينها.
+      for (const input of form.querySelectorAll<HTMLInputElement>(
+        'input[type="password"], input[data-password]',
+      )) {
         input.value = "";
       }
     } else {
