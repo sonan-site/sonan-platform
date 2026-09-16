@@ -36,7 +36,19 @@ function SignUpForm() {
   const next = safeNext(params.get("next"));
   const [state, setState] = useState<FormState>({});
   const [awaitingEmail, setAwaitingEmail] = useState(false);
+  const [waitedLong, setWaitedLong] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  /**
+   * **مخرجٌ لمن لن تصله رسالة:** البريد المسجَّل سلفاً يُردّ عليه ردّاً مموّهاً
+   * كالجديد تماماً (لئلا تكشف الصفحة من له حساب)، فلا تُرسَل له رسالة. فبعد
+   * مهلة يظهر له طريق الدخول والاسترجاع — دون أن يُقال له إن البريد مسجَّل.
+   */
+  useEffect(() => {
+    if (!awaitingEmail) return;
+    const timer = window.setTimeout(() => setWaitedLong(true), 15000);
+    return () => window.clearTimeout(timer);
+  }, [awaitingEmail]);
 
   /**
    * **الانتظار لا يقف:** رابط التأكيد يُفتح في تبويب آخر، وجلسته تُكتب في
@@ -109,8 +121,17 @@ function SignUpForm() {
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 
       <Modal open={awaitingEmail} title="أُنشئ حسابك">
-        أرسلنا رسالة إلى بريدك فيها رابط التأكيد. افتح الرسالة واضغط الرابط، وتنتقل هذه الصفحة
-        وحدها إلى حسابك. وإن لم تجد الرسالة فانظر في «غير المرغوب فيه».
+        <p className={styles.modalText}>
+          أرسلنا رسالة إلى بريدك فيها رابط التأكيد. افتح الرسالة واضغط الرابط، وتنتقل هذه الصفحة
+          وحدها إلى حسابك. وإن لم تجد الرسالة فانظر في «غير المرغوب فيه».
+        </p>
+        {waitedLong ? (
+          <p className={styles.modalText}>
+            لم تصلك رسالة؟ قد يكون لك حساب بهذا البريد.{" "}
+            <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>ادخل</Link> أو{" "}
+            <Link href="/recover">استرجع كلمة المرور</Link>.
+          </p>
+        ) : null}
       </Modal>
 
       <GoogleButton next={next} />

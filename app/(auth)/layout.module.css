@@ -177,3 +177,11 @@
 .links a {
   color: var(--color-accent-hover);
 }
+
+.modalText {
+  margin: 0 0 var(--space-3);
+}
+
+.modalText a {
+  color: var(--color-accent-hover);
+}
