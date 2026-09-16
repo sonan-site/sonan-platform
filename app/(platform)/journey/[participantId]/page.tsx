@@ -2,12 +2,17 @@ import { notFound } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
-import { canSubmit, journeyProgress, neighbours, resolveDayNumber } from "@/lib/participants/journey";
+import {
+  canSubmit,
+  followsPlan,
+  journeyProgress,
+  neighbours,
+  priorRecord,
+  resolveDayNumber,
+} from "@/lib/participants/journey";
 import type { JourneyDay } from "@/lib/participants/journey";
 import { JourneyView, type SpanPart, type TaskRow } from "./journey-view";
 
-/** الحالات التي تتبع الخطة — مطابقة لـ`fn_follows_plan` في القاعدة. */
-const FOLLOWS_PLAN = new Set(["registered", "memorizing", "qualified"]);
 
 export default async function JourneyDayPage({
   params,
@@ -54,7 +59,7 @@ export default async function JourneyDayPage({
 
   // من انتهت رحلته لا خطة تُقرأ له (`fn_follows_plan` تحصر السياسة)، فيُقال
   // له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
-  if (!FOLLOWS_PLAN.has(participant.status)) {
+  if (!followsPlan(participant.status)) {
     return (
       <EmptyState
         kind="no-data"
@@ -64,7 +69,7 @@ export default async function JourneyDayPage({
     );
   }
 
-  const [planResult, daysResult] = await Promise.all([
+  const [planResult, daysResult, recordResult] = await Promise.all([
     db
       .from("plans")
       .select("id, name")
@@ -75,6 +80,8 @@ export default async function JourneyDayPage({
     // تقطع الناتج عند ألف صفّ بصمت، فكانت الأيام المُرسَلة تُقرأ ناقصة بعد
     // ٢٥٠ يوماً ويُعرَض للمشارك يومٌ أرسله سلفاً (الهجرة ٠٢٩).
     db.rpc("fn_journey_days", { p_participant_id: participantId }),
+    // أيامه في مساراتٍ سبقت هذا — تبقى ظاهرة بعد نقله (adr/0027).
+    db.rpc("fn_participant_record", { p_participant_id: participantId }),
   ]);
 
   if (planResult.error) return <ErrorState body="تعذّر جلب خطة مسارك." />;
@@ -92,6 +99,8 @@ export default async function JourneyDayPage({
   // **لا استعلام يبتلع خطأه.** فشل استعلام الأيام يجعلها تبدو غير مُرسَلة،
   // فيُعرَض اليوم الأول قابلاً للإرسال ويُصدَم المشارك بـ«أُرسل سلفاً».
   if (daysResult.error) return <ErrorState body="تعذّر جلب أيام الخطة." />;
+  // والسجلّ كذلك: فشله يُخفي أيامه السابقة فيبدو كمن لم يُرسل شيئاً قبل نقله.
+  if (recordResult.error) return <ErrorState body="تعذّر جلب سجلّك." />;
 
   const days: JourneyDay[] = (daysResult.data ?? []).map((d) => ({
     id: d.id,
@@ -211,6 +220,7 @@ export default async function JourneyDayPage({
       examName={examName}
       submittable={canSubmit(days, shown) && trackHasContent}
       progress={journeyProgress(days)}
+      prior={priorRecord(recordResult.data ?? [])}
       {...neighbours(days, shown)}
     />
   );

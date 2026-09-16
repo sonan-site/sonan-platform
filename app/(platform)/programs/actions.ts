@@ -175,9 +175,13 @@ export async function archiveTrack(trackId: string, programId: string): Promise<
   // كتابات منفصلة كانت تترك خطةً حيّة لمسار مؤرشَف إن فشلت آخرها.
   const { data, error } = await db.rpc("fn_archive_track", { p_track_id: trackId });
   if (error) {
-    return {
-      error: error.code === "23514" ? "في المسار مشاركون — انقلهم قبل أرشفته." : "تعذّر أرشفة المسار.",
-    };
+    // رفضان بالرمز نفسه: مشاركون فيه الآن، أو سجلّ إنجاز لمن مرّوا به (الهجرة ٠٣٩).
+    const message = error.message.includes("سجلّ إنجاز")
+      ? "للمسار سجلّ إنجاز لمشاركين مرّوا به، فلا يُؤرشَف."
+      : error.code === "23514"
+        ? "في المسار مشاركون — انقلهم قبل أرشفته."
+        : "تعذّر أرشفة المسار.";
+    return { error: message };
   }
   if (data === null) return { error: "لم يُؤرشَف المسار — تحقّق من صلاحيتك." };
 

@@ -5,6 +5,7 @@ import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
+import { followsPlan } from "@/lib/participants/journey";
 import { type ParticipantStatus } from "@/lib/programs/kinds";
 import { authorizeRequest } from "@/lib/permissions/server";
 
@@ -102,7 +103,8 @@ const changeSchema = z.object({
 
 /**
  * `[BR-TRK-01]` **قرار إداري بتقدير بشري**: لا يُنشئه المشارك، ولا معادلة آلية
- * للنسبة — الإدارة تُدخلها تقديراً، وهي **نقطة انطلاق فقط** لا قاعدة مستمرة.
+ * للنسبة — الإدارة تُدخلها تقديراً **للعرض والتدقيق**، لا نقطة انطلاق للتوليد:
+ * مادة المسار الجديد تبدأ من يومها الأول (`adr/0027`).
  */
 export async function requestTrackChange(_prev: FormState, form: FormData): Promise<FormState> {
   const parsed = changeSchema.safeParse({
@@ -120,13 +122,17 @@ export async function requestTrackChange(_prev: FormState, form: FormData): Prom
   const db = await createClient();
   const { data: participant } = await db
     .from("participants")
-    .select("id, track_id")
+    .select("id, track_id, status")
     .eq("id", parsed.data.participantId)
     .eq("program_id", parsed.data.programId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!participant) return { error: "المشارك غير موجود في هذا البرنامج." };
   if (!participant.track_id) return { error: "لا مسار لهذا المشارك. أسنِد له مساراً من عمود المسار أولاً." };
+  if (!followsPlan(participant.status)) {
+    return { error: "انتهت رحلة هذا المشارك في البرنامج، فلا يُنقل." };
+  }
   if (participant.track_id === parsed.data.toTrackId) {
     return { error: "المسار الجديد هو نفسه الحالي." };
   }
@@ -152,7 +158,14 @@ export async function requestTrackChange(_prev: FormState, form: FormData): Prom
     reason: parsed.data.reason,
     baseline_percentage: parsed.data.baselinePercentage,
   });
-  if (error) return { error: "تعذّر إنشاء الطلب." };
+  if (error) {
+    return {
+      error:
+        error.code === "23505"
+          ? "للمشارك طلبٌ معلَّق. ابتّ فيه أولاً."
+          : "تعذّر إنشاء الطلب.",
+    };
+  }
 
   await db.rpc("fn_write_audit", {
     p_action: "track_change_requested",
@@ -164,52 +177,61 @@ export async function requestTrackChange(_prev: FormState, form: FormData): Prom
   return { notice: "أُنشئ الطلب. يبقى معلَّقاً حتى البتّ فيه." };
 }
 
+const decisionSchema = z.object({
+  requestId: z.uuid(),
+  programId: z.uuid(),
+  decision: z.enum(["approved", "rejected"]),
+});
+
+/** رسائل القاعدة كما هي — عربية ومحدّدة، ولا تكشف ما لا يملكه الطالب. */
+const DECISION_MESSAGES = [
+  "الطلب غير موجود",
+  "الطلب مبتوت فيه سلفاً",
+  "المشارك لم يعد في البرنامج",
+  "تغيّر مسار المشارك بعد الطلب",
+  "انتهت رحلة المشارك في البرنامج",
+  "المسار المطلوب غير متاح",
+  "اكتمل العدد في هذا المسار",
+  "هذا المسار غير متاح",
+];
+
+/**
+ * البتّ في طلب تغيير المسار — **القبول ينقل المشارك**: مادة مساره الجديد من
+ * يومها الأول، وسجلّه في السابق باقٍ ظاهر (`adr/0027`).
+ *
+ * القرار كله في `fn_decide_track_change`: فحصٌ ونقلٌ وبتٌّ وتدقيق في معاملة
+ * واحدة، ولا طريق مباشر حولها (الهجرة ٠٣٩).
+ */
 export async function decideTrackChange(
   requestId: string,
   programId: string,
   decision: "approved" | "rejected",
 ): Promise<FormState> {
-  /**
-   * **القبول موقوف حتى يُحسم م-٤** (`docs/open-questions.md`): قبول النقلة اليوم
-   * يُعيد المشارك إلى أول المسار الجديد ويُخفي تاريخه، والراعي لم يقرّر أهذا
-   * المقصود. والرفض لا أثر له على التقدّم فيبقى متاحاً.
-   */
-  if (decision === "approved") {
-    return { error: "قبول تغيير المسار غير متاح حتى يُحسم أثره على تقدّم المشارك." };
-  }
+  const parsed = decisionSchema.safeParse({ requestId, programId, decision });
+  if (!parsed.success) return { error: "طلب غير صالح." };
 
-  const authz = await authorizeRequest({ permission: "participants.write", programId });
+  const authz = await authorizeRequest({
+    permission: "participants.write",
+    programId: parsed.data.programId,
+    resourceProgramId: parsed.data.programId,
+  });
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
-  // الطلب يُقيَّد ببرنامج التصريح عبر مشاركه — لا يُبتّ في طلبٍ من برنامج آخر.
-  const { data: request } = await db
-    .from("track_change_requests")
-    .select("id, status, participants!inner(program_id)")
-    .eq("id", requestId)
-    .eq("participants.program_id", programId)
-    .maybeSingle();
-
-  if (!request) return { error: "الطلب غير موجود." };
-  if (request.status !== "pending") return { error: "الطلب مبتوت فيه سلفاً." };
-
-  const { data, error } = await db
-    .from("track_change_requests")
-    .update({ status: decision, decided_by: authz.userId, decided_at: nowIso() })
-    .eq("id", requestId)
-    .eq("status", "pending")
-    .select("id");
-  if (error || !data?.length) return { error: "تعذّر حفظ القرار." };
-
-  await db.rpc("fn_write_audit", {
-    p_action: `track_change_${decision}`,
-    p_entity_table: "track_change_requests",
-    p_entity_id: requestId,
-    p_after: { decision },
+  const { error } = await db.rpc("fn_decide_track_change", {
+    p_request_id: parsed.data.requestId,
+    p_program_id: parsed.data.programId,
+    p_decision: parsed.data.decision,
   });
+  if (error) {
+    const known = DECISION_MESSAGES.find((m) => error.message.includes(m));
+    return { error: known ? `${known}.` : "تعذّر حفظ القرار." };
+  }
 
-  revalidatePath(`/programs/${programId}/participants`);
-  return EMPTY_FORM_STATE;
+  revalidatePath(`/programs/${parsed.data.programId}/participants`);
+  return {
+    notice: parsed.data.decision === "approved" ? "نُقل المشارك إلى مساره الجديد." : "رُفض الطلب.",
+  };
 }
 
 // ── إسناد مسار لمن لا مسار له ──

@@ -1,8 +1,9 @@
 "use client";
 
 import { reportAction } from "@/components/shared/action-notice";
-import { useActionState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { Modal } from "@/components/shared/modal";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import {
   PARTICIPANT_STATUS_LABEL,
@@ -33,6 +34,9 @@ export type ParticipantRow = {
   completeDays: number;
   /** أيام العمل في خطة مساره. صفر = لا خطة بعد. */
   workDays: number;
+  /** أيامه في مساراتٍ قبل الحالي — لا تُمحى بنقله. */
+  priorSubmittedDays: number;
+  priorCompleteDays: number;
 };
 
 export type ChangeRow = {
@@ -44,6 +48,13 @@ export type ChangeRow = {
   reason: string;
   baseline: number;
   status: "pending" | "approved" | "rejected";
+  /** أيام سجلّه كلها — تبقى بعد النقل. */
+  recordDays: number;
+  /** المسار المطلوب سبق له فيه: يُكمل من حيث توقّف. */
+  returning: boolean;
+  /** `null` = لا تُعرف (لا صلاحية لقراءة الخطط والمادة). */
+  targetHasPlan: boolean | null;
+  targetHasContent: boolean | null;
 };
 
 const REQUEST_LABEL: Record<ChangeRow["status"], string> = {
@@ -72,6 +83,8 @@ export function ParticipantsView({
 }) {
   const [state, action, pending] = useActionState(requestTrackChange, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
+  // الطلب الذي فُتحت نافذة قبوله.
+  const [confirming, setConfirming] = useState<ChangeRow | null>(null);
 
   const columns: Column<ParticipantRow>[] = [
     { key: "name", header: "المشارك", sortable: true, primary: true, render: (p) => p.name },
@@ -111,9 +124,10 @@ export function ParticipantsView({
       align: "end",
       sortable: true,
       render: (p) =>
-        p.workDays === 0
-          ? "لا خطة"
-          : `${formatNumber(p.submittedDays)} من ${formatNumber(p.workDays)}`,
+        withPrior(
+          p.workDays === 0 ? "لا خطة" : `${formatNumber(p.submittedDays)} من ${formatNumber(p.workDays)}`,
+          p.priorSubmittedDays,
+        ),
     },
     {
       key: "complete",
@@ -121,7 +135,10 @@ export function ParticipantsView({
       align: "end",
       // المُرسَل فارغاً أو ناقصاً لا يُحسب هنا — فيظهر من يُرسل ولا يحفظ.
       render: (p) =>
-        p.submittedDays === 0 ? "—" : `${formatNumber(p.completeDays)} من ${formatNumber(p.submittedDays)}`,
+        withPrior(
+          p.submittedDays === 0 ? "—" : `${formatNumber(p.completeDays)} من ${formatNumber(p.submittedDays)}`,
+          p.priorCompleteDays,
+        ),
     },
     {
       key: "status",
@@ -195,12 +212,7 @@ export function ParticipantsView({
             render: (r: ChangeRow) =>
               r.status === "pending" ? (
                 <span style={{ display: "flex", gap: "var(--space-2)" }}>
-                  {/* القبول معطَّل حتى يُحسم أثر النقلة على تقدّم المشارك (م-٤). */}
-                  <Button
-                    variant="primary"
-                    disabled
-                    title="غير متاح حتى يُقرَّر ما يحدث لتقدّم المشارك عند نقله"
-                  >
+                  <Button variant="primary" pending={busy} onClick={() => setConfirming(r)}>
                     قبول
                   </Button>
                   <Button
@@ -232,6 +244,49 @@ export function ParticipantsView({
         title="المشاركون"
         lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته، وكم منها أتمّه كاملاً. ومنها تُبتّ طلبات تغيير المسار."
       />
+
+      <Modal
+        open={confirming !== null}
+        title="قبول تغيير المسار"
+        onClose={() => setConfirming(null)}
+      >
+        {confirming ? (
+          <>
+            <p>
+              <strong>{confirming.participantName}</strong>: {confirming.fromTrack} ← {confirming.toTrack}
+            </p>
+            <p>
+              {confirming.returning
+                ? `سبق له في «${confirming.toTrack}»، فيُكمل فيه من حيث توقّف.`
+                : `مادة «${confirming.toTrack}» تبدأ له من يومها الأول.`}{" "}
+              {confirming.recordDays > 0
+                ? `وسجلّه باقٍ ظاهر: ${formatNumber(confirming.recordDays)} يوماً.`
+                : null}
+            </p>
+            {confirming.targetHasPlan === false ? (
+              <p>تنبيه: لا خطة لهذا المسار بعد، فلا واجب يظهر له حتى تُبنى.</p>
+            ) : confirming.targetHasContent === false ? (
+              <p>تنبيه: لا مادة محدَّدة لهذا المسار بعد، فلا يُرسل واجباً حتى تُحدَّد.</p>
+            ) : null}
+            <FormActions>
+              <Button onClick={() => setConfirming(null)}>إلغاء</Button>
+              <Button
+                variant="primary"
+                pending={busy}
+                onClick={() => {
+                  const request = confirming;
+                  startTransition(async () => {
+                    reportAction(await decideTrackChange(request.id, programId, "approved"));
+                    setConfirming(null);
+                  });
+                }}
+              >
+                انقله
+              </Button>
+            </FormActions>
+          </>
+        ) : null}
+      </Modal>
 
       <DataTable
         columns={columns}
@@ -321,4 +376,9 @@ export function ParticipantsView({
       </Step>
     </>
   );
+}
+
+/** الرقم الحالي، ومعه ما جاء من مسارٍ سابق إن وُجد. */
+function withPrior(current: string, prior: number): string {
+  return prior > 0 ? `${current} · +${formatNumber(prior)} سابقاً` : current;
 }

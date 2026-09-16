@@ -7,6 +7,31 @@
 
 export type DayType = "normal" | "rest" | "exam";
 
+/** الحالات التي تتبع الخطة — مطابقة لـ`fn_follows_plan` في القاعدة. */
+const FOLLOWS_PLAN: ReadonlySet<string> = new Set(["registered", "memorizing", "qualified"]);
+
+export function followsPlan(status: string): boolean {
+  return FOLLOWS_PLAN.has(status);
+}
+
+/**
+ * سجلّ المشارك في مساراتٍ سبقت مساره الحالي — من `fn_participant_record`.
+ * يُعرض بجانب أرقام الحالي لا مدموجاً فيها: نسبة الإتمام للخطة التي يسير فيها.
+ */
+export function priorRecord(
+  rows: readonly { is_current: boolean; submitted_days: number; complete_days: number }[],
+): { submittedDays: number; completeDays: number } {
+  return rows
+    .filter((r) => !r.is_current)
+    .reduce(
+      (sum, r) => ({
+        submittedDays: sum.submittedDays + r.submitted_days,
+        completeDays: sum.completeDays + r.complete_days,
+      }),
+      { submittedDays: 0, completeDays: 0 },
+    );
+}
+
 export type JourneyDay = {
   id: string;
   dayNumber: number;

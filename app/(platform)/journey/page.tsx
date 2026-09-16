@@ -4,10 +4,9 @@ import { PageHead } from "@/components/shared/steps";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
+import { followsPlan } from "@/lib/participants/journey";
 import { PARTICIPANT_STATUS_LABEL } from "@/lib/programs/kinds";
 
-/** الحالات التي تتبع الخطة — مطابقة لـ`fn_follows_plan` في القاعدة. */
-const FOLLOWS_PLAN = new Set(["registered", "memorizing", "qualified"]);
 
 const CARD = {
   display: "block",
@@ -71,7 +70,7 @@ export default async function JourneyListPage() {
                 }}
               >
                 {PARTICIPANT_STATUS_LABEL[row.status]}
-                {FOLLOWS_PLAN.has(row.status) ? null : " · انتهت رحلتك"}
+                {followsPlan(row.status) ? null : " · انتهت رحلتك"}
               </span>
             </Link>
           );

@@ -1304,6 +1304,10 @@ export type Database = {
         Args: { p_template_id: string }
         Returns: string
       }
+      fn_decide_track_change: {
+        Args: { p_decision: string; p_program_id: string; p_request_id: string }
+        Returns: undefined
+      }
       fn_follows_plan: {
         Args: { p_status: Database["public"]["Enums"]["participant_status"] }
         Returns: boolean
@@ -1340,6 +1344,18 @@ export type Database = {
       fn_participant_plan_id: {
         Args: { p_participant_id: string }
         Returns: string
+      }
+      fn_participant_record: {
+        Args: { p_participant_id: string }
+        Returns: {
+          complete_days: number
+          first_submitted_at: string
+          is_current: boolean
+          last_submitted_at: string
+          submitted_days: number
+          track_id: string
+          track_name: string
+        }[]
       }
       fn_participant_track_id: {
         Args: { p_participant_id: string }
@@ -1391,6 +1407,8 @@ export type Database = {
           full_name: string
           id: string
           joined_at: string
+          prior_complete_days: number
+          prior_submitted_days: number
           status: Database["public"]["Enums"]["participant_status"]
           submitted_days: number
           total: number

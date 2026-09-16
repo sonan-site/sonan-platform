@@ -81,6 +81,7 @@ export function JourneyView({
   examName,
   submittable,
   progress,
+  prior,
   previous,
   next,
 }: {
@@ -94,6 +95,8 @@ export function JourneyView({
   examName: string | null;
   submittable: boolean;
   progress: JourneyProgress;
+  /** أيامه في مساراتٍ قبل هذا — صفرٌ لمن لم يُنقل. */
+  prior: { submittedDays: number; completeDays: number };
   previous: number | null;
   next: number | null;
 }) {
@@ -130,6 +133,12 @@ export function JourneyView({
         {progress.submittedDays > 0 ? (
           <span>
             الإتمام: {formatPercent(progress.completion)} ({formatNumber(progress.completeDays)} يوماً
+            مكتملاً)
+          </span>
+        ) : null}
+        {prior.submittedDays > 0 ? (
+          <span>
+            ومن مسارٍ سابق: {formatNumber(prior.submittedDays)} يوماً ({formatNumber(prior.completeDays)}{" "}
             مكتملاً)
           </span>
         ) : null}
