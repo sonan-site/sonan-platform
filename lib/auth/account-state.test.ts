@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TERMS_VERSION } from "@/lib/legal/terms";
 import { accountState, suggestedName, type ProfileCompleteness } from "./account-state";
 
 const complete: ProfileCompleteness = {
@@ -10,6 +11,7 @@ const complete: ProfileCompleteness = {
   birth_date: "1990-01-01",
   nationality: "SA",
   phone: "+966501234567",
+  terms_version: TERMS_VERSION,
 };
 
 describe("حالة الحساب", () => {
@@ -32,6 +34,11 @@ describe("حالة الحساب", () => {
     for (const key of ["first_name", "father_name", "family_name", "gender", "birth_date", "nationality"] as const) {
       expect(accountState({ ...complete, [key]: null }), key).toBe("incomplete");
     }
+  });
+
+  it("**بلا موافقة على الشروط، أو على نسخة قديمة ← ناقص** — يُطلب القبول مرة", () => {
+    expect(accountState({ ...complete, terms_version: null })).toBe("incomplete");
+    expect(accountState({ ...complete, terms_version: "2000-01-01" })).toBe("incomplete");
   });
 
   it("**جوالٌ بالصيغة القديمة ← ناقص** — يُعاد إدخاله بمفتاح دولته", () => {

@@ -23,7 +23,10 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
 
       <main className={styles.main}>{children}</main>
 
-      <footer className={styles.foot}>جمعية سنن التعليمية</footer>
+      <footer className={styles.foot}>
+        جمعية سنن التعليمية · <Link href="/terms">شروط الاستخدام</Link> ·{" "}
+        <Link href="/privacy">سياسة الخصوصية</Link>
+      </footer>
     </div>
   );
 }

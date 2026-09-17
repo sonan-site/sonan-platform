@@ -1,5 +1,6 @@
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { TERMS_VERSION } from "@/lib/legal/terms";
 import { isProfileComplete, type ProfileCompleteness } from "./account-state";
 
 /**
@@ -20,6 +21,8 @@ const PARTS = {
   birth_date: "1990-01-01",
   nationality: "SA",
   phone: "+966512345678",
+  terms_accepted_at: "2026-09-17T08:00:00Z",
+  terms_version: TERMS_VERSION,
 };
 
 async function reset(values: Record<string, string | null>) {
@@ -96,6 +99,8 @@ describe("«المكتمل» في القاعدة = نظيره في TypeScript", 
     ["بلا ميلاد", { birth_date: null }],
     ["بلا جنسية", { nationality: null }],
     ["بلا جوال", { phone: null }],
+    ["بلا موافقة على الشروط", { terms_version: null, terms_accepted_at: null } as Partial<ProfileCompleteness>],
+    ["موافقة على نسخة قديمة", { terms_version: "2000-01-01" }],
   ];
 
   for (const [name, change] of cases) {
@@ -106,7 +111,10 @@ describe("«المكتمل» في القاعدة = نظيره في TypeScript", 
         `select public.fn_profile_is_complete(p) as complete from public.profiles p where user_id = $1`,
         [USER],
       );
-      const ts = isProfileComplete({ deleted_at: null, ...(row as Omit<ProfileCompleteness, "deleted_at">) });
+      const ts = isProfileComplete({
+        deleted_at: null,
+        ...(row as unknown as Omit<ProfileCompleteness, "deleted_at">),
+      });
       expect(rows[0]!.complete).toBe(ts);
     });
   }

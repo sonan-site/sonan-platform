@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
@@ -33,6 +34,35 @@ export function CompleteProfileForm({
         </Field>
 
         <ProfileFields values={values} errors={state.fieldErrors} />
+
+        <div className={styles.consent}>
+          <label htmlFor="acceptTerms" className={styles.consentLabel}>
+            <input
+              id="acceptTerms"
+              name="acceptTerms"
+              type="checkbox"
+              required
+              aria-invalid={Boolean(state.fieldErrors?.["acceptTerms"]) || undefined}
+              aria-describedby={state.fieldErrors?.["acceptTerms"] ? "acceptTerms-error" : undefined}
+            />
+            <span>
+              قرأتُ{" "}
+              <Link href="/terms" target="_blank">
+                شروط الاستخدام
+              </Link>{" "}
+              و
+              <Link href="/privacy" target="_blank">
+                سياسة الخصوصية
+              </Link>{" "}
+              وأوافق عليهما.
+            </span>
+          </label>
+          {state.fieldErrors?.["acceptTerms"] ? (
+            <span id="acceptTerms-error" className={styles.consentError} role="alert">
+              {state.fieldErrors["acceptTerms"]}
+            </span>
+          ) : null}
+        </div>
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>

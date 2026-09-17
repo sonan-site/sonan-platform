@@ -9,6 +9,8 @@
  * التكافؤ في `lib/auth/profile-details.db-test.ts` يُبقيهما متطابقين.
  */
 
+import { TERMS_VERSION } from "@/lib/legal/terms";
+
 export type AccountState = "active" | "suspended" | "incomplete";
 
 export type ProfileCompleteness = {
@@ -20,11 +22,13 @@ export type ProfileCompleteness = {
   birth_date: string | null;
   nationality: string | null;
   phone: string | null;
+  /** نسخة الشروط التي وافق عليها — الاكتمال يشترط الحالية (الهجرة ٠٤٠). */
+  terms_version: string | null;
 };
 
 /** الأعمدة التي تقرؤها الجلسة لتحكم بالاكتمال. */
 export const COMPLETENESS_COLUMNS =
-  "deleted_at, first_name, father_name, family_name, gender, birth_date, nationality, phone";
+  "deleted_at, first_name, father_name, family_name, gender, birth_date, nationality, phone, terms_version";
 
 const E164 = /^\+[1-9][0-9]{7,14}$/;
 
@@ -37,7 +41,8 @@ export function isProfileComplete(p: ProfileCompleteness): boolean {
       p.birth_date &&
       p.nationality &&
       p.phone &&
-      E164.test(p.phone),
+      E164.test(p.phone) &&
+      p.terms_version === TERMS_VERSION,
   );
 }
 

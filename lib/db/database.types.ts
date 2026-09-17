@@ -772,6 +772,8 @@ export type Database = {
           nationality: string | null
           phone: string | null
           phone_secondary: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
           user_id: string
         }
@@ -789,6 +791,8 @@ export type Database = {
           nationality?: string | null
           phone?: string | null
           phone_secondary?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
           user_id: string
         }
@@ -806,6 +810,8 @@ export type Database = {
           nationality?: string | null
           phone?: string | null
           phone_secondary?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
           user_id?: string
         }

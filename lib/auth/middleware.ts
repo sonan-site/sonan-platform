@@ -9,8 +9,11 @@ import { NextResponse, type NextRequest } from "next/server";
 /** مسارات عامة لا تشترط جلسة. ما عداها محمي. */
 const PUBLIC_PREFIXES = ["/sign-in", "/sign-up", "/recover", "/activate", "/auth", "/p/"];
 
-/** الجذر هو المتجر العام: طبقة تسويقية لا تشترط حساباً (adr/0004). */
-const PUBLIC_EXACT = new Set(["/"]);
+/**
+ * الجذر هو المتجر العام: طبقة تسويقية لا تشترط حساباً (adr/0004). والشروط
+ * والخصوصية تُقرأ قبل الموافقة عليها، فلا تشترط حساباً كذلك (adr/0028).
+ */
+const PUBLIC_EXACT = new Set(["/", "/terms", "/privacy"]);
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
