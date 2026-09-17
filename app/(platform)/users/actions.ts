@@ -33,7 +33,7 @@ export async function inviteUser(_prev: FormState, form: FormData): Promise<Form
 
   // الأصل موثوق هنا: Next يرفض إجراء الخادم إن خالف `Origin` مضيفَ الطلب.
   const origin = (await headers()).get("origin") ?? "";
-  const sent = await sendInvite(parsed.data.email, `${origin}/auth/callback?next=/activate`, {
+  const sent = await sendInvite(parsed.data.email, `${origin}/auth/link?next=/activate`, {
     fullName: parsed.data.fullName,
   });
   // سبب المزوّد لا يُعرض: نصّه إنجليزي، ويكشف إن كان البريد مسجَّلاً سلفاً.

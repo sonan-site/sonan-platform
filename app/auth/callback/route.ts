@@ -4,8 +4,9 @@ import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 
 /**
- * مسار استدعاء المصادقة — يبدّل الرمز المؤقّت بجلسة.
- * تمرّ به روابط الدعوة والاسترجاع، وهو المكان الوحيد الذي يفعل ذلك.
+ * مسار استدعاء المصادقة — يبدّل الرمز المؤقّت (`?code=`) بجلسة.
+ * يمرّ به الدخول بـ Google. وروابط الاسترجاع والدعوة تحمل جلستها بعد `#` فلا
+ * تصل الخادم، فوجهتها `/auth/link` (`lib/auth/link-fragment.ts`).
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const code = request.nextUrl.searchParams.get("code");

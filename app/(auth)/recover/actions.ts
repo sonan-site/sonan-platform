@@ -18,7 +18,7 @@ export async function requestRecovery(_prev: FormState, form: FormData): Promise
   }
 
   const origin = (await headers()).get("origin") ?? "";
-  await sendRecovery(parsed.data.email, `${origin}/auth/callback?next=/activate`);
+  await sendRecovery(parsed.data.email, `${origin}/auth/link?next=/activate`);
 
   // **الجواب واحد نجح الإرسال أم فشل**: تمييزهما يحوّل الصفحة إلى أداة تعدّ
   // البُرد المسجَّلة عندنا.
