@@ -217,7 +217,6 @@ export default async function ContentPage({
   return (
     <ContentView
       programId={id}
-      programName={programResult.data.name}
       units={units}
       unitSummary={{
         count: unitsResult.count ?? 0,

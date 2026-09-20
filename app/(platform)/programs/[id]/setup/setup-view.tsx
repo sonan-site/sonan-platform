@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { EmptyState } from "@/components/shared/states";
-import { Messages, PageHead, Step } from "@/components/shared/steps";
+import { Messages, TabHead, Step } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { quickSetup } from "./actions";
@@ -17,25 +17,16 @@ import { ActionForm } from "@/components/shared/action-form";
  */
 export function SetupView({
   programId,
-  programName,
   tracks,
 }: {
   programId: string;
-  programName: string;
   tracks: { id: string; name: string }[];
 }) {
   const [state, action, pending] = useActionState(quickSetup, EMPTY_FORM_STATE);
 
   return (
     <>
-      <PageHead
-        crumbs={[
-          { href: "/programs", label: "البرامج" },
-          { href: `/programs/${programId}`, label: programName },
-        ]}
-        title="إعداد سريع"
-        lede="خمسة أسئلة، ثم يصير البرنامج جاهزاً: المادة، ونصيب كل مسار منها، وواجبات اليوم، والخطة. وكلّها قابلة للتعديل بعدها."
-      />
+      <TabHead title="إعداد سريع" lede="خمسة أسئلة، ثم يصير البرنامج جاهزاً: المادة، ونصيب كل مسار منها، وواجبات اليوم، والخطة. وكلّها قابلة للتعديل بعدها." />
 
       {tracks.length === 0 ? (
         <EmptyState

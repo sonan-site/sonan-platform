@@ -4,7 +4,7 @@ import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Modal } from "@/components/shared/modal";
-import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
+import { Messages, TabHead, Step, StepForm } from "@/components/shared/steps";
 import {
   PARTICIPANT_STATUS_LABEL,
   statusesOf,
@@ -66,7 +66,6 @@ const REQUEST_LABEL: Record<ChangeRow["status"], string> = {
 
 export function ParticipantsView({
   programId,
-  programName,
   kind,
   participants,
   requests,
@@ -74,7 +73,6 @@ export function ParticipantsView({
   canWrite,
 }: {
   programId: string;
-  programName: string;
   kind: ProgramKind;
   participants: ParticipantRow[];
   requests: ChangeRow[];
@@ -236,14 +234,7 @@ export function ParticipantsView({
 
   return (
     <>
-      <PageHead
-        crumbs={[
-          { href: "/programs", label: "البرامج" },
-          { href: `/programs/${programId}`, label: programName },
-        ]}
-        title="المشاركون"
-        lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته، وكم منها أتمّه كاملاً. ومنها تُبتّ طلبات تغيير المسار."
-      />
+      <TabHead title="المشاركون" lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته، وكم منها أتمّه كاملاً. ومنها تُبتّ طلبات تغيير المسار." />
 
       <Modal
         open={confirming !== null}

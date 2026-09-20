@@ -37,7 +37,6 @@ export default async function SetupPage({ params }: { params: Promise<{ id: stri
   return (
     <SetupView
       programId={id}
-      programName={programResult.data.name}
       tracks={tracksResult.data ?? []}
     />
   );

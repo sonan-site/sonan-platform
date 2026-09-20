@@ -232,6 +232,26 @@ export function PageBuilder({
         )}
       </div>
 
+      <section style={PANEL}>
+        {helpState.error ? <p style={ERR}>{helpState.error}</p> : null}
+        {helpState.notice ? <p style={OK}>{helpState.notice}</p> : null}
+
+        <ActionForm action={helpAction} state={helpState}>
+          <input type="hidden" name="programId" value={programId} />
+          <Field id="question" label="السؤال" required error={helpState.fieldErrors?.["question"]}>
+            <Input id="question" name="question" required />
+          </Field>
+          <Field id="answer" label="الجواب" required error={helpState.fieldErrors?.["answer"]}>
+            <Textarea id="answer" name="answer" required />
+          </Field>
+          <FormActions>
+            <Button type="submit" variant="primary" pending={helpPending}>
+              إضافة سؤال
+            </Button>
+          </FormActions>
+        </ActionForm>
+      </section>
+
       <h2 style={H2}>أسئلة القبول التلقائي</h2>
       <p style={META}>
         يجيب عنها المتقدّم عند التسجيل. من أجاب عن الإلزامية منها قُبل فوراً.
@@ -301,25 +321,6 @@ export function PageBuilder({
         </ActionForm>
       </section>
 
-      <section style={PANEL}>
-        {helpState.error ? <p style={ERR}>{helpState.error}</p> : null}
-        {helpState.notice ? <p style={OK}>{helpState.notice}</p> : null}
-
-        <ActionForm action={helpAction} state={helpState}>
-          <input type="hidden" name="programId" value={programId} />
-          <Field id="question" label="السؤال" required error={helpState.fieldErrors?.["question"]}>
-            <Input id="question" name="question" required />
-          </Field>
-          <Field id="answer" label="الجواب" required error={helpState.fieldErrors?.["answer"]}>
-            <Textarea id="answer" name="answer" required />
-          </Field>
-          <FormActions>
-            <Button type="submit" variant="primary" pending={helpPending}>
-              إضافة سؤال
-            </Button>
-          </FormActions>
-        </ActionForm>
-      </section>
     </>
   );
 }

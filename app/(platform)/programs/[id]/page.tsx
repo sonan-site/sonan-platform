@@ -2,17 +2,17 @@ import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
-import { readiness } from "@/lib/programs/readiness";
+import { programReadiness } from "@/lib/programs/readiness-server";
 import { registrationState } from "@/lib/programs/registration";
-import { isBlockType, BLOCK_LABEL } from "@/lib/programs/blocks";
-import { PageBuilder, type AdmissionRow, type BlockRow, type HelpRow } from "./page-builder";
-import { ProgramView, type ProgramDetail, type TrackRow } from "./program-view";
+import { ProgramView, type ProgramDetail } from "./program-view";
 
-export default async function ProgramPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+/**
+ * نظرة عامة على البرنامج — **جاهزيته وحقائقه ودورة حياته**.
+ *
+ * المسارات والمادة والخطط والصفحة المعلنة لكلٍّ تبويبه (`adr/0029`): كانت
+ * الستّة في عمود واحد، فلا يُعرف أين يبدأ العمل ولا أين ينتهي.
+ */
+export default async function ProgramPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   // النطاق هنا **البرنامج نفسه**: دور محصور به يكفي لقراءته وتعديله.
@@ -24,16 +24,11 @@ export default async function ProgramPage({
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const canWrite = (
-    await authorizeRequest({
-      permission: "programs.write",
-      programId: id,
-      resourceProgramId: id,
-    })
+    await authorizeRequest({ permission: "programs.write", programId: id, resourceProgramId: id })
   ).ok;
 
   const db = await createClient();
-  const [programResult, tracksResult, blocksResult, helpResult, admissionResult] =
-    await Promise.all([
+  const [programResult, ready] = await Promise.all([
     db
       .from("programs")
       .select(
@@ -42,84 +37,14 @@ export default async function ProgramPage({
       .eq("id", id)
       .is("deleted_at", null)
       .maybeSingle(),
-    db
-      .from("tracks")
-      .select("id, name, description, capacity")
-      .eq("program_id", id)
-      .is("deleted_at", null)
-      .order("sort_order"),
-    db
-      .from("page_blocks")
-      .select("id, block_type, content")
-      .eq("program_id", id)
-      .is("deleted_at", null)
-      .order("sort_order"),
-    db
-      .from("help_entries")
-      .select("id, question, status")
-      .eq("program_id", id)
-      .is("deleted_at", null)
-      .order("sort_order"),
-    db
-      .from("admission_questions")
-      .select("id, question, is_required, track_id")
-      .eq("program_id", id)
-      .is("deleted_at", null)
-      .order("sort_order"),
+    programReadiness(id),
   ]);
 
-  // ══ جاهزية الإطلاق ══
-  // تُجمَع هنا لا في ستّ شاشات: المُعِدّ يريد أن يعرف ما ينقصه في نظرة واحدة.
-  const trackIdsForReadiness = (tracksResult.data ?? []).map((t) => t.id);
-  const noRowsR = ["00000000-0000-0000-0000-000000000000"];
-  // كلها **مقيَّدة بالبرنامج**: كانت أشكال الأيام وأيام الخطط تُقرأ من المنصة
-  // كلها ثم تُرشَّح هنا، فتكبر كلفة الصفحة مع كل برنامج جديد وتبلغ سقف الألف.
-  const [unitsCount, fieldsCount, partsRows, tplFieldRows, planRows, registered] = await Promise.all([
-    db
-      .from("content_units")
-      .select("id", { count: "exact", head: true })
-      .eq("program_id", id)
-      .is("deleted_at", null),
-    db
-      .from("task_fields")
-      .select("id", { count: "exact", head: true })
-      .eq("program_id", id)
-      .is("deleted_at", null),
-    db
-      .from("track_content_ranges")
-      .select("track_id")
-      .in("track_id", trackIdsForReadiness.length > 0 ? trackIdsForReadiness : noRowsR)
-      .is("deleted_at", null),
-    db
-      .from("day_template_fields")
-      .select("day_template_id, day_templates!inner(program_id)")
-      .eq("day_templates.program_id", id)
-      .is("deleted_at", null),
-    db
-      .from("plans")
-      // الربط الداخلي يُسقط الخطة بلا يوم حيّ، ويومٌ واحد يكفي للحكم.
-      .select("track_id, plan_days!inner(id)")
-      .in("track_id", trackIdsForReadiness.length > 0 ? trackIdsForReadiness : noRowsR)
-      .is("deleted_at", null)
-      .is("plan_days.deleted_at", null)
-      .limit(1, { referencedTable: "plan_days" }),
-    db
-      .from("participants")
-      .select("id", { count: "exact", head: true })
-      .eq("program_id", id)
-      .is("deleted_at", null),
-  ]);
-
-  const tracksWithParts = new Set((partsRows.data ?? []).map((r) => r.track_id));
-  const tracksWithPlanDays = new Set((planRows.data ?? []).map((r) => r.track_id));
-
-  if (programResult.error || tracksResult.error) {
-    return <ErrorState body="تعذّر جلب البرنامج. أعد المحاولة." />;
-  }
+  if (programResult.error) return <ErrorState body="تعذّر جلب البرنامج." />;
   if (!programResult.data) notFound();
+  if (!ready) return <ErrorState body="تعذّر حساب جاهزية البرنامج." />;
 
   const p = programResult.data;
-
   const program: ProgramDetail = {
     id: p.id,
     name: p.name,
@@ -130,77 +55,17 @@ export default async function ProgramPage({
     capacity: p.capacity,
     opensAt: p.registration_opens_at,
     closesAt: p.registration_closes_at,
-    // `Number(null)` صفرٌ لا فراغ — والصفر هنا كذبة: «عتبة اجتياز ٠٪».
-    // فالفراغ يُمرَّر فراغاً، والشاشة تعرضه أو تُخفيه بحسب النمط.
-    passingPercentage: p.passing_percentage === null ? null : Number(p.passing_percentage),
-    awardPercentage: p.award_percentage === null ? null : Number(p.award_percentage),
     kind: p.kind,
-    // [BR-CAP-01]
+    passingPercentage: p.passing_percentage,
+    awardPercentage: p.award_percentage,
     registration: registrationState({
       status: p.status,
       capacity: p.capacity,
       opensAt: p.registration_opens_at,
       closesAt: p.registration_closes_at,
-      registeredCount: registered.count ?? 0,
+      registeredCount: ready.participants,
     }),
   };
 
-  const tracks: TrackRow[] = (tracksResult.data ?? []).map((t) => ({
-    id: t.id,
-    name: t.name,
-    description: t.description,
-    capacity: t.capacity,
-  }));
-
-  const blocks: BlockRow[] = (blocksResult.data ?? [])
-    .filter((b) => isBlockType(b.block_type))
-    .map((b) => {
-      const c = (b.content ?? {}) as Record<string, unknown>;
-      const first = String(c["title"] ?? c["heading"] ?? c["text"] ?? "");
-      return {
-        id: b.id,
-        type: b.block_type,
-        summary: first.slice(0, 60) || BLOCK_LABEL[b.block_type],
-      };
-    });
-
-  const help: HelpRow[] = (helpResult.data ?? []).map((h) => ({
-    id: h.id,
-    question: h.question,
-    published: h.status === "published",
-  }));
-
-  const trackNames = new Map(tracks.map((t) => [t.id, t.name]));
-  const admission: AdmissionRow[] = (admissionResult.data ?? []).map((q) => ({
-    id: q.id,
-    question: q.question,
-    required: q.is_required,
-    trackName: q.track_id ? (trackNames.get(q.track_id) ?? null) : null,
-  }));
-
-  return (
-    <>
-      <ProgramView
-        emptyProgram={(unitsCount.count ?? 0) === 0 && (fieldsCount.count ?? 0) === 0}
-        readinessItems={readiness({
-          tracks: trackIdsForReadiness.length,
-          tracksWithParts: trackIdsForReadiness.filter((t) => tracksWithParts.has(t)).length,
-          contentUnits: unitsCount.count ?? 0,
-          taskFields: fieldsCount.count ?? 0,
-          templatesWithFields: new Set((tplFieldRows.data ?? []).map((r) => r.day_template_id)).size,
-          tracksWithPlanDays: trackIdsForReadiness.filter((t) => tracksWithPlanDays.has(t)).length,
-          publicBlocks: (blocksResult.data ?? []).length,
-          published: programResult.data.status === "published",
-        })} program={program} tracks={tracks} canWrite={canWrite} />
-      {canWrite ? (
-        <PageBuilder
-          programId={id}
-          blocks={blocks}
-          help={help}
-          admission={admission}
-          tracks={tracks.map((t) => ({ id: t.id, name: t.name }))}
-        />
-      ) : null}
-    </>
-  );
+  return <ProgramView readinessItems={ready.items} program={program} canWrite={canWrite} />;
 }

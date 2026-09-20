@@ -5,8 +5,8 @@
  * إلا بتفقّد ستّ شاشات واحدة واحدة. وهذا يجمعها في قائمة واحدة: ما اكتمل،
  * وما يحجب الإطلاق، وأين يُصلَح كلٌّ منها.
  *
- * وهي **وصفٌ لا قيد**: لا تمنع النشر ولا تُغيّر سلوكاً. النشر قرار الراعي،
- * وهذه تُريه ما يقرّر عليه.
+ * ومنها **الخطوة التالية** (`nextStep`): المعالج يعرض واحدة لا ثمانياً، فمن
+ * فتح برنامجه يعرف ما يفعله الآن لا ما ينقصه كلّه (`adr/0029`).
  */
 
 export type ReadinessInput = {
@@ -96,4 +96,48 @@ export function readiness(input: ReadinessInput): ReadinessItem[] {
 
 export function readinessSummary(items: ReadinessItem[]): { done: number; total: number } {
   return { done: items.filter((i) => i.done).length, total: items.length };
+}
+
+/** أين يُصلَح كل بند — تبويبٌ من تبويبات البرنامج، لكل بندٍ موضع. */
+export const FIX_TAB: Record<ReadinessItem["fix"], string> = {
+  tracks: "tracks",
+  content: "content",
+  plans: "plans",
+  page: "page",
+  status: "",
+};
+
+export type NextStep = {
+  /** مفتاح البند الأول غير المكتمل. */
+  key: string;
+  /** ما يفعله الآن — بصيغة أمر. */
+  title: string;
+  /** التبويب الذي يُفعل فيه: اسمه النسبي، و«» لنظرة عامة. */
+  tab: string;
+  /** نصّ الزرّ المؤدّي إليه. */
+  cta: string;
+};
+
+const STEP_TITLE: Record<string, { title: string; cta: string }> = {
+  tracks: { title: "أضِف مسارات البرنامج", cta: "افتح المسارات" },
+  content: { title: "أدخِل المادة المرقَّمة", cta: "افتح المادة" },
+  parts: { title: "حدّد نصيب كل مسار من المادة", cta: "افتح المادة" },
+  fields: { title: "سمِّ واجبات اليوم", cta: "افتح المادة" },
+  templates: { title: "اجمع الواجبات في شكل يوم", cta: "افتح المادة" },
+  plans: { title: "ابنِ خطة لكل مسار", cta: "افتح الخطط" },
+  page: { title: "ابنِ الصفحة المعلنة", cta: "افتح الصفحة المعلنة" },
+  published: { title: "انشر البرنامج", cta: "افتح النظرة العامة" },
+};
+
+/**
+ * الخطوة الواحدة التالية، أو `null` إن اكتمل كل شيء.
+ *
+ * **الترتيب هو ترتيب البناء لا ترتيب العرض**: لا نصيب قبل مادة، ولا خطة قبل
+ * شكل يوم. و`readiness` مرتّبة بهذا الترتيب أصلاً، فأول ناقصٍ فيها هو التالي.
+ */
+export function nextStep(items: ReadinessItem[]): NextStep | null {
+  const pending = items.find((i) => !i.done);
+  if (!pending) return null;
+  const text = STEP_TITLE[pending.key] ?? { title: pending.label, cta: "افتح" };
+  return { key: pending.key, title: text.title, tab: FIX_TAB[pending.fix], cta: text.cta };
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
-import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
+import { Messages, TabHead, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { createPlan } from "./actions";
@@ -20,11 +20,9 @@ export type TrackPlanRow = {
 
 export function PlansView({
   programId,
-  programName,
   rows,
 }: {
   programId: string;
-  programName: string;
   rows: TrackPlanRow[];
 }) {
   const [state, action, pending] = useActionState(createPlan, EMPTY_FORM_STATE);
@@ -54,14 +52,7 @@ export function PlansView({
 
   return (
     <>
-      <PageHead
-        crumbs={[
-          { href: "/programs", label: "البرامج" },
-          { href: `/programs/${programId}`, label: programName },
-        ]}
-        title="خطط المسارات"
-        lede="الخطة قائمة أيام مرتّبة لكل مسار. لا تاريخ فيها — كل مشارك يبدأ من يومه الأول أياً كان تاريخ انضمامه. وللمسار خطة واحدة."
-      />
+      <TabHead title="خطط المسارات" lede="الخطة قائمة أيام مرتّبة لكل مسار. لا تاريخ فيها — كل مشارك يبدأ من يومه الأول أياً كان تاريخ انضمامه. وللمسار خطة واحدة." />
 
       <DataTable
         columns={columns}

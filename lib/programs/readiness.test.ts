@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readiness, readinessSummary, type ReadinessInput } from "./readiness";
+import { nextStep, readiness, readinessSummary, type ReadinessInput } from "./readiness";
 
 const full: ReadinessInput = {
   tracks: 2,
@@ -59,5 +59,47 @@ describe("جاهزية البرنامج", () => {
 
   it("كل بند يشير إلى الشاشة التي تُصلحه", () => {
     expect(itemsOf({}).every((i) => i.fix.length > 0)).toBe(true);
+  });
+});
+
+describe("الخطوة التالية — واحدة لا ثماني", () => {
+  const stepOf = (input: Partial<ReadinessInput>) => nextStep(itemsOf(input));
+
+  it("**المكتمل بلا خطوة** — لا يُقال لمن أتمّ «افعل»", () => {
+    expect(stepOf({})).toBeNull();
+  });
+
+  it("البرنامج الفارغ يبدأ بالمسارات", () => {
+    const step = stepOf({
+      tracks: 0,
+      tracksWithParts: 0,
+      contentUnits: 0,
+      taskFields: 0,
+      templatesWithFields: 0,
+      tracksWithPlanDays: 0,
+      publicBlocks: 0,
+      published: false,
+    });
+    expect(step).toMatchObject({ key: "tracks", tab: "tracks" });
+  });
+
+  it("**الترتيب ترتيب البناء:** المادة قبل نصيبها، والنصيب قبل الخطة", () => {
+    expect(stepOf({ contentUnits: 0, tracksWithParts: 0, tracksWithPlanDays: 0, publicBlocks: 0 })).toMatchObject({
+      key: "content",
+      tab: "content",
+    });
+    expect(stepOf({ tracksWithParts: 1, tracksWithPlanDays: 0 })).toMatchObject({ key: "parts" });
+    expect(stepOf({ tracksWithPlanDays: 1 })).toMatchObject({ key: "plans", tab: "plans" });
+  });
+
+  it("وآخرها الصفحة ثم النشر", () => {
+    expect(stepOf({ publicBlocks: 0, published: false })).toMatchObject({ key: "page", tab: "page" });
+    expect(stepOf({ published: false })).toMatchObject({ key: "published", tab: "" });
+  });
+
+  it("لكل خطوة عنوانٌ بصيغة أمر ونصّ زرّ", () => {
+    const step = stepOf({ published: false })!;
+    expect(step.title.length).toBeGreaterThan(5);
+    expect(step.cta.length).toBeGreaterThan(3);
   });
 });

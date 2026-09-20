@@ -19,6 +19,21 @@ import styles from "./steps.module.css";
  * فيبقى لمن يعرف المجال.
  */
 
+/**
+ * ترويسة تبويب — عنوانه ولِيده، **بلا فتات ولا `h1`**.
+ *
+ * التبويب داخل شاشة، وعنوان الشاشة فوقه (اسم البرنامج). فلو حمل `h1` ثانياً
+ * صار في الصفحة عنوانان أوّلان، ولا يعرف القارئ الآلي أيّهما الصفحة.
+ */
+export function TabHead({ title, lede }: { title: string; lede: string }) {
+  return (
+    <header className={styles.head}>
+      <h2 className={styles.tabTitle}>{title}</h2>
+      <p className={styles.lede}>{lede}</p>
+    </header>
+  );
+}
+
 export function PageHead({
   crumbs,
   title,

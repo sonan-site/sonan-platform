@@ -62,10 +62,21 @@ export const guardStructure: Guard = {
     }
 
     // تخطيط موضعي: أي layout تحت app/ عدا الجذر يجب أن يمرّ بالتخطيط الجامع
+    //
+    // **والمتفرّع لا يُحاسَب حساب البديل:** تخطيطٌ تحت تخطيطٍ يستدعي `AppLayout`
+    // يُصيَّر **داخله** لا بدلاً عنه (تبويبات البرنامج مثلاً). فالمخالفة أن يكون
+    // للفرع جدٌّ بلا جامع، لا أن يكون له جدٌّ به.
+    const wrapped = new Set(
+      files
+        .filter((f) => f.path.endsWith("layout.tsx") && f.text.includes("AppLayout"))
+        .map((f) => f.path.slice(0, -"layout.tsx".length)),
+    );
     for (const f of files) {
       if (!f.path.startsWith("app/") || !f.path.endsWith("layout.tsx")) continue;
       if (f.path === "app/layout.tsx") continue;
       if (f.text.includes("AppLayout")) continue;
+      const dir = f.path.slice(0, -"layout.tsx".length);
+      if ([...wrapped].some((w) => dir.startsWith(w) && dir !== w)) continue;
       findings.push({
         rule: "local-layout",
         file: f.path,

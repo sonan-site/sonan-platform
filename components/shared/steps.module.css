@@ -19,6 +19,13 @@
   margin-block: 0 var(--space-2);
 }
 
+/* عنوان التبويب أصغر من عنوان الشاشة: هو تحته لا بجانبه. */
+.tabTitle {
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  margin-block: 0 var(--space-2);
+}
+
 .lede {
   color: var(--color-text-muted);
   max-inline-size: 60ch;

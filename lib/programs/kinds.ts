@@ -11,6 +11,17 @@
  * على غرار `config/permissions.ts`: كتالوج مغلق، وما ليس فيه غير موجود.
  */
 
+/** حالة البرنامج — مسوّدة لا يراها أحد، ثم منشور، ثم مغلق. */
+export const PROGRAM_STATUSES = ["draft", "published", "closed"] as const;
+
+export type ProgramStatus = (typeof PROGRAM_STATUSES)[number];
+
+export const PROGRAM_STATUS_LABEL: Record<ProgramStatus, string> = {
+  draft: "مسوّدة",
+  published: "منشور",
+  closed: "مغلق",
+};
+
 export const PARTICIPANT_STATUSES = [
   "registered",
   "memorizing",

@@ -1422,6 +1422,20 @@ export type Database = {
           work_days: number
         }[]
       }
+      fn_program_readiness: {
+        Args: { p_program_id: string }
+        Returns: {
+          content_units: number
+          participants: number
+          public_blocks: number
+          published: boolean
+          task_fields: number
+          templates_with_fields: number
+          tracks: number
+          tracks_with_parts: number
+          tracks_with_plan_days: number
+        }[]
+      }
       fn_quick_setup: {
         Args: {
           p_day_count: number

@@ -92,7 +92,6 @@ export default async function PlanPage({
   return (
     <PlanView
       programId={id}
-      programName={programResult.data.name}
       kind={programResult.data.kind}
       planId={planId}
       planName={planResult.data.name}

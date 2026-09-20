@@ -118,7 +118,6 @@ export default async function ParticipantsPage({
   return (
     <ParticipantsView
       programId={id}
-      programName={programResult.data.name}
       kind={programResult.data.kind}
       participants={participants}
       requests={requests}

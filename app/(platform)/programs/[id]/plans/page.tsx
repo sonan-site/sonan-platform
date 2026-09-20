@@ -68,6 +68,6 @@ export default async function PlansPage({ params }: { params: Promise<{ id: stri
   });
 
   return (
-    <PlansView programId={id} programName={programResult.data.name} rows={rows} />
+    <PlansView programId={id} rows={rows} />
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
+import { TabHead } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { kindAllowsExams, type ProgramKind } from "@/lib/programs/kinds";
@@ -227,7 +228,6 @@ function TypeCell({
 
 export function PlanView({
   programId,
-  programName,
   kind,
   planId,
   planName,
@@ -238,7 +238,6 @@ export function PlanView({
   tracks,
 }: {
   programId: string;
-  programName: string;
   kind: ProgramKind;
   planId: string;
   planName: string;
@@ -377,12 +376,13 @@ export function PlanView({
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)", display: "flex", gap: "var(--space-4)" }}>
-        <Link href="/programs">البرامج</Link>
-        <Link href={`/programs/${programId}`}>{programName}</Link>
+      <p style={{ fontSize: "var(--text-sm)" }}>
         <Link href={`/programs/${programId}/plans`}>الخطط</Link>
       </p>
-      <h1>{planName}</h1>
+      <TabHead
+        title={planName}
+        lede="أيام الخطة بالترتيب: نوع كل يوم وشكله وضِعف مقداره. ومن أرسل يوماً لم يعد يُحذف."
+      />
 
       <div style={META}>
         <span>المسار: {trackName}</span>

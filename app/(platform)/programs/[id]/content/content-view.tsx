@@ -14,7 +14,7 @@ import {
   Chips,
   Messages,
   Muted,
-  PageHead,
+  TabHead,
   Step,
   StepForm,
 } from "@/components/shared/steps";
@@ -63,7 +63,6 @@ export type PreviewTask = {
 
 export function ContentView({
   programId,
-  programName,
   units,
   unitSummary,
   unitPage,
@@ -73,7 +72,6 @@ export function ContentView({
   previews,
 }: {
   programId: string;
-  programName: string;
   /** صفحة واحدة من المادة لا كلها — المادة قد تبلغ آلاف الوحدات. */
   units: UnitRow[];
   unitSummary: { count: number; first: number | null; last: number | null };
@@ -139,88 +137,8 @@ export function ContentView({
 
   return (
     <>
-      <PageHead
-        crumbs={[
-          { href: "/programs", label: "البرامج" },
-          { href: `/programs/${programId}`, label: programName },
-        ]}
-        title="ما يحفظه المشاركون"
-        lede="أربع خطوات: تُدخل المادة، ثم تحدّد نصيب كل مسار منها، ثم تسمّي واجبات اليوم، ثم تجمعها في شكل يوم. وتحتها معاينة تُريك ما سيراه المشارك."
-      />
+      <TabHead title="ما يحفظه المشاركون" lede="أربع خطوات: تُدخل المادة، ثم تحدّد نصيب كل مسار منها، ثم تسمّي واجبات اليوم، ثم تجمعها في شكل يوم. وتحتها معاينة تُريك ما سيراه المشارك." />
 
-      {/* ══ المعاينة أولاً: النتيجة قبل التفاصيل ══ */}
-      {ready ? (
-        <section className={styles.preview}>
-          <div className={styles.previewHead}>
-            <h2 className={styles.previewTitle}>ما سيراه المشارك في يومه الأول</h2>
-          </div>
-          <p className={styles.previewWhy}>
-            هذا بالضبط ما سيظهر للمشارك.
-          </p>
-
-          {tracks.length > 1 || templates.length > 1 ? (
-            <div className={styles.picker}>
-              {tracks.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`${styles.pickerBtn} ${t.id === track ? styles.pickerOn : ""}`}
-                  onClick={() => setTrack(t.id)}
-                >
-                  {t.name}
-                </button>
-              ))}
-              {templates.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`${styles.pickerBtn} ${t.id === template ? styles.pickerOn : ""}`}
-                  onClick={() => setTemplate(t.id)}
-                >
-                  {t.name}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className={styles.day}>
-            <p className={styles.dayLabel}>
-              اليوم {formatNumber(1)} · {shownTrack?.name ?? "—"}
-            </p>
-            {previewTasks.length === 0 ? (
-              <p className={styles.none}>لا واجب — شكل اليوم بلا واجبات بعد.</p>
-            ) : (
-              previewTasks.map((task) => (
-                <div key={task.label} className={styles.task}>
-                  <div className={styles.taskName}>{task.label}</div>
-                  <div className={styles.taskRange}>
-                    {task.kind === "counted" ? (
-                      <>العدد: {formatNumber(task.amount)}</>
-                    ) : task.parts.length === 0 ? (
-                      <span className={styles.none}>لم تُحدَّد أجزاء هذا المسار بعد</span>
-                    ) : (
-                      task.parts.map((p) => (
-                        <div key={`${p.from}-${p.to}`}>
-                          من {formatNumber(p.from)}
-                          {p.fromLabel ? ` · ${p.fromLabel}` : null} إلى {formatNumber(p.to)}
-                          {p.toLabel ? ` · ${p.toLabel}` : null}
-                        </div>
-                      ))
-                    )}
-                    {task.parts.length > 1 ? (
-                      <span className={styles.split}>
-                        جزآن — لأن نصيب هذا المسار من المادة غير متّصل
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-      ) : null}
-
-      {/* ══ ١ · المادة ══ */}
       <Step
         n={1}
         title="المادة"
@@ -655,6 +573,80 @@ export function ContentView({
           </StepForm>
         ) : null}
       </Step>
+      {/* ══ المعاينة بعد الخطوات: نتيجة ما أدخلتَه أعلاه ══ */}
+      {ready ? (
+        <section className={styles.preview}>
+          <div className={styles.previewHead}>
+            <h2 className={styles.previewTitle}>ما سيراه المشارك في يومه الأول</h2>
+          </div>
+          <p className={styles.previewWhy}>
+            هذا بالضبط ما سيظهر للمشارك.
+          </p>
+
+          {tracks.length > 1 || templates.length > 1 ? (
+            <div className={styles.picker}>
+              {tracks.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`${styles.pickerBtn} ${t.id === track ? styles.pickerOn : ""}`}
+                  onClick={() => setTrack(t.id)}
+                >
+                  {t.name}
+                </button>
+              ))}
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`${styles.pickerBtn} ${t.id === template ? styles.pickerOn : ""}`}
+                  onClick={() => setTemplate(t.id)}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className={styles.day}>
+            <p className={styles.dayLabel}>
+              اليوم {formatNumber(1)} · {shownTrack?.name ?? "—"}
+            </p>
+            {previewTasks.length === 0 ? (
+              <p className={styles.none}>لا واجب — شكل اليوم بلا واجبات بعد.</p>
+            ) : (
+              previewTasks.map((task) => (
+                <div key={task.label} className={styles.task}>
+                  <div className={styles.taskName}>{task.label}</div>
+                  <div className={styles.taskRange}>
+                    {task.kind === "counted" ? (
+                      <>العدد: {formatNumber(task.amount)}</>
+                    ) : task.parts.length === 0 ? (
+                      <span className={styles.none}>لم تُحدَّد أجزاء هذا المسار بعد</span>
+                    ) : (
+                      task.parts.map((p) => (
+                        <div key={`${p.from}-${p.to}`}>
+                          من {formatNumber(p.from)}
+                          {p.fromLabel ? ` · ${p.fromLabel}` : null} إلى {formatNumber(p.to)}
+                          {p.toLabel ? ` · ${p.toLabel}` : null}
+                        </div>
+                      ))
+                    )}
+                    {task.parts.length > 1 ? (
+                      <span className={styles.split}>
+                        جزآن — لأن نصيب هذا المسار من المادة غير متّصل
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {/* ══ ١ · المادة ══ */}
+
     </>
   );
 }
