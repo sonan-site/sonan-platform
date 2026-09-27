@@ -15,18 +15,20 @@ import styles from "./wizard-bar.module.css";
  * وحين يكون المستخدم في شاشة الخطوة نفسها لا يُعرض الزرّ — هو فيها.
  */
 export function WizardBar({
-  programId,
+  base,
   done,
   total,
   step,
+  allDoneText = "اكتمل — لا خطوة باقية.",
 }: {
-  programId: string;
+  /** جذر القسم: `/programs/{id}` أو `/team`. */
+  base: string;
   done: number;
   total: number;
   step: NextStep | null;
+  allDoneText?: string;
 }) {
   const pathname = usePathname();
-  const base = `/programs/${programId}`;
   const href = step ? (step.tab ? `${base}/${step.tab}` : base) : base;
   const here = pathname === href;
 
@@ -56,7 +58,7 @@ export function WizardBar({
       ) : (
         <p className={styles.step}>
           <Check size={16} aria-hidden className={styles.doneIcon} />
-          اكتمل البرنامج — لا خطوة باقية.
+          {allDoneText}
         </p>
       )}
 

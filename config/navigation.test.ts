@@ -11,9 +11,8 @@ describe("التنقّل بحسب من يدخل", () => {
   it("**المدير بلا مشاركة لا يرى «رحلتي»** — مدخلٌ لا يخصّه", () => {
     expect(keys({ granted: ADMIN_CODES, isParticipant: false })).toEqual([
       "dashboard",
-      "users",
+      "team",
       "programs",
-      "roles",
       "audit",
       "account",
     ]);
@@ -34,6 +33,16 @@ describe("التنقّل بحسب من يدخل", () => {
 
   it("الحساب الجديد بلا صلاحية ولا مشاركة يرى لوحته فقط", () => {
     expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "account"]);
+  });
+});
+
+describe("الفريق قسمٌ واحد لعملين", () => {
+  it("**من يقرأ الأدوار وحدها يراه** — القسم يجمع الأشخاص والأدوار", () => {
+    expect(keys({ granted: perms("roles.read"), isParticipant: false })).toContain("team");
+  });
+
+  it("ومن لا يقرأ أيّهما لا يراه", () => {
+    expect(keys({ granted: perms("programs.read"), isParticipant: false })).not.toContain("team");
   });
 });
 

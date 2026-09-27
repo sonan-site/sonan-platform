@@ -3,9 +3,8 @@
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
-import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
+import { Messages, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { Button, Field, FormActions, Select } from "@/components/shared/form";
-import { PERMISSIONS, type PermissionCode } from "@/config/permissions";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { assignRole, revokeRole } from "./actions";
@@ -19,17 +18,8 @@ export type AssignmentRow = {
   scope: string;
 };
 
-/** صلاحيات بلا شاشة بعد لا تُعرض — ذكرها يوحي بقدرة غير موجودة. */
-const HIDDEN_SECTIONS = new Set<string>(["attachments"]);
 
-function visibleCodes(codes: string[]): PermissionCode[] {
-  return codes.filter(
-    (c): c is PermissionCode =>
-      c in PERMISSIONS && !HIDDEN_SECTIONS.has(PERMISSIONS[c as PermissionCode].section),
-  );
-}
-
-export function RolesView({
+export function AssignmentsView({
   roles,
   assignments,
   people,
@@ -45,33 +35,6 @@ export function RolesView({
   const [state, action, pending] = useActionState(assignRole, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
 
-  const roleColumns: Column<RoleRow>[] = [
-    { key: "name", header: "الدور", sortable: true, primary: true, render: (r) => r.name },
-    {
-      key: "kind",
-      header: "النوع",
-      align: "center",
-      render: (r) => (r.isSystem ? "أساسي" : "مخصَّص"),
-    },
-    {
-      key: "count",
-      header: "عدد الصلاحيات",
-      align: "end",
-      sortable: true,
-      render: (r) => formatNumber(visibleCodes(r.codes).length),
-    },
-    {
-      key: "codes",
-      header: "الصلاحيات",
-      render: (r) => (
-        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-          {visibleCodes(r.codes)
-            .map((c) => PERMISSIONS[c].label)
-            .join(" · ")}
-        </span>
-      ),
-    },
-  ];
 
   const assignmentColumns: Column<AssignmentRow>[] = [
     { key: "user", header: "المستخدم", sortable: true, primary: true, render: (a) => a.userName },
@@ -98,20 +61,9 @@ export function RolesView({
 
   return (
     <>
-      <PageHead
-        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
-        title="الأدوار والصلاحيات"
-        lede="الدور مجموعة صلاحيات تُسنَد لشخص. والإسناد يكون على المنصة كلها، أو محصوراً ببرنامج واحد — فمنسّق برنامج لا يرى غيره."
-      />
-
-      <DataTable
-        columns={roleColumns}
-        rows={roles}
-        rowKey={(r) => r.id}
-        total={roles.length}
-        page={1}
-        searchPlaceholder="ابحث باسم الدور…"
-        empty={{ title: "لا أدوار", body: "لم يُنشأ دور بعد." }}
+      <TabHead
+        title="إسناد الأدوار"
+        lede="الدور بلا إسناد لا يفعل شيئاً. والإسناد على المنصة كلها، أو محصوراً ببرنامج واحد — فمنسّق برنامج لا يرى غيره."
       />
 
       <Step

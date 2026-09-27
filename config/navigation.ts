@@ -28,6 +28,11 @@ export type NavItem = {
   /** `null` = لا يُشترط رمز. وإلا فالرمز شرط الظهور. */
   permission: PermissionCode | null;
   /**
+   * يكفي **أحد** هذه الرموز لرؤية المدخل — للقسم الذي يجمع عملين لكلٍّ رمزه.
+   * وحين يُذكر فهو الحاكم، و`permission` يبقى للتوثيق والاختبار.
+   */
+  permissionAny?: readonly PermissionCode[];
+  /**
    * للمشاركين وحدهم: يظهر لمن له مشاركة في برنامج — ولو انتهت رحلته فيه،
    * ليصل إلى سجلّه. ومن لا مشاركة له (كالمدير) لا يرى مدخلاً لا يخصّه.
    */
@@ -52,11 +57,13 @@ export const NAVIGATION: readonly NavItem[] = [
     primary: true,
   },
   {
-    key: "users",
-    title: "المستخدمون",
-    href: "/users",
+    key: "team",
+    title: "الفريق",
+    href: "/team",
     icon: "Users",
+    // الأشخاص والأدوار قسمٌ واحد: من يقرأ أحدهما يراه (`adr/0031`).
     permission: "users.read",
+    permissionAny: ["users.read", "roles.read"],
     primary: true,
   },
   {
@@ -65,14 +72,6 @@ export const NAVIGATION: readonly NavItem[] = [
     href: "/programs",
     icon: "BookOpen",
     permission: "programs.read",
-    primary: true,
-  },
-  {
-    key: "roles",
-    title: "الأدوار والصلاحيات",
-    href: "/roles",
-    icon: "ShieldCheck",
-    permission: "roles.read",
     primary: true,
   },
   {
@@ -124,11 +123,12 @@ export type Viewer = {
 
 /** يرشّح ما يخصّ المستخدم. الباقي **يُخفى** لا يُعطَّل. */
 export function visibleNavigation({ granted, isParticipant }: Viewer): NavItem[] {
-  return NAVIGATION.filter(
-    (item) =>
-      (item.permission === null || granted.has(item.permission)) &&
-      (!item.participantsOnly || isParticipant),
-  );
+  return NAVIGATION.filter((item) => {
+    const allowed = item.permissionAny
+      ? item.permissionAny.some((code) => granted.has(code))
+      : item.permission === null || granted.has(item.permission);
+    return allowed && (!item.participantsOnly || isParticipant);
+  });
 }
 
 /** ما يُعرَض في القائمة الجانبية والشريط السفلي — بلا ما موضعه الرأس. */

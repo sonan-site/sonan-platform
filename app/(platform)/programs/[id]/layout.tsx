@@ -64,7 +64,8 @@ export default async function ProgramLayout({
 
       {canWrite && ready ? (
         <WizardBar
-          programId={id}
+          base={`/programs/${id}`}
+          allDoneText="اكتمل البرنامج — لا خطوة باقية."
           done={ready.items.filter((i) => i.done).length}
           total={ready.items.length}
           step={nextStep(ready.items)}

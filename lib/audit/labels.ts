@@ -12,6 +12,10 @@
 export const AUDIT_ACTION_LABEL: Record<string, string> = {
   bootstrap_admin: "تهيئة المدير الأول",
   user_invited: "دعوة مستخدم",
+  role_created: "إنشاء دور",
+  role_deleted: "حذف دور",
+  role_permission_granted: "منح صلاحية لدور",
+  role_permission_revoked: "رفع صلاحية عن دور",
   auth_showcase_updated: "تعديل شرائح واجهة الدخول",
   user_suspended: "إيقاف حساب",
   user_restored: "إعادة تفعيل حساب",
@@ -42,6 +46,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
 export const AUDIT_TABLE_LABEL: Record<string, string> = {
   profiles: "حساب",
   user_roles: "إسناد دور",
+  roles: "دور",
+  role_permissions: "صلاحيات دور",
   sections: "قسم",
   programs: "برنامج",
   tracks: "مسار",

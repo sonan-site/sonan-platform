@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "@/lib/validation/z";
-import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
@@ -51,7 +51,7 @@ export async function assignRole(_prev: FormState, form: FormData): Promise<Form
     p_after: parsed.data,
   });
 
-  revalidatePath("/roles");
+  revalidatePath("/team/assignments");
   return { notice: "أُسنِد الدور." };
 }
 
@@ -91,6 +91,6 @@ export async function revokeRole(assignmentId: string): Promise<FormState> {
     p_entity_id: assignmentId,
   });
 
-  revalidatePath("/roles");
-  return EMPTY_FORM_STATE;
+  revalidatePath("/team/assignments");
+  return { notice: "سُحب الدور." };
 }

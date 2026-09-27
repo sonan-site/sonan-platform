@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "@/lib/validation/z";
-import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
@@ -46,7 +46,7 @@ export async function inviteUser(_prev: FormState, form: FormData): Promise<Form
     p_after: { email: parsed.data.email, full_name: parsed.data.fullName },
   });
 
-  revalidatePath("/users");
+  revalidatePath("/team");
   return { notice: `أُرسلت الدعوة إلى ${parsed.data.email}.` };
 }
 
@@ -80,10 +80,11 @@ export async function suspendUser(userId: string): Promise<FormState> {
     p_after: { sign_in_blocked: blocked.ok },
   });
 
-  revalidatePath("/users");
+  revalidatePath("/team");
   // الصلاحيات سقطت على كل حال؛ ما تعذّر هو قطع الجلسة القائمة فوراً.
+  // **النجاح يُقال:** كان الإيقاف يقع بلا خبر، فلا يعرف المُوقِف أوقع أم لا.
   return blocked.ok
-    ? EMPTY_FORM_STATE
+    ? { notice: "أُوقف الحساب — سقطت صلاحياته وانقطعت جلسته." }
     : { error: "أُوقف الحساب، لكن تعذّر قطع جلسته القائمة. ستنتهي خلال ساعة." };
 }
 
@@ -114,6 +115,6 @@ export async function restoreUser(userId: string): Promise<FormState> {
     p_entity_id: data[0]!.id,
   });
 
-  revalidatePath("/users");
-  return EMPTY_FORM_STATE;
+  revalidatePath("/team");
+  return { notice: "أُعيد تفعيل الحساب." };
 }

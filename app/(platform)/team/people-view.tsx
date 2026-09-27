@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
-import { useActionState, useTransition } from "react";
+import { Modal } from "@/components/shared/modal";
+import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
-import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
+import { Messages, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { formatNumber } from "@/lib/format";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -17,15 +19,28 @@ export type UserRow = {
   phone: string;
   joinedAt: string;
   suspended: boolean;
+  /** أسماء أدواره — الفارغة تعني أنه لا يملك شيئاً بعد. */
+  roles: string[];
 };
 
-export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boolean }) {
+export function PeopleView({ rows, canWrite }: { rows: UserRow[]; canWrite: boolean }) {
   const [state, action, pending] = useActionState(inviteUser, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
+  const [suspending, setSuspending] = useState<UserRow | null>(null);
 
   const columns: Column<UserRow>[] = [
     { key: "fullName", header: "الاسم", sortable: true, primary: true, render: (r) => r.fullName },
     { key: "phone", header: "الجوال", render: (r) => <span dir="ltr">{r.phone}</span> },
+    {
+      key: "roles",
+      header: "الدور",
+      render: (r) =>
+        r.roles.length > 0 ? (
+          r.roles.join(" · ")
+        ) : (
+          <Link href="/team/assignments">بلا دور — أسنِد</Link>
+        ),
+    },
     { key: "joinedAt", header: "منذ", render: (r) => formatDateBoth(r.joinedAt) },
     {
       key: "status",
@@ -43,7 +58,9 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
               <Button
                 pending={busy}
                 onClick={() =>
-                  startTransition(async () => reportAction(await (r.suspended ? restoreUser(r.userId) : suspendUser(r.userId))))
+                  r.suspended
+                    ? startTransition(async () => reportAction(await restoreUser(r.userId)))
+                    : setSuspending(r)
                 }
               >
                 {r.suspended ? "إعادة تفعيل" : "إيقاف"}
@@ -56,10 +73,9 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
 
   return (
     <>
-      <PageHead
-        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
-        title="المستخدمون"
-        lede="من يعمل على المنصة. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمة مروره بنفسه، والإيقاف ينفذ في الحال."
+      <TabHead
+        title="الأشخاص"
+        lede="من يعمل على المنصة. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمة مروره، ثم يكتب بياناته — ولا يملك شيئاً حتى يُسنَد له دور."
       />
 
       {canWrite ? (
@@ -107,6 +123,30 @@ export function UsersView({ rows, canWrite }: { rows: UserRow[]; canWrite: boole
             : "لم يُسجَّل أحد في المنصة بعد.",
         }}
       />
+      <Modal open={suspending !== null} title="إيقاف الحساب" onClose={() => setSuspending(null)}>
+        <p>
+          يُوقَف «{suspending?.fullName}»: تسقط صلاحياته في الحال، وتنقطع جلسته، ولا يدخل بعدها.
+          وسجلّه يبقى، وتستطيع إعادة تفعيله متى شئت.
+        </p>
+        <FormActions>
+          <Button onClick={() => setSuspending(null)}>إلغاء</Button>
+          <Button
+            variant="danger"
+            pending={busy}
+            onClick={() => {
+              const row = suspending;
+              if (!row) return;
+              startTransition(async () => {
+                reportAction(await suspendUser(row.userId));
+                setSuspending(null);
+              });
+            }}
+          >
+            أوقِفه
+          </Button>
+        </FormActions>
+      </Modal>
+
     </>
   );
 }

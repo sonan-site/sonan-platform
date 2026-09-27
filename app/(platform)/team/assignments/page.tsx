@@ -1,7 +1,7 @@
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
-import { RolesView, type AssignmentRow, type RoleRow } from "./roles-view";
+import { AssignmentsView, type AssignmentRow, type RoleRow } from "./assignments-view";
 
 export default async function RolesPage() {
   const authz = await authorizeRequest({ permission: "roles.read" });
@@ -57,7 +57,7 @@ export default async function RolesPage() {
   }));
 
   return (
-    <RolesView
+    <AssignmentsView
       roles={roles}
       assignments={assignments}
       people={people}

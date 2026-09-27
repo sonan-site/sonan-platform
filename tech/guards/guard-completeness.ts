@@ -121,11 +121,16 @@ export const guardCompleteness: Guard = {
 
         // المسار الديناميكي يُفتح من أبيه لا من التنقّل. المطلوب أن يكون
         // **لأقرب جدّ ساكن** مدخلٌ — فالوصول إليه مضمون، والتحقّق باقٍ.
+        //
+        // وكذلك التبويب: `/team/roles` يُفتح من `/team` لا من القائمة الجانبية.
+        // فالمقبول أن يكون لأحد أجداده مدخل، والمرفوض أن يكون بلا جدٍّ أصلاً.
         const dynamicAt = full.indexOf("/[");
         const route = dynamicAt === -1 ? full : full.slice(0, dynamicAt);
         if (route === "") continue;
 
-        if (!navigation.text.includes(`"${route}"`)) {
+        const segments = route.split("/").filter(Boolean);
+        const ancestors = segments.map((_, i) => "/" + segments.slice(0, i + 1).join("/"));
+        if (!ancestors.some((a) => navigation.text.includes(`"${a}"`))) {
           findings.push({
             rule: "page-without-nav-entry",
             file: file.path,
