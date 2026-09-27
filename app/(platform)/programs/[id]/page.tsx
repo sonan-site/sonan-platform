@@ -32,7 +32,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
     db
       .from("programs")
       .select(
-        "id, name, slug, summary, status, kind, participant_label, capacity, registration_opens_at, registration_closes_at, passing_percentage, award_percentage",
+        "id, name, slug, summary, contact, status, kind, participant_label, capacity, registration_opens_at, registration_closes_at, passing_percentage, award_percentage",
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -50,6 +50,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
     name: p.name,
     slug: p.slug,
     summary: p.summary,
+    contact: p.contact,
     status: p.status,
     participantLabel: p.participant_label,
     capacity: p.capacity,

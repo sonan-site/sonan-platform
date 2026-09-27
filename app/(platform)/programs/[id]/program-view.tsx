@@ -1,7 +1,8 @@
 "use client";
 
 import { reportAction } from "@/components/shared/action-notice";
-import { useActionState, useTransition } from "react";
+import { Modal } from "@/components/shared/modal";
+import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Messages,
@@ -21,6 +22,7 @@ export type ProgramDetail = {
   name: string;
   slug: string;
   summary: string;
+  contact: string;
   status: "draft" | "published" | "closed";
   participantLabel: string;
   capacity: number | null;
@@ -50,6 +52,11 @@ export function ProgramView({
   canWrite: boolean;
 }) {
   const [editState, editAction, editPending] = useActionState(updateProgram, EMPTY_FORM_STATE);
+  const [confirming, setConfirming] = useState<"published" | "closed" | null>(null);
+
+  // النشر مشروط بالجاهزية، والقاعدة تمنعه (الهجرة ٠٤٢). والزرّ يقول ذلك قبل الضغط.
+  const missing = readinessItems.filter((i) => !i.done && i.key !== "published");
+  const ready = missing.length === 0;
   const [busy, startTransition] = useTransition();
 
 
@@ -71,6 +78,9 @@ export function ProgramView({
           </Link>
         </span>
         <span>مسمّى المشارك: {program.participantLabel}</span>
+        <span>
+          جهة تواصل المشاركين: {program.contact || "لم تُحدَّد — والمشارك المتعثّر لا يجد من يسأل"}
+        </span>
         <span>
           السعة: {program.capacity === null ? "بلا سقف" : formatNumber(program.capacity)}
         </span>
@@ -105,10 +115,9 @@ export function ProgramView({
           {program.status !== "published" ? (
             <Button
               variant="primary"
-              pending={busy}
-              onClick={() =>
-                startTransition(async () => reportAction(await setProgramStatus(program.id, "published")))
-              }
+              disabled={!ready}
+              title={ready ? undefined : `ينقص: ${missing.map((i) => i.label).join(" · ")}`}
+              onClick={() => setConfirming("published")}
             >
               نشر البرنامج
             </Button>
@@ -124,18 +133,46 @@ export function ProgramView({
             </Button>
           ) : null}
           {program.status !== "closed" ? (
-            <Button
-              variant="danger"
-              pending={busy}
-              onClick={() =>
-                startTransition(async () => reportAction(await setProgramStatus(program.id, "closed")))
-              }
-            >
+            <Button variant="danger" pending={busy} onClick={() => setConfirming("closed")}>
               إغلاق
             </Button>
           ) : null}
+          {program.status !== "published" && !ready ? (
+            <p style={{ alignSelf: "center", fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
+              ينقص قبل النشر: {missing.map((i) => i.label).join(" · ")}
+            </p>
+          ) : null}
         </div>
       ) : null}
+
+      <Modal
+        open={confirming !== null}
+        title={confirming === "closed" ? "إغلاق البرنامج" : "نشر البرنامج"}
+        onClose={() => setConfirming(null)}
+      >
+        <p>
+          {confirming === "closed"
+            ? "يُغلق التسجيل فلا يسجّل أحد بعده، ويبقى المسجَّلون ورحلاتهم كما هي. ويمكنك إعادة فتحه بالنشر."
+            : `تُفتَح صفحة البرنامج للزوّار على /p/${program.slug}، ويُفتَح التسجيل بحسب نافذته وسعته.`}
+        </p>
+        <FormActions>
+          <Button onClick={() => setConfirming(null)}>إلغاء</Button>
+          <Button
+            variant={confirming === "closed" ? "danger" : "primary"}
+            pending={busy}
+            onClick={() => {
+              const target = confirming;
+              if (!target) return;
+              startTransition(async () => {
+                reportAction(await setProgramStatus(program.id, target));
+                setConfirming(null);
+              });
+            }}
+          >
+            {confirming === "closed" ? "أغلقه" : "انشره"}
+          </Button>
+        </FormActions>
+      </Modal>
 
       {canWrite ? (
         <details style={{ marginBlockEnd: "var(--space-8)" }}>

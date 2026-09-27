@@ -11,10 +11,12 @@
   border-radius: var(--radius-md);
 }
 
+/* الـ leading يتناسب عكسياً مع المقاس (ق-١٦): العنوان يُشدّ، والمتن يُرخى. */
 .title {
   margin: 0 0 var(--space-2);
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
   text-wrap: balance;
 }
 
@@ -28,6 +30,7 @@
   margin: 0 0 var(--space-3);
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
 }
 
 .text {
@@ -103,16 +106,32 @@
   background: var(--color-accent);
   border-radius: var(--radius-sm);
   text-decoration: none;
+  /* وميض اللمس الافتراضي يُلغى **لأن بديله مبنيّ أدناه** — لا لأنه مزعج (ق-١٤) */
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .ctaButton:hover {
   background: var(--color-accent-hover);
 }
 
+.ctaButton:active {
+  transform: scale(var(--press-scale));
+  background: var(--color-accent-hover);
+}
+
+/* المعطَّل لا يُضغط، فلا ردّ فعل له — ووعدٌ بحركة لا تقع أسوأ من سكون معلن. */
 .ctaDisabled {
   background: var(--color-surface-sunken);
   color: var(--color-text-subtle);
   cursor: not-allowed;
+}
+
+.ctaDisabled:active {
+  transform: none;
+  background: var(--color-surface-sunken);
 }
 
 .hint {

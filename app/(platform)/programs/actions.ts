@@ -57,6 +57,7 @@ export async function createProgram(_prev: FormState, form: FormData): Promise<F
       slug: parsed.data.slug,
       kind: parsed.data.kind,
       participant_label: parsed.data.participantLabel,
+      contact: parsed.data.contact,
       capacity: parsed.data.capacity,
       registration_opens_at: parsed.data.registrationOpensAt,
       registration_closes_at: parsed.data.registrationClosesAt,
@@ -107,7 +108,11 @@ export async function setProgramStatus(
     .update({ status })
     .eq("id", programId)
     .select("id");
-  if (error || !data?.length) return { error: "تعذّر تغيير الحالة." };
+  if (error || !data?.length) {
+    // حارس القاعدة يسمّي الناقص (الهجرة ٠٤٢) — تُمرَّر رسالته كما هي.
+    const missing = error?.message.includes("لا يُنشر البرنامج قبل") ? `${error.message}.` : null;
+    return { error: missing ?? "تعذّر تغيير الحالة." };
+  }
 
   await db.rpc("fn_write_audit", {
     p_action: "program_status_changed",
@@ -119,7 +124,15 @@ export async function setProgramStatus(
 
   revalidatePath("/programs");
   revalidatePath(`/programs/${programId}`);
-  return EMPTY_FORM_STATE;
+  // النجاح يُقال: كان صامتاً فلا يعرف الناشر أشيءٌ وقع أم لا.
+  return {
+    notice:
+      status === "published"
+        ? "نُشر البرنامج — صفحته المعلنة مفتوحة للزوّار."
+        : status === "draft"
+          ? "أُعيد البرنامج مسوّدةً، فلا يراه الزوّار."
+          : "أُغلق البرنامج، فلا تسجيل فيه بعد الآن.",
+  };
 }
 
 export async function createTrack(_prev: FormState, form: FormData): Promise<FormState> {
@@ -232,6 +245,7 @@ export async function updateProgram(_prev: FormState, form: FormData): Promise<F
       summary: parsed.data.summary,
       slug: parsed.data.slug,
       participant_label: parsed.data.participantLabel,
+      contact: parsed.data.contact,
       capacity: parsed.data.capacity,
       registration_opens_at: parsed.data.registrationOpensAt,
       registration_closes_at: parsed.data.registrationClosesAt,

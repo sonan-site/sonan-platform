@@ -821,6 +821,7 @@ export type Database = {
         Row: {
           award_percentage: number | null
           capacity: number | null
+          contact: string
           created_at: string
           deleted_at: string | null
           id: string
@@ -839,6 +840,7 @@ export type Database = {
         Insert: {
           award_percentage?: number | null
           capacity?: number | null
+          contact?: string
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -857,6 +859,7 @@ export type Database = {
         Update: {
           award_percentage?: number | null
           capacity?: number | null
+          contact?: string
           created_at?: string
           deleted_at?: string | null
           id?: string

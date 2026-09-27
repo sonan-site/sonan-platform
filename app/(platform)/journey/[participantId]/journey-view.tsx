@@ -4,7 +4,8 @@ import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Button } from "@/components/shared/form";
+import { Button, FormActions } from "@/components/shared/form";
+import { Modal } from "@/components/shared/modal";
 import { EmptyState } from "@/components/shared/states";
 import { formatNumber, formatPercent } from "@/lib/format";
 import {
@@ -80,6 +81,8 @@ export function JourneyView({
   tasks,
   examName,
   submittable,
+  contentMissing,
+  justJoined,
   progress,
   prior,
   previous,
@@ -94,6 +97,10 @@ export function JourneyView({
   tasks: TaskRow[];
   examName: string | null;
   submittable: boolean;
+  /** واجبٌ نطاقي بلا مادة محدَّدة لمساره — يُقال له ذلك لا «لم يحن يومك». */
+  contentMissing: boolean;
+  /** جاء من التسجيل للتوّ. */
+  justJoined: boolean;
   progress: JourneyProgress;
   /** أيامه في مساراتٍ قبل هذا — صفرٌ لمن لم يُنقل. */
   prior: { submittedDays: number; completeDays: number };
@@ -104,7 +111,18 @@ export function JourneyView({
   // **علامات إتمام لا أرقام.** المشارك لا يكتب نطاقاً — القاعدة تحسبه.
   const [marked, setMarked] = useState<ReadonlySet<string>>(new Set());
   const [state, setState] = useState<{ error?: string; notice?: string }>({});
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  /** الإرسال مرة واحدة لا تُرَدّ — فالفارغ يمرّ بنافذة قبله. */
+  function send(): void {
+    startTransition(async () => {
+      const result = await submitDay(participantId, day.id, [...marked]);
+      setState(result);
+      if (!result.error) setMarked(new Set());
+      setConfirmEmpty(false);
+    });
+  }
 
   function toggle(fieldId: string): void {
     setMarked((prev) => {
@@ -122,6 +140,23 @@ export function JourneyView({
       <p style={{ fontSize: "var(--text-sm)" }}>
         <Link href="/journey">رحلتي</Link>
       </p>
+
+      {justJoined ? (
+        <p
+          role="status"
+          style={{
+            padding: "var(--space-3) var(--space-4)",
+            marginBlockEnd: "var(--space-5)",
+            fontSize: "var(--text-sm)",
+            color: "var(--color-success)",
+            background: "var(--color-success-surface)",
+            border: "1px solid var(--color-success)",
+            borderRadius: "var(--radius-sm)",
+          }}
+        >
+          تمّ تسجيلك في {programName}. هذا واجبك الأول.
+        </p>
+      ) : null}
       <h1>{programName}</h1>
 
       <div style={META}>
@@ -261,19 +296,15 @@ export function JourneyView({
                 <Button
                   variant="primary"
                   pending={pending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      const result = await submitDay(participantId, day.id, [...marked]);
-                      setState(result);
-                      if (!result.error) setMarked(new Set());
-                    })
-                  }
+                  onClick={() => (marked.size === 0 ? setConfirmEmpty(true) : send())}
                 >
                   {marked.size === 0 ? "أرسِل بلا إنجاز" : "أرسِل الإتمام"}
                 </Button>
               ) : (
                 <p style={NOTE}>
-                  لم يحن هذا اليوم بعد. أرسِل يومك الجاري أولاً — فالحفظ يمضي للأمام لا يُقفَز فيه.
+                  {contentMissing
+                ? "لم تُحدَّد مادة مسارك بعد، فلا يُرسَل اليوم حتى تُحدَّد."
+                : "لم يحن هذا اليوم بعد. أرسِل يومك الجاري أولاً — فالحفظ يمضي للأمام لا يُقفَز فيه."}
                 </p>
               )}
 
@@ -287,6 +318,19 @@ export function JourneyView({
           {state.notice ? <p style={OK}>{state.notice}</p> : null}
         </>
       ) : null}
+      <Modal open={confirmEmpty} title="إرسال اليوم بلا إنجاز" onClose={() => setConfirmEmpty(false)}>
+        <p>
+          لم تؤشّر أي واجب. سيُسجَّل هذا اليوم <strong>بلا إنجاز</strong>، والإرسال مرة واحدة لا
+          يُعاد. وما لم تُتمّه لا يضيع — يبقى لك في اليوم التالي.
+        </p>
+        <FormActions>
+          <Button onClick={() => setConfirmEmpty(false)}>رجوع</Button>
+          <Button variant="danger" pending={pending} onClick={send}>
+            أرسِله بلا إنجاز
+          </Button>
+        </FormActions>
+      </Modal>
+
     </div>
   );
 }

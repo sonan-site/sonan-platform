@@ -22,6 +22,9 @@ const NOTE = {
   color: "var(--color-text-muted)",
   marginBlockEnd: "var(--space-6)",
 } as const;
+// `<h1>` عارٍ يرث leading المتن، وهو رخوٌ على مقاسه (ق-١٦).
+// سطريٌّ اتّباعاً لنمط الملف القائم — وموضعه `.module.css` حين يُنقل إليه.
+const H1 = { lineHeight: "var(--leading-tight)" } as const;
 
 export function RegisterForm({
   programId,
@@ -37,7 +40,8 @@ export function RegisterForm({
   questions: QuestionRow[];
 }) {
   const [state, action, pending] = useActionState(registerInProgram, EMPTY_FORM_STATE);
-  const [trackId, setTrackId] = useState<string>(tracks[0]?.id ?? "");
+  // **لا مسار مختارٌ سلفاً:** كان الأول يُختار عن المسجِّل، وتتبعه أسئلة قبوله.
+  const [trackId, setTrackId] = useState<string>("");
 
   // السؤال العام يظهر دائماً، والخاص بمسار يظهر عند اختياره — فلا يُطالَب
   // المسجِّل بسؤال لا يخصّه.
@@ -45,7 +49,7 @@ export function RegisterForm({
 
   return (
     <>
-      <h1>التسجيل</h1>
+      <h1 style={H1}>التسجيل</h1>
       <p style={NOTE}>
         أكمل الأسئلة الإلزامية ليكتمل تسجيلك بصفة {participantLabel} — القبول فوري بلا
         مراجعة.
@@ -66,6 +70,9 @@ export function RegisterForm({
               value={trackId}
               onChange={(e) => setTrackId(e.target.value)}
             >
+              <option value="" disabled>
+                اختر مسارك
+              </option>
               {tracks.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}

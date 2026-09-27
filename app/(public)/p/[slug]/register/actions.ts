@@ -60,7 +60,7 @@ export async function registerInProgram(
 
   // المشارك وإجاباته وتدقيقه **فعلٌ واحد في القاعدة** يفرض الأسئلة الإلزامية
   // واختيار المسار (الهجرة ٠٣٢) — لا خطواتٌ هنا يُترك نصفها عند فشل آخرها.
-  const { error } = await db.rpc("fn_register", {
+  const { data: participantId, error } = await db.rpc("fn_register", {
     p_program_id: programId.data,
     // الأنواع المولَّدة لا تعرف الفراغ في وسائط الدوال، والقاعدة تقبله: «بلا مسار»
     // حين لا مسارات للبرنامج — وترفضه برسالتها حين تكون.
@@ -76,6 +76,8 @@ export async function registerInProgram(
     return { error: "تعذّر إتمام التسجيل. أعد المحاولة." };
   }
 
-  redirect(`/p/${slug}?registered=1`);
+  // **ينتهي التسجيل حيث يبدأ العمل** (`adr/0030`): كان يعود إلى الصفحة العامة،
+  // وهي قد تكون بلا عناصر فلا يرى المسجِّل خبراً ولا رابطاً.
+  redirect(participantId ? `/journey/${participantId}?joined=1` : `/p/${slug}?registered=1`);
 }
 

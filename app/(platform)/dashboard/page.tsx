@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
+import { followsPlan } from "@/lib/participants/journey";
 
 const NOTE = {
   color: "var(--color-text-muted)",
@@ -46,7 +47,7 @@ export default async function DashboardPage() {
   const db = await createClient();
   const { data: participations } = await db
     .from("participants")
-    .select("id, programs!inner(name)")
+    .select("id, status, programs!inner(name)")
     .eq("user_id", session.userId)
     .is("deleted_at", null)
     .order("joined_at", { ascending: false });
@@ -63,8 +64,13 @@ export default async function DashboardPage() {
         const program = row.programs as unknown as { name: string };
         return (
           <Link key={row.id} href={`/journey/${row.id}`} style={CARD}>
-            <strong>واجبك اليومي — {program.name}</strong>
-            <span style={SUB}>افتح رحلتك وأرسِل إتمام يومك</span>
+            <strong>
+              {followsPlan(row.status) ? `واجبك اليومي — ${program.name}` : program.name}
+            </strong>
+            {/* من انتهت رحلته لا يُقال له «أرسِل إتمام يومك» ثم يجد شاشة انتهاء. */}
+            <span style={SUB}>
+              {followsPlan(row.status) ? "افتح رحلتك وأرسِل إتمام يومك" : "انتهت رحلتك — سجلّك محفوظ"}
+            </span>
           </Link>
         );
       })}

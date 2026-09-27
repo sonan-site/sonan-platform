@@ -30,6 +30,8 @@ export const programSchema = z
     slug,
     kind: z.enum(PROGRAM_KIND_CODES),
     participantLabel: z.string().trim().min(2, "مسمّى المشارك مطلوب"),
+    // جهة تواصل إدارة البرنامج — تظهر للمشارك حين يعترضه ما لا يحلّه بنفسه.
+    contact: z.string().trim().max(200, "جهة التواصل لا تزيد عن ٢٠٠ حرف").default(""),
     capacity: z
       .string()
       .trim()

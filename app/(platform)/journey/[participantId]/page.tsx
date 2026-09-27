@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { EmptyState, ErrorState } from "@/components/shared/states";
+import { JourneyBail } from "@/components/shared/journey-bail";
+import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import {
@@ -19,10 +20,10 @@ export default async function JourneyDayPage({
   searchParams,
 }: {
   params: Promise<{ participantId: string }>;
-  searchParams: Promise<{ day?: string }>;
+  searchParams: Promise<{ day?: string; joined?: string }>;
 }) {
   const { participantId } = await params;
-  const { day } = await searchParams;
+  const { day, joined } = await searchParams;
 
   const session = await getSession();
   if (session.status !== "active") {
@@ -35,7 +36,7 @@ export default async function JourneyDayPage({
   // لكن الصفحة لا تُظهر عنواناً لمشاركةٍ لا تخصّه ثم تفشل في محتواها.
   const { data: participant, error: participantError } = await db
     .from("participants")
-    .select("id, status, track_id, programs!inner(id, name), tracks(id, name)")
+    .select("id, status, track_id, programs!inner(id, name, slug, contact), tracks(id, name)")
     .eq("id", participantId)
     .eq("user_id", session.userId)
     .is("deleted_at", null)
@@ -44,15 +45,22 @@ export default async function JourneyDayPage({
   if (participantError) return <ErrorState body="تعذّر جلب مشاركتك." />;
   if (!participant) notFound();
 
-  const program = participant.programs as unknown as { id: string; name: string };
+  const program = participant.programs as unknown as {
+    id: string;
+    name: string;
+    slug: string;
+    contact: string;
+  };
   const track = participant.tracks as unknown as { id: string; name: string } | null;
 
   if (!participant.track_id || !track) {
     return (
-      <EmptyState
-        kind="no-data"
+      <JourneyBail
         title="لم يُحدَّد مسارك"
         body="تواصل مع إدارة البرنامج ليُحدَّد مسارك، وبعدها يظهر واجبك هنا."
+        programName={program.name}
+        programSlug={program.slug}
+        contact={program.contact}
       />
     );
   }
@@ -61,10 +69,12 @@ export default async function JourneyDayPage({
   // له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
   if (!followsPlan(participant.status)) {
     return (
-      <EmptyState
-        kind="no-data"
+      <JourneyBail
         title="انتهت رحلتك في هذا البرنامج"
         body="سجلّك محفوظ. تابع إعلانات الجمعية للدورة القادمة."
+        programName={program.name}
+        programSlug={program.slug}
+        contact={program.contact}
       />
     );
   }
@@ -87,10 +97,12 @@ export default async function JourneyDayPage({
   if (planResult.error) return <ErrorState body="تعذّر جلب خطة مسارك." />;
   if (!planResult.data) {
     return (
-      <EmptyState
-        kind="no-data"
+      <JourneyBail
         title="لا خطة لمسارك"
-        body="تواصل مع إدارة البرنامج."
+        body="خطة مسارك ليست جاهزة."
+        programName={program.name}
+        programSlug={program.slug}
+        contact={program.contact}
       />
     );
   }
@@ -117,7 +129,13 @@ export default async function JourneyDayPage({
 
   if (shown === null) {
     return (
-      <EmptyState kind="no-data" title="الخطة بلا أيام" body="تواصل مع إدارة البرنامج." />
+      <JourneyBail
+        title="الخطة بلا أيام"
+        body="خطة مسارك بلا أيام بعد."
+        programName={program.name}
+        programSlug={program.slug}
+        contact={program.contact}
+      />
     );
   }
 
@@ -211,6 +229,7 @@ export default async function JourneyDayPage({
   return (
     <JourneyView
       participantId={participantId}
+      justJoined={joined === "1"}
       programName={program.name}
       trackName={track.name}
       planName={plan.name}
@@ -218,7 +237,8 @@ export default async function JourneyDayPage({
       totalDays={days.length}
       tasks={tasks}
       examName={examName}
-      submittable={canSubmit(days, shown) && trackHasContent}
+      submittable={canSubmit(days, shown) && (trackHasContent || !tasks.some((t) => t.kind === "ranged"))}
+      contentMissing={!trackHasContent && tasks.some((t) => t.kind === "ranged")}
       progress={journeyProgress(days)}
       prior={priorRecord(recordResult.data ?? [])}
       {...neighbours(days, shown)}

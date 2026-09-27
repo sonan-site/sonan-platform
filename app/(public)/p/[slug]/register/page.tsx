@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
@@ -49,7 +50,8 @@ export default async function RegisterPage({
       <EmptyState
         kind="no-data"
         title="أنت مسجَّل بالفعل"
-        body={`تسجيلك في «${program.name}» قائم. تابع واجبك اليومي من حسابك.`}
+        body={`تسجيلك في «${program.name}» قائم. تابع واجبك اليومي في رحلتك.`}
+        action={<Link href="/journey">افتح رحلتي</Link>}
       />
     );
   }

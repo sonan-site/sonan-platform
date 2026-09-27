@@ -229,8 +229,10 @@ describe("رابط البرنامج", () => {
     expect(rowCount).toBe(1);
   });
 
-  it("**بعد النشر ← لا يتغيّر**، والاسم يتغيّر", async () => {
-    await db.query(`update public.programs set status = 'published' where id = $1`, [programId]);
+  // الخروج من المسوّدة هو الشرط، والإغلاق خروجٌ منها — والنشر نفسه محروسٌ
+  // بالجاهزية (الهجرة ٠٤٣) وهذا البرنامج بيانات اختبارٍ لا برنامجٌ جاهز.
+  it("**بعد خروجه من المسوّدة ← لا يتغيّر**، والاسم يتغيّر", async () => {
+    await db.query(`update public.programs set status = 'closed' where id = $1`, [programId]);
     try {
       await expect(
         db.query(`update public.programs set slug = 'edit-guards-other' where id = $1`, [programId]),
