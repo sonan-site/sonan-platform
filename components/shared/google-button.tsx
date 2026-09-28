@@ -14,14 +14,23 @@ import styles from "./google-button.module.css";
  * `/auth/callback` القائم برمز Google كما يتبادل غيره. ومن دخل أول مرة بلا جوال
  * يحوّله التخطيط إلى «أكمل حسابك».
  */
-export function GoogleButton({ next }: { next: string }) {
+export function GoogleButton({
+  next,
+  mode = "participant",
+}: {
+  next: string;
+  /** وضع الجلسة الذي يكتبه الباب — يُحمَل في الوجهة ليكتبه مسار الاستدعاء. */
+  mode?: "participant" | "staff";
+}) {
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
 
   async function start() {
     setPending(true);
     setFailed(false);
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(next))}`;
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+      safeNext(next),
+    )}&mode=${mode}`;
     const { error } = await createClient().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo },

@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { reportAction } from "@/components/shared/action-notice";
+import { useActionState, useState, useTransition } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
 import { Card, Cards, Messages, Muted, PageHead, Step, StepForm } from "@/components/shared/steps";
+import { Modal } from "@/components/shared/modal";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { PARTICIPANT_STATUS_LABEL, type ParticipantStatus } from "@/lib/programs/kinds";
-import { changePassword, closeMyAccount, updateMyProfile } from "./actions";
+import { changePassword, closeMyAccount, updateMyProfile, withdrawParticipation } from "./actions";
 import { PasswordInput } from "@/components/shared/password-input";
 
 export type Participation = {
@@ -40,6 +42,8 @@ export function AccountView({
   const [profileState, profileAction, profilePending] = useActionState(updateMyProfile, EMPTY_FORM_STATE);
   const [pwState, pwAction, pwPending] = useActionState(changePassword, EMPTY_FORM_STATE);
   const [closeState, closeAction, closePending] = useActionState(closeMyAccount, EMPTY_FORM_STATE);
+  const [busy, startTransition] = useTransition();
+  const [leaving, setLeaving] = useState<Participation | null>(null);
 
   const methods = [hasPassword ? "البريد وكلمة المرور" : null, hasGoogle ? "حساب Google" : null]
     .filter(Boolean)
@@ -138,6 +142,9 @@ export function AccountView({
                 <p>
                   <Link href={`/journey/${p.id}`}>افتح رحلتي</Link>
                 </p>
+                <Button pending={busy} onClick={() => setLeaving(p)}>
+                  انسحب من البرنامج
+                </Button>
               </Card>
             ))}
           </Cards>
@@ -203,6 +210,30 @@ export function AccountView({
           </StepForm>
         )}
       </Step>
+      <Modal open={leaving !== null} title="الانسحاب من البرنامج" onClose={() => setLeaving(null)}>
+        <p>
+          تخرج من «{leaving?.programName}» فلا يظهر لك واجبه اليومي بعد اليوم. وسجلّك يبقى محفوظاً،
+          ومقعدك يتحرّر لغيرك. ولك أن تسجّل فيه من جديد ما دام التسجيل مفتوحاً.
+        </p>
+        <FormActions>
+          <Button onClick={() => setLeaving(null)}>إلغاء</Button>
+          <Button
+            variant="danger"
+            pending={busy}
+            onClick={() => {
+              const row = leaving;
+              if (!row) return;
+              startTransition(async () => {
+                reportAction(await withdrawParticipation(row.id));
+                setLeaving(null);
+              });
+            }}
+          >
+            انسحب
+          </Button>
+        </FormActions>
+      </Modal>
+
     </>
   );
 }

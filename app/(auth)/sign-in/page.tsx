@@ -40,8 +40,8 @@ function SignInForm() {
 
   return (
     <>
-      <h1 className={styles.title}>تسجيل الدخول</h1>
-      <p className={styles.lede}>ادخل ببريدك وكلمة مرورك.</p>
+      <h1 className={styles.title}>دخول المشاركين</h1>
+      <p className={styles.lede}>ادخل ببريدك وكلمة مرورك، أو أنشئ حساباً إن كنت جديداً.</p>
 
       {state.error ? (
         <p className={styles.alert}>{state.error}</p>
@@ -63,6 +63,7 @@ function SignInForm() {
 
       <ActionForm action={action} state={state}>
         <input type="hidden" name="next" value={params.get("next") ?? DEFAULT_LANDING} />
+        <input type="hidden" name="mode" value="participant" />
 
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
           <Input

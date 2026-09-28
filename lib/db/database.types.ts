@@ -1370,6 +1370,13 @@ export type Database = {
         Args: { p_participant_id: string }
         Returns: string
       }
+      fn_pending_invites: {
+        Args: never
+        Returns: {
+          email: string
+          invited_at: string
+        }[]
+      }
       fn_plan_day_tasks: {
         Args: { p_participant_id: string; p_plan_day_id: string }
         Returns: {
@@ -1482,6 +1489,10 @@ export type Database = {
         Returns: number
       }
       fn_track_unit_count: { Args: { p_track_id: string }; Returns: number }
+      fn_withdraw_participation: {
+        Args: { p_participant_id: string }
+        Returns: undefined
+      }
       fn_write_audit: {
         Args: {
           p_action: string

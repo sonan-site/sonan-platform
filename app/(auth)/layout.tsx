@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { getShowcase } from "@/lib/settings/showcase-server";
 import styles from "./layout.module.css";
 import { ShowcaseSlides } from "./showcase-slides";
@@ -13,6 +14,9 @@ import { ShowcaseSlides } from "./showcase-slides";
  */
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   const { slides } = await getShowcase();
+  // بوابة الإدارة لا شرائح فيها: العارض هناك يدخل لعمله لا ليُعرَّف بالمنصة.
+  const path = (await headers()).get("x-pathname") ?? "";
+  const staffGate = path.startsWith("/admin");
 
   return (
     <div className={styles.shell}>
@@ -22,12 +26,18 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
           منصة سنن
         </div>
         <div className={styles.showcase}>
-          {slides.length > 0 ? (
+          {slides.length > 0 && !staffGate ? (
             <ShowcaseSlides slides={slides} />
           ) : (
             <div className={styles.slide}>
-              <p className={styles.slideTitle}>أهلاً بك في منصة سنن</p>
-              <p className={styles.slideBody}>برامج الجمعية ورحلتك فيها، في مكان واحد.</p>
+              <p className={styles.slideTitle}>
+                {staffGate ? "منصة سنن — إدارة البرامج" : "أهلاً بك في منصة سنن"}
+              </p>
+              <p className={styles.slideBody}>
+                {staffGate
+                  ? "البرامج ومساراتها ومادتها وخططها، ومن يعمل عليها."
+                  : "برامج الجمعية ورحلتك فيها، في مكان واحد."}
+              </p>
             </div>
           )}
         </div>

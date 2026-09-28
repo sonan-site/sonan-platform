@@ -15,12 +15,14 @@ export default async function UsersPage() {
 
   const db = await createClient();
   // الأدوار مع الأشخاص: «من بقي بلا دور» كان يحتاج شاشةً أخرى ومقابلةً بالاسم.
-  const [{ data, error }, rolesResult] = await Promise.all([
+  const [{ data, error }, rolesResult, invitesResult] = await Promise.all([
     db
       .from("profiles")
       .select("id, user_id, full_name, phone, created_at, deleted_at")
       .order("created_at", { ascending: false }),
     db.from("user_roles").select("user_id, roles!inner(name)").is("deleted_at", null),
+    // من دُعي ولم يُفعّل حسابه لا ملف له أصلاً (الهجرة ٠٤٤).
+    db.rpc("fn_pending_invites"),
   ]);
 
   if (error) {
@@ -33,7 +35,11 @@ export default async function UsersPage() {
     rolesOf.set(row.user_id, [...(rolesOf.get(row.user_id) ?? []), role.name]);
   }
 
-  const rows: UserRow[] = (data ?? []).map((p) => ({
+  // **الأعضاء أصحاب الأدوار وحدهم** (`adr/0032`): المشاركون لهم قسمهم، وكانت
+  // القائمة تخلطهم فتغرق ثلاثة أسماء إدارية في مئات المسجِّلين.
+  const rows: UserRow[] = (data ?? [])
+    .filter((p) => (rolesOf.get(p.user_id) ?? []).length > 0)
+    .map((p) => ({
     id: p.id,
     userId: p.user_id,
     fullName: p.full_name,
@@ -43,5 +49,10 @@ export default async function UsersPage() {
     roles: rolesOf.get(p.user_id) ?? [],
   }));
 
-  return <PeopleView rows={rows} canWrite={canWrite} />;
+  const invites = (invitesResult.data ?? []).map((i) => ({
+    email: i.email,
+    invitedAt: i.invited_at,
+  }));
+
+  return <PeopleView rows={rows} invites={invites} canWrite={canWrite} />;
 }

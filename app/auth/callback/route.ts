@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { accountState, COMPLETENESS_COLUMNS } from "@/lib/auth/account-state";
+import { isSessionMode, MODE_COOKIE } from "@/lib/auth/mode";
 import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 
@@ -37,6 +39,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const db = await createClient();
   const { error } = await db.auth.exchangeCodeForSession(code);
+
+  // الباب الذي بدأ الدخول يكتب وضع الجلسة (`adr/0032`).
+  const mode = request.nextUrl.searchParams.get("mode");
+  if (!error && isSessionMode(mode)) {
+    (await cookies()).set(MODE_COOKIE, mode, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
 
   if (error) {
     target.pathname = "/sign-in";

@@ -58,6 +58,8 @@ export function AppLayout({
   brand = "منصة سنن",
   crumb,
   onSignOut,
+  onSwitchMode,
+  mode,
   children,
 }: {
   /** مرشَّحة بصلاحيات المستخدم قبل الوصول هنا — المحجوب **يُخفى لا يُعطَّل**. */
@@ -66,6 +68,10 @@ export function AppLayout({
   crumb?: string;
   /** إجراء خادم — يُمرَّر من التخطيط لا يُستدعى هنا. */
   onSignOut?: () => Promise<void>;
+  /** ينتقل بالجلسة إلى الوضع الآخر — يُمرَّر لمن يجمع الصفتين وحده (`adr/0032`). */
+  onSwitchMode?: () => Promise<void>;
+  /** وضع الجلسة القائم، لتسمية المفتاح بما ينتقل إليه. */
+  mode?: "staff" | "participant";
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -171,6 +177,13 @@ export function AppLayout({
           </button>
           {crumb ? <span className={styles.crumb}>{crumb}</span> : null}
           <div className={styles.headerEnd}>
+            {onSwitchMode ? (
+              <form action={onSwitchMode}>
+                <button type="submit" className={styles.switchMode}>
+                  {mode === "staff" ? "انتقل إلى تجربتي كمشارك" : "انتقل إلى الإدارة"}
+                </button>
+              </form>
+            ) : null}
             <Link href="/account" className={styles.iconButton} aria-label="حسابي" title="حسابي">
               <UserRound size={ICON_SIZE} aria-hidden />
             </Link>

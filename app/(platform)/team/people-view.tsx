@@ -9,7 +9,7 @@ import { Messages, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { formatNumber } from "@/lib/format";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatDateBoth } from "@/lib/format";
+import { formatDateBoth, formatRelative } from "@/lib/format";
 import { inviteUser, restoreUser, suspendUser } from "./actions";
 
 export type UserRow = {
@@ -23,7 +23,18 @@ export type UserRow = {
   roles: string[];
 };
 
-export function PeopleView({ rows, canWrite }: { rows: UserRow[]; canWrite: boolean }) {
+export type PendingInvite = { email: string; invitedAt: string };
+
+export function PeopleView({
+  rows,
+  invites,
+  canWrite,
+}: {
+  rows: UserRow[];
+  /** دُعوا ولم يُفعّلوا حساباتهم — لا ملف لهم، فلا يظهرون في جدول الأعضاء. */
+  invites: PendingInvite[];
+  canWrite: boolean;
+}) {
   const [state, action, pending] = useActionState(inviteUser, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
   const [suspending, setSuspending] = useState<UserRow | null>(null);
@@ -74,8 +85,8 @@ export function PeopleView({ rows, canWrite }: { rows: UserRow[]; canWrite: bool
   return (
     <>
       <TabHead
-        title="الأشخاص"
-        lede="من يعمل على المنصة. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمة مروره، ثم يكتب بياناته — ولا يملك شيئاً حتى يُسنَد له دور."
+        title="الأعضاء"
+        lede="من يعمل على المنصة بدورٍ مُسنَد. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمة مروره، ثم يكتب بياناته — ولا يملك شيئاً حتى يُسنَد له دور."
       />
 
       {canWrite ? (
@@ -123,6 +134,24 @@ export function PeopleView({ rows, canWrite }: { rows: UserRow[]; canWrite: bool
             : "لم يُسجَّل أحد في المنصة بعد.",
         }}
       />
+      {invites.length > 0 ? (
+        <Step
+          n={2}
+          title="دعوات معلّقة"
+          why="من دُعي ولم يفتح رسالته بعد. حسابه غير مفعَّل، ولا يظهر في جدول الأعضاء حتى يكتب بياناته ويُسنَد له دور."
+          done={false}
+          state={<span>{formatNumber(invites.length)} دعوة معلّقة</span>}
+        >
+          <ul style={{ fontSize: "var(--text-sm)", lineHeight: "var(--leading-relaxed)" }}>
+            {invites.map((invite) => (
+              <li key={invite.email}>
+                <bdi dir="ltr">{invite.email}</bdi> — دُعي {formatRelative(invite.invitedAt)}
+              </li>
+            ))}
+          </ul>
+        </Step>
+      ) : null}
+
       <Modal open={suspending !== null} title="إيقاف الحساب" onClose={() => setSuspending(null)}>
         <p>
           يُوقَف «{suspending?.fullName}»: تسقط صلاحياته في الحال، وتنقطع جلسته، ولا يدخل بعدها.

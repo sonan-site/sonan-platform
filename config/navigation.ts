@@ -45,6 +45,11 @@ export type NavItem = {
    * في ثلاثة مواضع يجعل الشاشة أزرارَ تنقّلٍ لا محتوى.
    */
   headerOnly?: true;
+  /**
+   * الوضع الذي يظهر فيه المدخل (`adr/0032`): `staff` لشاشات العمل،
+   * و`participant` لتجربة المشارك. وما لا وضع له يظهر في الوضعين.
+   */
+  mode?: "staff" | "participant";
 };
 
 export const NAVIGATION: readonly NavItem[] = [
@@ -58,12 +63,22 @@ export const NAVIGATION: readonly NavItem[] = [
   },
   {
     key: "team",
-    title: "الفريق",
+    title: "الإدارة",
     href: "/team",
-    icon: "Users",
+    icon: "ShieldCheck",
     // الأشخاص والأدوار قسمٌ واحد: من يقرأ أحدهما يراه (`adr/0031`).
     permission: "users.read",
     permissionAny: ["users.read", "roles.read"],
+    primary: true,
+    mode: "staff",
+  },
+  {
+    key: "participants",
+    title: "المشاركون",
+    href: "/participants",
+    icon: "Users",
+    permission: "users.read",
+    mode: "staff",
     primary: true,
   },
   {
@@ -73,6 +88,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: "BookOpen",
     permission: "programs.read",
     primary: true,
+    mode: "staff",
   },
   {
     key: "journey",
@@ -83,6 +99,7 @@ export const NAVIGATION: readonly NavItem[] = [
     permission: null,
     participantsOnly: true,
     primary: true,
+    mode: "participant",
   },
   {
     key: "settings",
@@ -91,6 +108,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: "Settings",
     permission: "settings.read",
     primary: false,
+    mode: "staff",
   },
   {
     key: "audit",
@@ -99,6 +117,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: "ScrollText",
     permission: "audit.read",
     primary: false,
+    mode: "staff",
   },
   {
     key: "account",
@@ -117,17 +136,20 @@ export const BOTTOM_BAR_LIMIT = 5;
 
 export type Viewer = {
   granted: ReadonlySet<PermissionCode>;
+  /** وضع الجلسة — `undefined` يعني «لا ترشيح بالوضع» (الاختبارات والحالات القديمة). */
+  mode?: "staff" | "participant";
   /** له مشاركة قائمة في برنامج — جارية أو منتهية. */
   isParticipant: boolean;
 };
 
 /** يرشّح ما يخصّ المستخدم. الباقي **يُخفى** لا يُعطَّل. */
-export function visibleNavigation({ granted, isParticipant }: Viewer): NavItem[] {
+export function visibleNavigation({ granted, isParticipant, mode }: Viewer): NavItem[] {
   return NAVIGATION.filter((item) => {
     const allowed = item.permissionAny
       ? item.permissionAny.some((code) => granted.has(code))
       : item.permission === null || granted.has(item.permission);
-    return allowed && (!item.participantsOnly || isParticipant);
+    const inMode = !mode || !item.mode || item.mode === mode;
+    return allowed && inMode && (!item.participantsOnly || isParticipant);
   });
 }
 

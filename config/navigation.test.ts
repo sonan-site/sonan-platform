@@ -12,6 +12,7 @@ describe("التنقّل بحسب من يدخل", () => {
     expect(keys({ granted: ADMIN_CODES, isParticipant: false })).toEqual([
       "dashboard",
       "team",
+      "participants",
       "programs",
       "audit",
       "account",
@@ -33,6 +34,26 @@ describe("التنقّل بحسب من يدخل", () => {
 
   it("الحساب الجديد بلا صلاحية ولا مشاركة يرى لوحته فقط", () => {
     expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "account"]);
+  });
+});
+
+describe("وضع الجلسة يحكم ما يُعرض", () => {
+  it("**وضع المشارك لا شاشات عمل فيه** — ولو كان صاحبه مديراً", () => {
+    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual([
+      "dashboard",
+      "journey",
+      "account",
+    ]);
+  });
+
+  it("**ووضع الإدارة لا «رحلتي» فيه** — ولو كان صاحبه مشاركاً", () => {
+    const shown = keys({ granted: ADMIN_CODES, isParticipant: true, mode: "staff" });
+    expect(shown).toContain("team");
+    expect(shown).not.toContain("journey");
+  });
+
+  it("وبلا وضعٍ يُعرض ما تسمح به الصلاحيات كما كان", () => {
+    expect(keys({ granted: ADMIN_CODES, isParticipant: true })).toContain("journey");
   });
 });
 

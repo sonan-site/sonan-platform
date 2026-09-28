@@ -228,3 +228,26 @@
     display: none;
   }
 }
+
+/* مفتاح الانتقال بين وضعَي الجلسة — نصّ لا أيقونة: الفعل يُقرأ لا يُخمَّن. */
+.switchMode {
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-3);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.switchMode:hover {
+  color: var(--color-brand);
+}
+
+@media (max-width: 640px) {
+  .switchMode {
+    display: none;
+  }
+}

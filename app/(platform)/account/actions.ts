@@ -11,6 +11,7 @@ import { createClient } from "@/lib/db/server";
 import { env } from "@/lib/env.server";
 import { setSignInBlocked } from "@/lib/mail";
 import { setPasswordSchema } from "@/lib/validation/auth";
+import { z } from "@/lib/validation/z";
 import { profileInput, profileSchema } from "@/lib/validation/profile";
 
 /**
@@ -89,6 +90,27 @@ export async function changePassword(_prev: FormState, form: FormData): Promise<
   }
 
   return { notice: hasPassword ? "تغيّرت كلمة المرور." : "أُضيفت كلمة المرور. تستطيع الدخول بها أو بـ Google." };
+}
+
+/**
+ * الانسحاب من برنامج — **مشاركتي أنا** (`adr/0032`).
+ *
+ * كان إغلاق الحساب كلّه هو المخرج الوحيد لمن أراد ترك برنامج واحد. والقاعدة
+ * تحرس الملكية (الهجرة ٠٤٤): لا ينسحب أحدٌ عن غيره.
+ */
+export async function withdrawParticipation(participantId: string): Promise<FormState> {
+  if (!z.uuid().safeParse(participantId).success) return { error: "مشاركة غير معروفة." };
+
+  const session = await getSession();
+  if (session.status !== "active") return { error: "انتهت جلستك. سجّل الدخول من جديد." };
+
+  const db = await createClient();
+  const { error } = await db.rpc("fn_withdraw_participation", { p_participant_id: participantId });
+  if (error) return { error: userMessage(error, "تعذّر الانسحاب. أعد المحاولة.") };
+
+  revalidatePath("/account");
+  revalidatePath("/journey");
+  return { notice: "انسحبتَ من البرنامج. سجلّك محفوظ، ومقعدك تحرّر." };
 }
 
 const CLOSE_PHRASE = "أغلق حسابي";

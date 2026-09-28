@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Field, FormActions } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -18,6 +19,11 @@ export default function ActivatePage() {
       <p className={styles.lede}>اختر كلمة مرور جديدة لحسابك.</p>
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
+
+      <p className={styles.lede}>
+        وبعدها تدخل من بابك: <Link href="/sign-in">المشاركون</Link> أو{" "}
+        <Link href="/admin">الإدارة</Link>.
+      </p>
 
       <ActionForm action={action} state={state}>
         <Field
