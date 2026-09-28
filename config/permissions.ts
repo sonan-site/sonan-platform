@@ -23,7 +23,7 @@ type Entry = { section: PermissionSection; label: string };
 
 export const PERMISSIONS = {
   "users.read": { section: "users", label: "عرض المستخدمين" },
-  "users.write": { section: "users", label: "تعديل المستخدمين وإيقافهم" },
+  "users.write": { section: "users", label: "تعديل المستخدمين وإيقافهم وحذفهم" },
 
   "roles.read": { section: "roles", label: "عرض الأدوار وصلاحياتها" },
   "roles.write": { section: "roles", label: "إنشاء الأدوار وتعديل صلاحياتها" },

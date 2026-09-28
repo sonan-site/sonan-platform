@@ -10,6 +10,8 @@ import { nowIso } from "@/lib/format";
 import { sendInvite, setSignInBlocked } from "@/lib/mail";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { inviteSchema } from "@/lib/validation/auth";
+import { PURGE_PHRASE } from "@/lib/accounts/bin";
+import { userMessage } from "@/lib/db/messages";
 
 /**
  * كل إجراء هنا يمرّ بالترتيب نفسه:
@@ -81,6 +83,7 @@ export async function suspendUser(userId: string): Promise<FormState> {
   });
 
   revalidatePath("/team");
+  revalidatePath("/participants");
   // الصلاحيات سقطت على كل حال؛ ما تعذّر هو قطع الجلسة القائمة فوراً.
   // **النجاح يُقال:** كان الإيقاف يقع بلا خبر، فلا يعرف المُوقِف أوقع أم لا.
   return blocked.ok
@@ -95,9 +98,11 @@ export async function restoreUser(userId: string): Promise<FormState> {
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
+  // **والعلامتان تُفرَّغان معاً:** حسابٌ في السلّة يُعاد تفعيله ويبقى موعد محوه
+  // قائماً، فإن أُوقف يوماً عاد مستحقّاً للمحو فوراً (`adr/0034`).
   const { data, error } = await db
     .from("profiles")
-    .update({ deleted_at: null })
+    .update({ deleted_at: null, purge_after: null })
     .eq("user_id", userId)
     .not("deleted_at", "is", null)
     .select("id");
@@ -116,5 +121,60 @@ export async function restoreUser(userId: string): Promise<FormState> {
   });
 
   revalidatePath("/team");
+  revalidatePath("/participants");
   return { notice: "أُعيد تفعيل الحساب." };
+}
+
+/**
+ * الحذف إلى السلّة — **لا محو**. الحساب يبقى ثلاثين يوماً يُستعاد فيها بزرّ
+ * «إعادة التفعيل» نفسه، ثم يُمحى محواً لا رجعة فيه (`adr/0034`).
+ *
+ * والشروط كلها في `fn_delete_account`: لا يحذف أحدٌ نفسه، ولا يُحذف صاحب دورٍ
+ * قائم، ولا يُعاد حذف من هو في السلّة.
+ */
+export async function deleteAccount(userId: string): Promise<FormState> {
+  if (!z.uuid().safeParse(userId).success) return { error: "مستخدم غير معروف." };
+
+  const authz = await authorizeRequest({ permission: "users.write" });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { error } = await db.rpc("fn_delete_account", { p_user_id: userId });
+  if (error) return { error: userMessage(error, "تعذّر حذف الحساب.") };
+
+  const blocked = await setSignInBlocked(userId, true);
+
+  revalidatePath("/team");
+  revalidatePath("/team/trash");
+  revalidatePath("/participants");
+  return blocked.ok
+    ? { notice: "حُذف الحساب إلى السلّة — يُستعاد منها حتى موعد محوه." }
+    : { error: "حُذف الحساب إلى السلّة، لكن تعذّر قطع جلسته القائمة. ستنتهي خلال ساعة." };
+}
+
+/**
+ * المحو النهائي — **الفعل الوحيد في المنصة الذي لا يُستدرَك**، فيُكتب بالحرف
+ * لا يُنقَر (`ق-٢٢`). والقاعدة ترفضه قبل انقضاء المدّة، فالوعد وعد.
+ */
+export async function purgeAccount(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = z
+    .object({ userId: z.uuid(), confirm: z.string() })
+    .safeParse({ userId: form.get("userId"), confirm: form.get("confirm") });
+  if (!parsed.success) return { error: "مستخدم غير معروف." };
+
+  if (parsed.data.confirm.trim() !== PURGE_PHRASE) {
+    return { fieldErrors: { confirm: `اكتب «${PURGE_PHRASE}» كما هي للتأكيد` } };
+  }
+
+  const authz = await authorizeRequest({ permission: "users.write" });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { error } = await db.rpc("fn_purge_account", { p_user_id: parsed.data.userId });
+  if (error) return { error: userMessage(error, "تعذّر محو الحساب.") };
+
+  revalidatePath("/team");
+  revalidatePath("/team/trash");
+  revalidatePath("/participants");
+  return { notice: "مُحي الحساب نهائياً. سجلّه باقٍ باسمٍ مطموس." };
 }

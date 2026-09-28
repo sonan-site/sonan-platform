@@ -78,7 +78,7 @@ export default async function ParticipantsPage({
 
   const participants: ParticipantRow[] = (participantsResult.data ?? []).map((p) => ({
     id: p.id,
-    name: p.full_name ?? "—",
+    name: p.full_name ?? "مشارك محذوف",
     trackName: p.track_id ? (trackName.get(p.track_id) ?? "—") : "بلا مسار",
     hasTrack: p.track_id !== null,
     status: p.status,

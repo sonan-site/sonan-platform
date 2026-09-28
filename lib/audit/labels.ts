@@ -40,6 +40,9 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   track_change_requested: "طلب تغيير مسار",
   track_change_approved: "قبول تغيير مسار",
   track_change_rejected: "رفض تغيير مسار",
+  account_deleted: "حذف حساب إلى السلّة",
+  account_restored: "استعادة حساب من السلّة",
+  account_purged: "محو حساب نهائياً",
   rate_limit_exceeded: "محاولات كثيرة متتالية",
   rate_limit_misconfigured: "إعداد حدّ المحاولات ناقص",
 };

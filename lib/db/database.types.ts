@@ -226,6 +226,7 @@ export type Database = {
         Row: {
           action: string
           actor_id: string | null
+          actor_label: string | null
           after: Json | null
           before: Json | null
           created_at: string
@@ -238,6 +239,7 @@ export type Database = {
         Insert: {
           action: string
           actor_id?: string | null
+          actor_label?: string | null
           after?: Json | null
           before?: Json | null
           created_at?: string
@@ -250,6 +252,7 @@ export type Database = {
         Update: {
           action?: string
           actor_id?: string | null
+          actor_label?: string | null
           after?: Json | null
           before?: Json | null
           created_at?: string
@@ -618,7 +621,7 @@ export type Database = {
           status: Database["public"]["Enums"]["participant_status"]
           track_id: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           baseline_percentage?: number | null
@@ -630,7 +633,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["participant_status"]
           track_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           baseline_percentage?: number | null
@@ -642,7 +645,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["participant_status"]
           track_id?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -772,6 +775,7 @@ export type Database = {
           nationality: string | null
           phone: string | null
           phone_secondary: string | null
+          purge_after: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
@@ -791,6 +795,7 @@ export type Database = {
           nationality?: string | null
           phone?: string | null
           phone_secondary?: string | null
+          purge_after?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
@@ -810,6 +815,7 @@ export type Database = {
           nationality?: string | null
           phone?: string | null
           phone_secondary?: string | null
+          purge_after?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
@@ -1095,6 +1101,7 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          decided_by_label: string | null
           deleted_at: string | null
           direction: Database["public"]["Enums"]["change_direction"]
           from_track_id: string
@@ -1110,6 +1117,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          decided_by_label?: string | null
           deleted_at?: string | null
           direction: Database["public"]["Enums"]["change_direction"]
           from_track_id: string
@@ -1125,6 +1133,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          decided_by_label?: string | null
           deleted_at?: string | null
           direction?: Database["public"]["Enums"]["change_direction"]
           from_track_id?: string
@@ -1335,6 +1344,17 @@ export type Database = {
         Args: { p_decision: string; p_program_id: string; p_request_id: string }
         Returns: undefined
       }
+      fn_delete_account: { Args: { p_user_id: string }; Returns: undefined }
+      fn_deleted_accounts: {
+        Args: never
+        Returns: {
+          deleted_at: string
+          full_name: string
+          is_staff: boolean
+          purge_after: string
+          user_id: string
+        }[]
+      }
       fn_follows_plan: {
         Args: { p_status: Database["public"]["Enums"]["participant_status"] }
         Returns: boolean
@@ -1483,6 +1503,7 @@ export type Database = {
           tracks_with_plan_days: number
         }[]
       }
+      fn_purge_account: { Args: { p_user_id: string }; Returns: undefined }
       fn_quick_setup: {
         Args: {
           p_day_count: number

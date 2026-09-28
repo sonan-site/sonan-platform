@@ -25,7 +25,7 @@ export function AuditView({ rows }: { rows: AuditRow[] }) {
       <PageHead
         crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
         title="سجل التدقيق"
-        lede="من فعل ماذا ومتى — آخر ٢٠٠ فعل. السجل يُقرأ ولا يُعدَّل ولا يُحذف."
+        lede="من فعل ماذا ومتى — آخر ٢٠٠ فعل. السجل يُقرأ ولا يُحذف، ولا يُعدَّل إلا طمسَ اسمِ من مُحي حسابه."
       />
       <DataTable
         columns={columns}

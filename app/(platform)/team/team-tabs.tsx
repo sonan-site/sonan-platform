@@ -17,6 +17,7 @@ export function TeamTabs({
     { href: "/team", label: "الأشخاص", show: canReadUsers },
     { href: "/team/roles", label: "الأدوار", show: canReadRoles },
     { href: "/team/assignments", label: "الإسنادات", show: canReadRoles },
+    { href: "/team/trash", label: "سلّة المحذوفات", show: canReadUsers },
   ].filter((t) => t.show);
 
   return (

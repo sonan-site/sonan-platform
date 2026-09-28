@@ -28,6 +28,9 @@ const SECURITY_DEFINER_FUNCTIONS = [
   "fn_can_grant_role",
   "fn_write_audit",
   "fn_bootstrap_admin",
+  // دوال الحذف والمحو: الوحيدة في القاعدة التي تحذف حذفاً صلباً (`adr/0034`).
+  "fn_delete_account",
+  "fn_purge_account",
 ] as const;
 
 const url = process.env.SUPABASE_DB_URL;

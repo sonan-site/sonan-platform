@@ -20,7 +20,7 @@ export default async function ParticipantsPage() {
   const [profilesResult, participationsResult] = await Promise.all([
     db
       .from("profiles")
-      .select("id, user_id, full_name, phone, created_at, deleted_at")
+      .select("id, user_id, full_name, phone, created_at, deleted_at, purge_after")
       .order("created_at", { ascending: false })
       .limit(500),
     // السياسات تحصر ما يُقرأ ببرامج من يقرأ — فمنسّق برنامجٍ يرى مشاركيه وحدهم.
@@ -34,6 +34,8 @@ export default async function ParticipantsPage() {
 
   const programsOf = new Map<string, string[]>();
   for (const row of participationsResult.data ?? []) {
+    // المشاركة تبقى بعد محو صاحبها بلا `user_id` — فلا برامج تُنسَب لأحد (`adr/0034`).
+    if (!row.user_id) continue;
     const program = row.programs as unknown as { name: string };
     programsOf.set(row.user_id, [...(programsOf.get(row.user_id) ?? []), program.name]);
   }
@@ -45,6 +47,8 @@ export default async function ParticipantsPage() {
     phone: p.phone ? formatPhone(p.phone) : "—",
     joinedAt: p.created_at,
     suspended: p.deleted_at !== null,
+    // في السلّة ⇐ محذوف لا موقوف، فلا يُعرض عليه «أوقِف» ولا يُحسب حيّاً.
+    purgeAfter: p.purge_after,
     programs: programsOf.get(p.user_id) ?? [],
   }));
 

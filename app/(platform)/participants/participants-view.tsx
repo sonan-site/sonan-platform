@@ -6,8 +6,9 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { PageHead } from "@/components/shared/steps";
+import { binNotice } from "@/lib/accounts/bin";
 import { formatDateBoth, formatNumber } from "@/lib/format";
-import { restoreUser, suspendUser } from "../team/actions";
+import { deleteAccount, restoreUser, suspendUser } from "../team/actions";
 
 export type AccountRow = {
   id: string;
@@ -16,13 +17,23 @@ export type AccountRow = {
   phone: string;
   joinedAt: string;
   suspended: boolean;
+  /** موعد المحو — غير فارغ يعني أنه في سلّة المحذوفات لا موقوفاً (`adr/0034`). */
+  purgeAfter: string | null;
   /** برامجه — الفارغة تعني حساباً لم يسجّل في شيء بعد. */
   programs: string[];
 };
 
+/** صفٌّ في السلّة لا يُوقَف ولا يُحذف ثانيةً — يُستعاد أو يُمحى من شاشتها. */
+const ROW_ACTIONS = {
+  display: "flex",
+  gap: "var(--space-2)",
+  justifyContent: "flex-end",
+} as const;
+
 export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWrite: boolean }) {
   const [busy, startTransition] = useTransition();
   const [suspending, setSuspending] = useState<AccountRow | null>(null);
+  const [deleting, setDeleting] = useState<AccountRow | null>(null);
 
   const withProgram = rows.filter((r) => r.programs.length > 0).length;
 
@@ -40,7 +51,7 @@ export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWr
       key: "status",
       header: "الحالة",
       align: "center",
-      render: (r) => (r.suspended ? "موقوف" : "نشط"),
+      render: (r) => (r.purgeAfter ? binNotice(r.purgeAfter) : r.suspended ? "موقوف" : "نشط"),
     },
     ...(canWrite
       ? [
@@ -49,16 +60,23 @@ export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWr
             header: "",
             align: "end" as const,
             render: (r: AccountRow) => (
-              <Button
-                pending={busy}
-                onClick={() =>
-                  r.suspended
-                    ? startTransition(async () => reportAction(await restoreUser(r.userId)))
-                    : setSuspending(r)
-                }
-              >
-                {r.suspended ? "إعادة تفعيل" : "إيقاف"}
-              </Button>
+              <span style={ROW_ACTIONS}>
+                <Button
+                  pending={busy}
+                  onClick={() =>
+                    r.suspended
+                      ? startTransition(async () => reportAction(await restoreUser(r.userId)))
+                      : setSuspending(r)
+                  }
+                >
+                  {r.suspended ? "إعادة تفعيل" : "إيقاف"}
+                </Button>
+                {r.purgeAfter ? null : (
+                  <Button variant="danger" pending={busy} onClick={() => setDeleting(r)}>
+                    حذف
+                  </Button>
+                )}
+              </span>
             ),
           },
         ]
@@ -103,6 +121,31 @@ export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWr
             }}
           >
             أوقِفه
+          </Button>
+        </FormActions>
+      </Modal>
+
+      <Modal open={deleting !== null} title="حذف الحساب" onClose={() => setDeleting(null)}>
+        <p>
+          يُحذف «{deleting?.fullName}» إلى سلّة المحذوفات: يخرج من برامجه فيتحرّر مقعده، ولا يدخل
+          بعدها. ويبقى في السلّة مدّةً تستعيده فيها، ثم يُمحى محواً لا رجعة فيه — وسجلّ ما فعله
+          يبقى باسمٍ مطموس.
+        </p>
+        <FormActions>
+          <Button onClick={() => setDeleting(null)}>إلغاء</Button>
+          <Button
+            variant="danger"
+            pending={busy}
+            onClick={() => {
+              const row = deleting;
+              if (!row) return;
+              startTransition(async () => {
+                reportAction(await deleteAccount(row.userId));
+                setDeleting(null);
+              });
+            }}
+          >
+            احذفه
           </Button>
         </FormActions>
       </Modal>
