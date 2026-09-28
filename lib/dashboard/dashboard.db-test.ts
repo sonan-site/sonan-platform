@@ -182,8 +182,15 @@ beforeAll(async () => {
       [OTHER, openProgram, archivedTrack],
     )
   ).rows[0]!.id;
-  // الأرشفة مباشرةً — `fn_archive_track` تمنعها، والكتابة المباشرة تلتفّ عليها.
+  /*
+   * حالةٌ **يمنعها الحارس اليوم** (الهجرة ٠٤٧)، وتُصطنع هنا عمداً بتعطيل
+   * المشغّلات للمعاملة وحدها: اللوحة تُظهر ما وقع **قبل** الحارس، والمشغّل
+   * يحكم على التغيير لا على الصفوف القائمة.
+   */
+  await db.query("begin");
+  await db.query("set local session_replication_role = 'replica'");
   await db.query(`update public.tracks set deleted_at = now() where id = $1`, [archivedTrack]);
+  await db.query("commit");
 
   // برنامجٌ مغلق ومشاركُه ما زال يتبع الخطة.
   closedProgram = (
