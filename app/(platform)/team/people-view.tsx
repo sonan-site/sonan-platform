@@ -137,15 +137,15 @@ export function PeopleView({
       {invites.length > 0 ? (
         <Step
           n={2}
-          title="دعوات معلّقة"
-          why="من دُعي ولم يفتح رسالته بعد. حسابه غير مفعَّل، ولا يظهر في جدول الأعضاء حتى يكتب بياناته ويُسنَد له دور."
+          title="حسابات بلا ملفّ مكتمل"
+          why="حسابٌ قائم بلا بيانات صاحبه: مدعوٌّ لم يفتح رسالته، أو داخلٌ بحساب Google لم يُكمل اسمه وجواله. ولا يظهر في جدول الأعضاء حتى يكتبها ويُسنَد له دور."
           done={false}
-          state={<span>{formatNumber(invites.length)} دعوة معلّقة</span>}
+          state={<span>{formatNumber(invites.length)} حساباً</span>}
         >
           <ul style={{ fontSize: "var(--text-sm)", lineHeight: "var(--leading-relaxed)" }}>
             {invites.map((invite) => (
               <li key={invite.email}>
-                <bdi dir="ltr">{invite.email}</bdi> — دُعي {formatRelative(invite.invitedAt)}
+                <bdi dir="ltr">{invite.email}</bdi> — الحساب أُنشئ {formatRelative(invite.invitedAt)}
               </li>
             ))}
           </ul>

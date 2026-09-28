@@ -1295,6 +1295,15 @@ export type Database = {
     }
     Functions: {
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
+      fn_attention_items: {
+        Args: never
+        Returns: {
+          amount: number
+          kind: string
+          program_id: string
+          program_name: string
+        }[]
+      }
       fn_auth_showcase: { Args: never; Returns: Json }
       fn_bootstrap_admin: {
         Args: { p_full_name: string; p_phone: string; p_user_id: string }
@@ -1309,6 +1318,15 @@ export type Database = {
         Returns: boolean
       }
       fn_close_my_account: { Args: never; Returns: undefined }
+      fn_dashboard_counts: {
+        Args: never
+        Returns: {
+          participants: number
+          programs: number
+          published: number
+          role_holders: number
+        }[]
+      }
       fn_day_template_program_id: {
         Args: { p_template_id: string }
         Returns: string
@@ -1340,6 +1358,25 @@ export type Database = {
           id: string
           submitted: boolean
           task_count: number
+        }[]
+      }
+      fn_my_duties: {
+        Args: never
+        Returns: {
+          complete_days: number
+          contact: string
+          current_day: number
+          follows_plan: boolean
+          last_submitted_at: string
+          participant_id: string
+          program_id: string
+          program_name: string
+          program_status: Database["public"]["Enums"]["program_status"]
+          proposed_track: string
+          status: Database["public"]["Enums"]["participant_status"]
+          submitted_days: number
+          track_name: string
+          work_days: number
         }[]
       }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }

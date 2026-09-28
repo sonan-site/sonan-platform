@@ -57,5 +57,7 @@ export async function submitDay(
   if (data === null) return { error: "تعذّر إرسال اليوم." };
 
   revalidatePath(`/journey/${parsed.data.participantId}`);
+  // واللوحة تعرض اليوم الجاري وآخر إرسال — فبلا إبطالها تبقى تقول ما مضى.
+  revalidatePath("/dashboard");
   return { notice: "أُرسل اليوم." };
 }

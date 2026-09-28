@@ -1,0 +1,187 @@
+/*
+ * لوحة المتابعة.
+ *
+ * كانت أنماطها مكتوبةً في `style={{…}}` داخل الصفحة — وهي الشذوذ في المنصة
+ * لا القاعدة. وصارت هنا لتخضع لما يخضع له غيرها: الرموز وحدها، والخصائص
+ * منطقيةٌ لا يمينَ فيها ولا يسار.
+ */
+
+.section {
+  margin-block-end: var(--space-10);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.count {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ══ بند «يحتاج انتباهك» ══ */
+
+/*
+ * حدٌّ جانبيّ واحد لا خلفيةٌ صارخة: البنود تُقرأ صفّاً بعد صفّ، ولوحةٌ حمراء
+ * كلها تُعتاد في يومين فتصير زينةً لا إنذاراً.
+ */
+.attention {
+  display: block;
+  padding: var(--space-4) var(--space-5);
+  margin-block-end: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease-out);
+}
+
+.attention:hover {
+  background: var(--color-surface-raised);
+}
+
+.attention:active {
+  scale: var(--press-scale-large);
+}
+
+.attentionTitle {
+  display: block;
+  font-weight: var(--weight-medium);
+}
+
+.attentionBody {
+  display: block;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+.attentionCta {
+  display: block;
+  margin-block-start: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+}
+
+/* ══ بطاقة الواجب اليومي ══ */
+
+.duty {
+  display: block;
+  padding: var(--space-5);
+  margin-block-end: var(--space-3);
+  max-inline-size: 34rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+a.duty:hover {
+  border-color: var(--color-border-strong);
+}
+
+a.duty:active {
+  scale: var(--press-scale-large);
+}
+
+.dutyProgram {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.dutyHeadline {
+  display: block;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.dutyMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-block-start: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.dutyNote {
+  display: block;
+  margin-block-start: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  background: var(--color-info-surface);
+  border-radius: var(--radius-sm);
+  line-height: var(--leading-normal);
+}
+
+/* ══ مداخل الأقسام ══ */
+
+.entries {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.entry:hover {
+  border-color: var(--color-border-strong);
+}
+
+.entry:active {
+  scale: var(--press-scale-large);
+}
+
+.entryIcon {
+  flex-shrink: 0;
+  color: var(--color-brand);
+}
+
+.entryName {
+  display: block;
+  font-weight: var(--weight-medium);
+}
+
+.entryMeta {
+  display: block;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ══ الفراغ الهادئ ══ */
+
+/* خلوّ اللوحة خبرٌ سارّ لا حالةُ «لا بيانات» — فلا أيقونة صندوقٍ فارغ هنا. */
+.clear {
+  padding: var(--space-5);
+  background: var(--color-success-surface);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  line-height: var(--leading-normal);
+}

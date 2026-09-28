@@ -1,93 +1,59 @@
-import Link from "next/link";
+import { cookies } from "next/headers";
+import { PageHead } from "@/components/shared/steps";
+import { ErrorState } from "@/components/shared/states";
+import { visibleNavigation } from "@/config/navigation";
+import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
 import { getSession } from "@/lib/auth/session";
-import { createClient } from "@/lib/db/server";
-import { followsPlan } from "@/lib/participants/journey";
-
-const NOTE = {
-  color: "var(--color-text-muted)",
-  maxInlineSize: "68ch",
-  marginBlockEnd: "var(--space-6)",
-} as const;
-
-const CARD = {
-  display: "block",
-  padding: "var(--space-5)",
-  marginBlockEnd: "var(--space-3)",
-  borderRadius: "var(--radius-md)",
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  maxInlineSize: "34rem",
-} as const;
-
-const SUB = {
-  display: "block",
-  fontSize: "var(--text-sm)",
-  color: "var(--color-text-muted)",
-  marginBlockStart: "var(--space-1)",
-} as const;
+import { dashboardCounts, myDuties, staffAttention } from "@/lib/dashboard/server";
+import { currentViewer } from "@/lib/permissions/granted";
+import { ParticipantView } from "./participant-view";
+import { StaffView } from "./staff-view";
 
 /**
- * صفحة التوجيه لا الإحصاء.
+ * اللوحة **تتبع وضع الجلسة** كما تتبعه القائمة الجانبية: من دخل من بوابة
+ * الإدارة يجد ما ينتظر قراره، ومن دخل من بوابة المشاركين يجد واجبه.
  *
- * الإحصائيات `س١٢` من المرحلة الثانية (`adr/0022`). وما هنا يمنع أسوأ من
- * غيابها: صفحةَ هبوطٍ ميتة تستقبل كل داخل. فالمشارك يجد رحلته، والإداري يجد
- * برامجه، ومن ليس هذا ولا ذاك يجد سبباً مكتوباً لا فراغاً.
+ * وكانت صفحة توجيهٍ تخلط الاثنين: بطاقةُ واجبٍ يوميّ فوق بطاقة «البرامج»،
+ * فمن يُدير في ساعة عمله يجد واجبه الشخصي في شاشة عمله.
  */
 export default async function DashboardPage() {
   const session = await getSession();
   if (session.status !== "active") {
+    return <ErrorState title="غير مصرَّح" body="سجّل الدخول لترى ما يخصّك." />;
+  }
+
+  const viewer = await currentViewer();
+  const mode = resolveMode((await cookies()).get(MODE_COOKIE)?.value, viewer.granted.size > 0);
+
+  if (mode === "participant") {
+    const duties = await myDuties();
     return (
       <>
-        <h1>لوحة المتابعة</h1>
-        <p style={NOTE}>سجّل الدخول لترى ما يخصّك.</p>
+        <PageHead crumbs={[]} title="لوحة المتابعة" lede="واجبك اليوم، وأين وصلت فيه." />
+        <ParticipantView duties={duties} />
       </>
     );
   }
 
-  const db = await createClient();
-  const { data: participations } = await db
-    .from("participants")
-    .select("id, status, programs!inner(name)")
-    .eq("user_id", session.userId)
-    .is("deleted_at", null)
-    .order("joined_at", { ascending: false });
+  const [attention, counts] = await Promise.all([staffAttention(), dashboardCounts()]);
 
-  const mine = participations ?? [];
-  const manages = session.permissions.has("programs.read");
+  /**
+   * المداخل من مصدر التنقّل الواحد لا من قائمة مكتوبة هنا: مدخلٌ يُضاف أو
+   * يُعاد تسميته هناك يظهر هنا بلا مسّ. ولوحة المتابعة نفسها تُستثنى —
+   * وكذلك ما موضعه رأس الصفحة.
+   */
+  const entries = visibleNavigation({ ...viewer, mode: "staff" }).filter(
+    (item) => item.key !== "dashboard" && !item.headerOnly,
+  );
 
   return (
     <>
-      <h1>لوحة المتابعة</h1>
-      <p style={NOTE}>ما يخصّك اليوم.</p>
-
-      {mine.map((row) => {
-        const program = row.programs as unknown as { name: string };
-        return (
-          <Link key={row.id} href={`/journey/${row.id}`} style={CARD}>
-            <strong>
-              {followsPlan(row.status) ? `واجبك اليومي — ${program.name}` : program.name}
-            </strong>
-            {/* من انتهت رحلته لا يُقال له «أرسِل إتمام يومك» ثم يجد شاشة انتهاء. */}
-            <span style={SUB}>
-              {followsPlan(row.status) ? "افتح رحلتك وأرسِل إتمام يومك" : "انتهت رحلتك — سجلّك محفوظ"}
-            </span>
-          </Link>
-        );
-      })}
-
-      {manages ? (
-        <Link href="/programs" style={CARD}>
-          <strong>البرامج</strong>
-          <span style={SUB}>الأقسام والمسارات والمادة والخطط والمشاركون</span>
-        </Link>
-      ) : null}
-
-      {mine.length === 0 && !manages ? (
-        <p style={NOTE}>
-          لست مشاركاً في برنامج، ولا لك صلاحية إدارية. تصفّح{" "}
-          <Link href="/">البرامج المعلنة</Link> وسجّل في أحدها.
-        </p>
-      ) : null}
+      <PageHead
+        crumbs={[]}
+        title="لوحة المتابعة"
+        lede="ما ينتظر قرارك أو إصلاحك اليوم، ثم أبواب عملك."
+      />
+      <StaffView attention={attention} entries={entries} counts={counts} />
     </>
   );
 }

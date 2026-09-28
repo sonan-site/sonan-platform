@@ -46,14 +46,17 @@ export function PageHead({
   return (
     <>
       {/* فتات المسار لا قائمة تنقّل، فيبقى عنصر التنقّل حكراً على التخطيط
-          الجامع ومصدرِه الوحيد config/navigation.ts — ولا قائمة موازية. */}
-      <p className={styles.crumbs}>
-        {crumbs.map((c) => (
-          <Link key={c.href} href={c.href}>
-            {c.label}
-          </Link>
-        ))}
-      </p>
+          الجامع ومصدرِه الوحيد config/navigation.ts — ولا قائمة موازية.
+          وشاشة الجذر بلا فتات: فقرة فارغة تترك فجوةً بلا معنى. */}
+      {crumbs.length > 0 ? (
+        <p className={styles.crumbs}>
+          {crumbs.map((c) => (
+            <Link key={c.href} href={c.href}>
+              {c.label}
+            </Link>
+          ))}
+        </p>
+      ) : null}
       <header className={styles.head}>
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.lede}>{lede}</p>
