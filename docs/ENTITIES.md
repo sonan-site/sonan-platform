@@ -266,6 +266,7 @@
 | `track_id` | uuid · قابل للإفراغ | **NULL = عام للبرنامج** |
 | `question` | text | |
 | `is_required` | boolean | |
+| `kind` | enum `admission_kind` | `text` · `choice` · `consent` — **شكل الإجابة عرضٌ لا قاعدة**: `fn_register` تشترط جواباً غير فارغ للإلزامي مهما كان |
 | `sort_order` | int | |
 
 **كيان منفصل تماماً عن بنك الأسئلة.**

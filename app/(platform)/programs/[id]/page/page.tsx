@@ -16,7 +16,8 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [blocksResult, admissionResult, tracksResult] = await Promise.all([
+  const [programResult, blocksResult, admissionResult, tracksResult] = await Promise.all([
+    db.from("programs").select("slug").eq("id", id).maybeSingle(),
     db
       .from("page_blocks")
       .select("id, block_type, content, sort_order")
@@ -27,7 +28,7 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .order("created_at"),
     db
       .from("admission_questions")
-      .select("id, question, is_required, track_id")
+      .select("id, question, is_required, track_id, kind")
       .eq("program_id", id)
       .is("deleted_at", null)
       .order("sort_order"),
@@ -39,7 +40,9 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .order("sort_order"),
   ]);
 
-  if (blocksResult.error) return <ErrorState body="تعذّر جلب عناصر الصفحة." />;
+  if (blocksResult.error || !programResult.data) {
+    return <ErrorState body="تعذّر جلب عناصر الصفحة." />;
+  }
 
   const blocks: BlockRow[] = (blocksResult.data ?? [])
     .filter((b) => isBlockType(b.block_type))
@@ -60,10 +63,18 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
     id: q.id,
     question: q.question,
     required: q.is_required,
+    kind: q.kind,
+    trackId: q.track_id,
     trackName: q.track_id ? (trackNames.get(q.track_id) ?? null) : null,
   }));
 
   return (
-    <PageBuilder programId={id} blocks={blocks} admission={admission} tracks={tracks} />
+    <PageBuilder
+      programId={id}
+      programSlug={programResult.data.slug}
+      blocks={blocks}
+      admission={admission}
+      tracks={tracks}
+    />
   );
 }

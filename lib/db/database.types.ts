@@ -138,6 +138,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_required: boolean
+          kind: Database["public"]["Enums"]["admission_kind"]
           program_id: string
           question: string
           sort_order: number
@@ -149,6 +150,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_required?: boolean
+          kind?: Database["public"]["Enums"]["admission_kind"]
           program_id: string
           question: string
           sort_order?: number
@@ -160,6 +162,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_required?: boolean
+          kind?: Database["public"]["Enums"]["admission_kind"]
           program_id?: string
           question?: string
           sort_order?: number
@@ -1596,6 +1599,7 @@ export type Database = {
       }
     }
     Enums: {
+      admission_kind: "text" | "choice" | "consent"
       block_type:
         | "header"
         | "free_text"
@@ -1755,6 +1759,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admission_kind: ["text", "choice", "consent"],
       block_type: [
         "header",
         "free_text",

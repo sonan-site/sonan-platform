@@ -11,12 +11,15 @@ export type QuestionRow = {
   id: string;
   question: string;
   required: boolean;
+  /** شكل الإجابة — عرضٌ لا قاعدة (الهجرة ٠٥٤). */
+  kind: "text" | "choice" | "consent";
   trackId: string | null;
 };
 
 export type TrackOption = { id: string; name: string; description: string; capacity: number | null };
 
 const ERR = { color: "var(--color-danger)" } as const;
+const CONSENT = { display: "flex", alignItems: "center", gap: "var(--space-3)" } as const;
 const NOTE = {
   fontSize: "var(--text-sm)",
   color: "var(--color-text-muted)",
@@ -83,11 +86,44 @@ export function RegisterForm({
           </Field>
         ) : null}
 
-        {visible.map((q) => (
-          <Field key={q.id} id={`q:${q.id}`} label={q.question} required={q.required}>
-            <Textarea id={`q:${q.id}`} name={`q:${q.id}`} rows={2} required={q.required} />
-          </Field>
-        ))}
+        {visible.map((q) => {
+          const id = `q:${q.id}`;
+          /*
+           * **الشكل عرضٌ لا قاعدة:** `fn_register` تشترط جواباً غير فارغ
+           * للإلزامي مهما كان الشكل — فالإقرار يُرسل «أقرّ» والاختيار «نعم»
+           * أو «لا»، والمكتوب نصّه. ولا قاعدة ثانية في القاعدة.
+           */
+          if (q.kind === "consent") {
+            return (
+              <Field key={q.id} id={id} label={q.question} required={q.required} span="full">
+                <span style={CONSENT}>
+                  <input id={id} name={id} type="checkbox" value="أقرّ" required={q.required} />
+                  <label htmlFor={id}>أقرّ بما سبق</label>
+                </span>
+              </Field>
+            );
+          }
+
+          if (q.kind === "choice") {
+            return (
+              <Field key={q.id} id={id} label={q.question} required={q.required}>
+                <Select id={id} name={id} defaultValue="" required={q.required}>
+                  <option value="" disabled>
+                    اختر
+                  </option>
+                  <option value="نعم">نعم</option>
+                  <option value="لا">لا</option>
+                </Select>
+              </Field>
+            );
+          }
+
+          return (
+            <Field key={q.id} id={id} label={q.question} required={q.required} span="full">
+              <Textarea id={id} name={id} rows={2} required={q.required} />
+            </Field>
+          );
+        })}
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>

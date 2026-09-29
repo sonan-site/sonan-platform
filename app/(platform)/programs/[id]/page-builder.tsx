@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
@@ -8,7 +9,12 @@ import { Button, Field, FormActions, Input, Select } from "@/components/shared/f
 import { Modal } from "@/components/shared/modal";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
-import { addAdmissionQuestion, removeAdmissionQuestion } from "./participant-actions";
+import {
+  addAdmissionQuestion,
+  editAdmissionQuestion,
+  moveAdmissionQuestion,
+  removeAdmissionQuestion,
+} from "./participant-actions";
 import { BlockFields } from "./block-fields";
 import { addBlock, editBlock, moveBlock, removeBlock } from "./page-actions";
 
@@ -23,7 +29,16 @@ export type AdmissionRow = {
   id: string;
   question: string;
   required: boolean;
+  /** شكل الإجابة في نموذج التسجيل. */
+  kind: "text" | "choice" | "consent";
+  trackId: string | null;
   trackName: string | null;
+};
+
+const KIND_LABEL: Record<AdmissionRow["kind"], string> = {
+  text: "إجابة مكتوبة",
+  choice: "نعم أو لا",
+  consent: "إقرار يُؤشَّر",
 };
 
 const PANEL = { maxInlineSize: "var(--form-max)", marginBlockEnd: "var(--space-6)" } as const;
@@ -48,11 +63,14 @@ const ICON = 16;
 
 export function PageBuilder({
   programId,
+  programSlug,
   blocks,
   admission,
   tracks,
 }: {
   programId: string;
+  /** رابط الصفحة المعلنة — للمعاينة، وتُفتح للمُعِدّ ولو كانت مسوّدة. */
+  programSlug: string;
   blocks: BlockRow[];
   admission: AdmissionRow[];
   tracks: { id: string; name: string }[];
@@ -60,6 +78,12 @@ export function PageBuilder({
   const [blockState, blockAction, blockPending] = useActionState(addBlock, EMPTY_FORM_STATE);
   const [editState, editAction, editPending] = useActionState(editBlock, EMPTY_FORM_STATE);
   const [admState, admAction, admPending] = useActionState(addAdmissionQuestion, EMPTY_FORM_STATE);
+  const [admEditState, admEditAction, admEditPending] = useActionState(
+    editAdmissionQuestion,
+    EMPTY_FORM_STATE,
+  );
+  const [editingQ, setEditingQ] = useState<AdmissionRow | null>(null);
+  const [qSubmittedFor, setQSubmittedFor] = useState<string | null>(null);
   const [type, setType] = useState<BlockType>("header");
   const [editing, setEditing] = useState<BlockRow | null>(null);
   const [submittedFor, setSubmittedFor] = useState<string | null>(null);
@@ -74,12 +98,15 @@ export function PageBuilder({
    */
   const editShown = submittedFor === editing?.id ? editState : EMPTY_FORM_STATE;
   const editOpen = editing !== null && !editShown.notice;
+  const qShown = qSubmittedFor === editingQ?.id ? admEditState : EMPTY_FORM_STATE;
+  const qOpen = editingQ !== null && !qShown.notice;
 
   return (
     <>
       <h2 style={H2}>الصفحة المعلنة</h2>
       <p style={META}>
-        ما يراه الزائر حين يفتح رابط البرنامج. أضف العناصر ورتّبها كما تشاء، ويجوز تكرار النوع.
+        ما يراه الزائر حين يفتح رابط البرنامج. أضف العناصر ورتّبها كما تشاء، ويجوز تكرار النوع.{" "}
+        <Link href={`/p/${programSlug}`}>عايِن الصفحة</Link> — تُفتح لك ولو كانت مسوّدة.
       </p>
 
       <div style={LIST}>
@@ -215,14 +242,47 @@ export function PageBuilder({
         {admission.length === 0 ? (
           <p style={META}>لا أسئلة قبول — التسجيل يمرّ بلا شروط.</p>
         ) : (
-          admission.map((q) => (
+          admission.map((q, i) => (
             <div key={q.id} style={ITEM}>
               <span>{q.question}</span>
               <span style={META}>
-                {q.required ? "إلزامي" : "اختياري"}
+                {q.required ? "إلزامي" : "اختياري"} · {KIND_LABEL[q.kind]}
                 {q.trackName ? ` · ${q.trackName}` : " · عام للبرنامج"}
               </span>
               <div style={SPACER}>
+                <Button
+                  aria-label="تحريك لأعلى"
+                  disabled={i === 0}
+                  pending={busy}
+                  onClick={() =>
+                    startTransition(async () =>
+                      reportAction(await moveAdmissionQuestion(q.id, programId, "up")),
+                    )
+                  }
+                >
+                  <ChevronUp size={ICON} aria-hidden />
+                </Button>
+                <Button
+                  aria-label="تحريك لأسفل"
+                  disabled={i === admission.length - 1}
+                  pending={busy}
+                  onClick={() =>
+                    startTransition(async () =>
+                      reportAction(await moveAdmissionQuestion(q.id, programId, "down")),
+                    )
+                  }
+                >
+                  <ChevronDown size={ICON} aria-hidden />
+                </Button>
+                <Button
+                  aria-label="تعديل السؤال"
+                  onClick={() => {
+                    setQSubmittedFor(null);
+                    setEditingQ(q);
+                  }}
+                >
+                  <Pencil size={ICON} aria-hidden />
+                </Button>
                 <Button
                   aria-label="حذف السؤال"
                   variant="danger"
@@ -240,6 +300,68 @@ export function PageBuilder({
           ))
         )}
       </div>
+
+      {qShown.notice ? <p style={OK}>{qShown.notice}</p> : null}
+
+      <Modal open={qOpen} title="تعديل سؤال القبول" onClose={() => setEditingQ(null)}>
+        {editingQ ? (
+          <ActionForm key={editingQ.id} action={admEditAction} state={qShown}>
+            <input type="hidden" name="programId" value={programId} />
+            <input type="hidden" name="questionId" value={editingQ.id} />
+            <Field
+              id="admEditQuestion"
+              label="نصّ السؤال"
+              required
+              error={qShown.fieldErrors?.["question"]}
+              span="full"
+            >
+              <Input
+                id="admEditQuestion"
+                name="question"
+                defaultValue={editingQ.question}
+                required
+              />
+            </Field>
+            <Field id="admEditTrack" label="خاص بمسار" hint="اتركه فارغاً لسؤال عام للبرنامج">
+              <Select id="admEditTrack" name="trackId" defaultValue={editingQ.trackId ?? ""}>
+                <option value="">عام للبرنامج</option>
+                {tracks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field id="admEditKind" label="شكل الإجابة">
+              <Select id="admEditKind" name="kind" defaultValue={editingQ.kind}>
+                <option value="text">إجابة مكتوبة</option>
+                <option value="choice">نعم أو لا</option>
+                <option value="consent">إقرار يُؤشَّر</option>
+              </Select>
+            </Field>
+            <Field id="admEditRequired" label="إلزامي" hint="الإلزامي وحده شرط القبول">
+              <input
+                id="admEditRequired"
+                name="isRequired"
+                type="checkbox"
+                defaultChecked={editingQ.required}
+              />
+            </Field>
+            {qShown.error ? <p style={ERR}>{qShown.error}</p> : null}
+            <FormActions>
+              <Button onClick={() => setEditingQ(null)}>إلغاء</Button>
+              <Button
+                type="submit"
+                variant="primary"
+                pending={admEditPending}
+                onClick={() => setQSubmittedFor(editingQ.id)}
+              >
+                احفظ
+              </Button>
+            </FormActions>
+          </ActionForm>
+        ) : null}
+      </Modal>
 
       <section style={PANEL}>
         {admState.error ? <p style={ERR}>{admState.error}</p> : null}
@@ -263,6 +385,13 @@ export function PageBuilder({
                   {t.name}
                 </option>
               ))}
+            </Select>
+          </Field>
+          <Field id="admKind" label="شكل الإجابة">
+            <Select id="admKind" name="kind" defaultValue="text">
+              <option value="text">إجابة مكتوبة</option>
+              <option value="choice">نعم أو لا</option>
+              <option value="consent">إقرار يُؤشَّر</option>
             </Select>
           </Field>
           <Field id="admRequired" label="إلزامي" hint="الإلزامي وحده شرط القبول">

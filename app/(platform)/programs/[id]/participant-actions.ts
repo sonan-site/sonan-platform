@@ -31,6 +31,7 @@ const questionSchema = z.object({
     .transform((v) => (v === "" ? null : v))
     .nullable(),
   isRequired: z.boolean(),
+  kind: z.enum(["text", "choice", "consent"]).default("text"),
 });
 
 export async function addAdmissionQuestion(
@@ -42,6 +43,7 @@ export async function addAdmissionQuestion(
     question: form.get("question"),
     trackId: form.get("trackId") ?? "",
     isRequired: form.get("isRequired") === "on",
+    kind: form.get("kind") ?? undefined,
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
 
@@ -53,16 +55,115 @@ export async function addAdmissionQuestion(
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
+  // الترتيب يُحسب ولا يُترك صفراً: نموذج التسجيل يرتّب به، وكلها صفرٌ ترتيبٌ بلا معنى.
+  const { data: last } = await db
+    .from("admission_questions")
+    .select("sort_order")
+    .eq("program_id", parsed.data.programId)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { error } = await db.from("admission_questions").insert({
     program_id: parsed.data.programId,
     track_id: parsed.data.trackId,
     question: parsed.data.question,
     is_required: parsed.data.isRequired,
+    kind: parsed.data.kind,
+    sort_order: (last?.sort_order ?? -1) + 1,
   });
   if (error) return { error: "تعذّر إضافة السؤال." };
 
-  revalidatePath(`/programs/${parsed.data.programId}`);
+  revalidatePath(`/programs/${parsed.data.programId}/page`);
   return { notice: "أُضيف سؤال القبول." };
+}
+
+/** تعديل سؤال قبولٍ قائم — ولم يكن له سبيل، كما لم يكن للسؤال الشائع. */
+export async function editAdmissionQuestion(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const questionId = String(form.get("questionId") ?? "");
+  if (!z.uuid().safeParse(questionId).success) return { error: "سؤال غير معروف." };
+
+  const parsed = questionSchema.safeParse({
+    programId: form.get("programId"),
+    question: form.get("question"),
+    trackId: form.get("trackId") ?? "",
+    isRequired: form.get("isRequired") === "on",
+    kind: form.get("kind") ?? undefined,
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const authz = await authorizeRequest({
+    permission: "programs.write",
+    programId: parsed.data.programId,
+    resourceProgramId: parsed.data.programId,
+  });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("admission_questions")
+    .update({
+      question: parsed.data.question,
+      track_id: parsed.data.trackId,
+      is_required: parsed.data.isRequired,
+      kind: parsed.data.kind,
+    })
+    .eq("id", questionId)
+    .eq("program_id", parsed.data.programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حفظ السؤال." };
+
+  revalidatePath(`/programs/${parsed.data.programId}/page`);
+  return { notice: "حُفظ السؤال." };
+}
+
+export async function moveAdmissionQuestion(
+  questionId: string,
+  programId: string,
+  direction: "up" | "down",
+): Promise<FormState> {
+  const authz = await authorizeRequest({
+    permission: "programs.write",
+    programId,
+    resourceProgramId: programId,
+  });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("admission_questions")
+    .select("id, sort_order")
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .order("sort_order")
+    .order("created_at");
+
+  if (error || !data) return { error: "تعذّر تحريك السؤال." };
+  const index = data.findIndex((q) => q.id === questionId);
+  if (index === -1) return { error: "تعذّر تحريك السؤال." };
+  const target = direction === "up" ? index - 1 : index + 1;
+  if (target < 0 || target >= data.length) return EMPTY_FORM_STATE;
+
+  // إعادة ترقيمٍ صريحة لا تبديل — الأرقام كلها صفرٌ قبل أول ترتيب.
+  const order = [...data];
+  order[index] = order[target]!;
+  order[target] = data[index]!;
+  for (const [position, row] of order.entries()) {
+    if (row.sort_order === position) continue;
+    const { error: writeError } = await db
+      .from("admission_questions")
+      .update({ sort_order: position })
+      .eq("id", row.id);
+    if (writeError) return { error: "تعذّر تحريك السؤال." };
+  }
+
+  revalidatePath(`/programs/${programId}/page`);
+  return EMPTY_FORM_STATE;
 }
 
 export async function removeAdmissionQuestion(

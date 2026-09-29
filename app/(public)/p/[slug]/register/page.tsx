@@ -75,10 +75,11 @@ export default async function RegisterPage({
       .order("sort_order"),
     db
       .from("admission_questions")
-      .select("id, question, is_required, track_id")
+      .select("id, question, is_required, track_id, kind")
       .eq("program_id", program.id)
       .is("deleted_at", null)
-      .order("sort_order"),
+      .order("sort_order")
+      .order("created_at"),
   ]);
 
   const tracks: TrackOption[] = tracksResult.data ?? [];
@@ -86,6 +87,7 @@ export default async function RegisterPage({
     id: q.id,
     question: q.question,
     required: q.is_required,
+    kind: q.kind,
     trackId: q.track_id,
   }));
 

@@ -66,14 +66,15 @@ export function PublishView({ rows, canOrder }: { rows: PublishRow[]; canOrder: 
     {
       key: "slug",
       header: "الرابط",
-      render: (p) =>
-        p.status === "published" ? (
-          <Link href={`/p/${p.slug}`} dir="ltr">
-            /p/{p.slug}
-          </Link>
-        ) : (
-          <span dir="ltr">/p/{p.slug}</span>
-        ),
+      /*
+       * **والمسوّدة تُعايَن:** سياسة القراءة تفتح صفحتها لمن يقرأ البرنامج، فما
+       * كان ينقص إلا رابطاً. وهذا ما أجّلته `ع-١/٢` «كإضافة لا كإعادة بناء».
+       */
+      render: (p) => (
+        <Link href={`/p/${p.slug}`} dir="ltr" title={p.status === "published" ? undefined : "معاينة — الصفحة لا تظهر للزوّار بعد"}>
+          /p/{p.slug}
+        </Link>
+      ),
     },
     {
       key: "status",
