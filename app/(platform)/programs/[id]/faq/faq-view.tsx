@@ -39,7 +39,7 @@ const ITEM = {
 } as const;
 const META = { color: "var(--color-text-subtle)", fontSize: "var(--text-xs)" } as const;
 const SPACER = { marginInlineStart: "auto", display: "flex", gap: "var(--space-2)" } as const;
-const PANEL = { maxInlineSize: "34rem" } as const;
+const PANEL = { maxInlineSize: "var(--form-max)" } as const;
 const ERR = { color: "var(--color-danger)" } as const;
 const OK = { color: "var(--color-success)" } as const;
 
@@ -50,10 +50,10 @@ function FaqFields({ row, state }: { row: FaqRow | null; state: FormState }) {
   const id = (name: string) => `${row ? "edit" : "add"}-${name}`;
   return (
     <>
-      <Field id={id("q")} label="السؤال" required error={state.fieldErrors?.["question"]}>
+      <Field id={id("q")} label="السؤال" required error={state.fieldErrors?.["question"]} span="full">
         <Input id={id("q")} name="question" defaultValue={row?.question ?? ""} required />
       </Field>
-      <Field id={id("a")} label="الجواب" required error={state.fieldErrors?.["answer"]}>
+      <Field id={id("a")} label="الجواب" required error={state.fieldErrors?.["answer"]} span="full">
         <Textarea id={id("a")} name="answer" rows={4} defaultValue={row?.answer ?? ""} required />
       </Field>
       <Field

@@ -190,7 +190,7 @@ export function ProgramView({
             <Field id="pname" label="الاسم" required error={editState.fieldErrors?.["name"]}>
               <Input id="pname" name="name" defaultValue={program.name} required />
             </Field>
-            <Field id="psummary" label="النبذة">
+            <Field id="psummary" label="النبذة" span="full">
               <Textarea id="psummary" name="summary" rows={2} defaultValue={program.summary} />
             </Field>
             {/* بلا هذا الحقل لا سبيل لضبط جهة التواصل، ويُمحى ما في القاعدة مع كل حفظ. */}

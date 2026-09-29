@@ -19,12 +19,14 @@ type FieldProps = {
   hint?: string;
   /** يُعرَض **بعد أول إرسال** لا أثناء الكتابة (§١١.٦). */
   error?: string;
+  /** `full` = يملأ عرض النموذج. لمساحات النصّ وما لا يُقرأ في نصف سطر (`ق-٢٣`). */
+  span?: "full";
   children: ReactNode;
 };
 
-export function Field({ id, label, required, hint, error, children }: FieldProps) {
+export function Field({ id, label, required, hint, error, span, children }: FieldProps) {
   return (
-    <div className={styles.field}>
+    <div className={`${styles.field} ${span === "full" ? styles.fieldFull : ""}`}>
       <label htmlFor={id} className={`${styles.label} ${required ? styles.required : ""}`}>
         <span className={styles.labelText}>{label}</span>
         {hint ? <span className={styles.hint}>{hint}</span> : null}

@@ -42,7 +42,7 @@ export type ExamRow = {
   trackName: string | null;
 };
 
-const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-8)" } as const;
+const PANEL = { maxInlineSize: "var(--form-max)", marginBlockEnd: "var(--space-8)" } as const;
 const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
 const ERR = { color: "var(--color-danger)" } as const;
 const OK = { color: "var(--color-success)" } as const;
@@ -490,7 +490,7 @@ export function PlanView({
                 </Select>
               </Field>
 
-              <Field id="text" label="أيام الخطة" required error={upState.fieldErrors?.text}>
+              <Field id="text" label="أيام الخطة" required error={upState.fieldErrors?.text} span="full">
                 <Textarea id="text" name="text" rows={8} required
                           placeholder={"عادي,1\nعادي,1\nراحة"} />
               </Field>

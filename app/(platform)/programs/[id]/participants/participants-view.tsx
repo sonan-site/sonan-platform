@@ -332,7 +332,7 @@ export function ParticipantsView({
               </Select>
             </Field>
 
-            <Field id="reason" label="السبب" required error={state.fieldErrors?.["reason"]}>
+            <Field id="reason" label="السبب" required error={state.fieldErrors?.["reason"]} span="full">
               <Textarea id="reason" name="reason" rows={2} required />
             </Field>
 

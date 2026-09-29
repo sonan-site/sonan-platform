@@ -32,7 +32,7 @@ const BLOCK_HINT: Partial<Record<BlockType, string>> = {
   registration: "يُفتح الزر حين يكون التسجيل مفتوحاً",
 };
 
-const PANEL = { maxInlineSize: "34rem", marginBlockEnd: "var(--space-6)" } as const;
+const PANEL = { maxInlineSize: "var(--form-max)", marginBlockEnd: "var(--space-6)" } as const;
 const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
 const ERR = { color: "var(--color-danger)" } as const;
 const OK = { color: "var(--color-success)" } as const;
@@ -93,7 +93,7 @@ function BlockFields({
           <Field id={id("heading")} label="عنوان الفقرة">
             <Input id={id("heading")} name="heading" defaultValue={text(values["heading"])} />
           </Field>
-          <Field id={id("text")} label="النص" required error={state.fieldErrors?.["text"]}>
+          <Field id={id("text")} label="النص" required error={state.fieldErrors?.["text"]} span="full">
             <Textarea
               id={id("text")}
               name="text"

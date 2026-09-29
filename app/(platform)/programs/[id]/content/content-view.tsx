@@ -184,6 +184,7 @@ export function ContentView({
             required
             hint="مثال: كل سطر أول كلمات الحديث أو اسم المتن."
             error={unitState.fieldErrors?.lines}
+            span="full"
           >
             <Textarea id="lines" name="lines" rows={6} required />
           </Field>

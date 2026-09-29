@@ -209,7 +209,7 @@ export function ProgramsView({
               <Input id="participantLabel" name="participantLabel" defaultValue="متسابق" required />
             </Field>
 
-            <Field id="summary" label="النبذة" hint="تظهر في بطاقة المتجر العام">
+            <Field id="summary" label="النبذة" hint="تظهر في بطاقة المتجر العام" span="full">
               <Textarea id="summary" name="summary" />
             </Field>
 

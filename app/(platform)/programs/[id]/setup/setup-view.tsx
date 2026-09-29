@@ -50,7 +50,7 @@ export function SetupView({
               </span>
             }
           >
-            <Field id="lines" label="الصق المادة" required error={state.fieldErrors?.lines}>
+            <Field id="lines" label="الصق المادة" required error={state.fieldErrors?.lines} span="full">
               <Textarea id="lines" name="lines" rows={10} required />
             </Field>
           </Step>

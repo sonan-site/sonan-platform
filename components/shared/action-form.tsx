@@ -2,6 +2,7 @@
 
 import { startTransition, useEffect, useRef, type FormEvent, type FormHTMLAttributes } from "react";
 import type { FormState } from "@/lib/auth/form-state";
+import styles from "./form.module.css";
 
 /**
  * نموذج إجراء **لا يمسح ما كُتب إن فشل الحفظ**.
@@ -17,6 +18,7 @@ export function ActionForm({
   action,
   state,
   children,
+  className,
   ...rest
 }: Omit<FormHTMLAttributes<HTMLFormElement>, "action" | "onSubmit"> & {
   action: (payload: FormData) => void;
@@ -51,7 +53,14 @@ export function ActionForm({
   }
 
   return (
-    <form {...rest} ref={ref} action={action} onSubmit={onSubmit}>
+    // الشبكة في الجامع لا في الشاشات: قاعدةٌ واحدة لا تُنسخ سبع عشرة مرة.
+    <form
+      {...rest}
+      className={`${styles.grid} ${className ?? ""}`}
+      ref={ref}
+      action={action}
+      onSubmit={onSubmit}
+    >
       {children}
     </form>
   );

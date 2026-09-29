@@ -154,7 +154,7 @@ export function TracksView({
               <Input id="tname" name="name" required />
             </Field>
 
-            <Field id="tdesc" label="الوصف">
+            <Field id="tdesc" label="الوصف" span="full">
               <Textarea id="tdesc" name="description" rows={2} />
             </Field>
 
