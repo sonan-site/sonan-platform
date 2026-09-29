@@ -24,6 +24,8 @@ export type PublishRow = {
   registration: string;
   /** ما يمنع النشر — فارغة تعني جاهزاً (الهجرة ٠٥٠). */
   missing: string[];
+  /** يملك العارض الكتابة في هذا البرنامج بعينه. */
+  canWrite: boolean;
 };
 
 const STATUS_LABEL: Record<PublishRow["status"], string> = {
@@ -125,7 +127,8 @@ export function PublishView({ rows, canOrder }: { rows: PublishRow[]; canOrder: 
       align: "end",
       render: (p) => (
         <span style={ROW_ACTIONS}>
-          {p.status === "published" ? (
+          {/* لا يُعرض ما لا يصحّ: من لا يكتب في هذا البرنامج لا يُعرض له زرّ نشره. */}
+          {!p.canWrite ? null : p.status === "published" ? (
             <Button variant="danger" onClick={() => setHiding(p)}>
               إخفاء
             </Button>

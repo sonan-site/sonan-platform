@@ -333,17 +333,20 @@ export async function moveProgram(
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
-  const { data } = await db
+  const { data, error: readError } = await db
     .from("programs")
     .select("id, sort_order")
     .is("deleted_at", null)
     .order("sort_order")
     .order("created_at", { ascending: false });
 
-  const rows = data ?? [];
+  // خطأ القراءة أو برنامجٌ غاب: كان يُبلَّغ نجاحاً صامتاً فلا يعرف الضاغط.
+  if (readError || !data) return { error: "تعذّر تغيير الترتيب." };
+  const rows = data;
   const index = rows.findIndex((p) => p.id === programId);
+  if (index === -1) return { error: "تعذّر تغيير الترتيب." };
   const target = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || target < 0 || target >= rows.length) return EMPTY_FORM_STATE;
+  if (target < 0 || target >= rows.length) return EMPTY_FORM_STATE;
 
   const order = [...rows];
   order[index] = order[target]!;

@@ -22,7 +22,9 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .select("id, block_type, content, sort_order")
       .eq("program_id", id)
       .is("deleted_at", null)
-      .order("sort_order"),
+      .order("sort_order")
+      // الفاصل نفسه الذي يرتّب به `moveBlock` — وإلا اختلف الفهرس عند التساوي.
+      .order("created_at"),
     db
       .from("admission_questions")
       .select("id, question, is_required, track_id")

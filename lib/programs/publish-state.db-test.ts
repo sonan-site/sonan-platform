@@ -20,7 +20,8 @@ let roleId: string;
 
 const ADMIN = "00000000-0000-4000-8000-000000000e41";
 const OUTSIDER = "00000000-0000-4000-8000-000000000e42";
-const USERS = [ADMIN, OUTSIDER];
+const READER = "00000000-0000-4000-8000-000000000e43";
+const USERS = [ADMIN, OUTSIDER, READER];
 
 async function asUser<T>(uid: string, work: () => Promise<T>): Promise<T> {
   await db.query("begin");
@@ -38,16 +39,24 @@ async function asUser<T>(uid: string, work: () => Promise<T>): Promise<T> {
   }
 }
 
-type StateRow = { id: string; status: string; sort_order: number; missing: string[] };
+type StateRow = {
+  id: string;
+  status: string;
+  sort_order: number;
+  missing: string[];
+  can_write: boolean;
+};
 
 async function stateFor(uid: string): Promise<StateRow[]> {
   const { rows } = await asUser(uid, () =>
     db.query<StateRow>(
-      `select id, status, sort_order, missing from public.fn_programs_publish_state()`,
+      `select id, status, sort_order, missing, can_write from public.fn_programs_publish_state()`,
     ),
   );
   return rows;
 }
+
+let readerRoleId: string;
 
 beforeAll(async () => {
   const url = process.env.SUPABASE_DB_URL;
@@ -155,6 +164,21 @@ beforeAll(async () => {
     ADMIN,
     roleId,
   ]);
+
+  // قارئٌ محض: يرى البرامج ولا يكتب فيها — وشاشة النشر لا تعرض له زرّ نشر.
+  readerRoleId = (
+    await db.query<{ id: string }>(
+      `insert into public.roles (name) values ('دور قارئ النشر') returning id`,
+    )
+  ).rows[0]!.id;
+  await db.query(
+    `insert into public.role_permissions (role_id, permission_code) values ($1, 'programs.read')`,
+    [readerRoleId],
+  );
+  await db.query(`insert into public.user_roles (user_id, role_id) values ($1, $2)`, [
+    READER,
+    readerRoleId,
+  ]);
 });
 
 afterAll(async () => {
@@ -184,10 +208,10 @@ afterAll(async () => {
     await db.query(`delete from public.programs where id = any($1::uuid[])`, [programs]);
     await db.query(`delete from public.sections where id = $1`, [sectionId]);
   }
-  if (roleId) {
-    await db.query(`delete from public.user_roles where role_id = $1`, [roleId]);
-    await db.query(`delete from public.role_permissions where role_id = $1`, [roleId]);
-    await db.query(`delete from public.roles where id = $1`, [roleId]);
+  for (const role of [roleId, readerRoleId].filter(Boolean)) {
+    await db.query(`delete from public.user_roles where role_id = $1`, [role]);
+    await db.query(`delete from public.role_permissions where role_id = $1`, [role]);
+    await db.query(`delete from public.roles where id = $1`, [role]);
   }
   await db.query(`delete from public.profiles where user_id = any($1::uuid[])`, [USERS]);
   await db.query(`delete from auth.users where id = any($1::uuid[])`, [USERS]);
@@ -273,5 +297,35 @@ describe("مجموعة السؤال الشائع", () => {
         [readyProgram],
       ),
     ).rejects.toThrow(/chk_help_entries_category/);
+  });
+});
+
+describe("ما كشفته المراجعة", () => {
+  it("**والكتابة تأتي مع الصفّ** — فلا يُعرض زرّ نشرٍ لقارئٍ محض", async () => {
+    const admin = await stateFor(ADMIN);
+    expect(admin.find((r) => r.id === readyProgram)?.can_write).toBe(true);
+
+    const reader = await stateFor(READER);
+    const seen = reader.find((r) => r.id === readyProgram);
+    // يراه — فالقراءة عامة عنده — ولا يكتب فيه.
+    expect(seen).toBeDefined();
+    expect(seen?.can_write).toBe(false);
+  });
+
+  it("**ولوحة الجاهزية تحمل قائمة الحارس نفسها** — لا قائمتين تختلفان", async () => {
+    // لوحة الجاهزية تشترط `programs.read`، و`fn_program_missing` داخليةٌ لا
+    // تُمنح لأحد — فتُقرأ كلٌّ من موضعها ثم تُقابَلان.
+    const shown = await asUser(ADMIN, () =>
+      db.query<{ missing: string[] }>(
+        `select missing from public.fn_program_readiness($1)`,
+        [emptyProgram],
+      ),
+    );
+    const guard = await db.query<{ missing: string[] }>(
+      `select public.fn_program_missing($1) as missing`,
+      [emptyProgram],
+    );
+    expect(shown.rows[0]!.missing).toEqual(guard.rows[0]!.missing);
+    expect(shown.rows[0]!.missing.length).toBeGreaterThan(0);
   });
 });

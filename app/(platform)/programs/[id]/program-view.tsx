@@ -44,18 +44,24 @@ const META = {
 
 export function ProgramView({
   readinessItems,
+  missing,
   program,
   canWrite,
 }: {
   readinessItems: ReadinessItem[];
+  /** ما يمنع النشر، من حارس القاعدة نفسه — لا يُشتقّ هنا ثانيةً. */
+  missing: string[];
   program: ProgramDetail;
   canWrite: boolean;
 }) {
   const [editState, editAction, editPending] = useActionState(updateProgram, EMPTY_FORM_STATE);
   const [confirming, setConfirming] = useState<"published" | "closed" | null>(null);
 
-  // النشر مشروط بالجاهزية، والقاعدة تمنعه (الهجرة ٠٤٢). والزرّ يقول ذلك قبل الضغط.
-  const missing = readinessItems.filter((i) => !i.done && i.key !== "published");
+  /**
+   * النشر مشروط بالجاهزية، والقاعدة تمنعه. والزرّ يقول ذلك قبل الضغط —
+   * **بقائمة الحارس نفسها**: كانت تُشتقّ هنا من لوحة الجاهزية فتختلف عنها
+   * تسميةً وعدداً، فيقول زرٌّ «ينقص سبعة» وتقول شاشة النشر «ينقص خمسة».
+   */
   const ready = missing.length === 0;
   const [busy, startTransition] = useTransition();
 
@@ -116,7 +122,7 @@ export function ProgramView({
             <Button
               variant="primary"
               disabled={!ready}
-              title={ready ? undefined : `ينقص: ${missing.map((i) => i.label).join(" · ")}`}
+              title={ready ? undefined : `ينقص: ${missing.join(" · ")}`}
               onClick={() => setConfirming("published")}
             >
               نشر البرنامج
@@ -139,7 +145,7 @@ export function ProgramView({
           ) : null}
           {program.status !== "published" && !ready ? (
             <p style={{ alignSelf: "center", fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-              ينقص قبل النشر: {missing.map((i) => i.label).join(" · ")}
+              ينقص قبل النشر: {missing.join(" · ")}
             </p>
           ) : null}
         </div>

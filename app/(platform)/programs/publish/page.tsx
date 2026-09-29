@@ -1,4 +1,5 @@
 import { ErrorState } from "@/components/shared/states";
+import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { isProgramKind } from "@/lib/programs/kinds";
@@ -12,8 +13,17 @@ import { PublishView, type PublishRow } from "./publish-view";
  * والصفحة والأسئلة في تبويبين لا يُعرفان إلا بفتح البرنامج.
  */
 export default async function PublishPage() {
-  const authz = await authorizeRequest({ permission: "programs.read" });
-  if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
+  /**
+   * **يكفي أن يقرأ برنامجاً واحداً** — كما في قائمة البرامج: منسّقُ برنامجٍ
+   * محصورٍ به يصل من التبويب نفسه، فلا يُفتح له باب ثم يُقال «غير مصرَّح».
+   * والدالة تُرشّح برامجه وحدها.
+   */
+  const session = await getSession();
+  const readScopes =
+    session.status === "active" ? session.permissions.get("programs.read") : undefined;
+  if (!readScopes) {
+    return <ErrorState title="غير مصرَّح" body="لا تملك صلاحية لهذا الإجراء." />;
+  }
 
   // الترتيب يمسّ الواجهة كلها، فيشترط صلاحيةً عامة لا نطاق برنامج.
   const canOrder = (await authorizeRequest({ permission: "programs.write", programId: null })).ok;
@@ -32,6 +42,8 @@ export default async function PublishPage() {
     sortOrder: p.sort_order,
     registration: p.registration_state,
     missing: p.missing ?? [],
+    // الكتابة بنطاق البرنامج، فتأتي مع صفّه لا تُحسب في الشاشة.
+    canWrite: p.can_write,
   }));
 
   return <PublishView rows={rows} canOrder={canOrder} />;

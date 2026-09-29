@@ -62,15 +62,18 @@ const text = (value: unknown): string => (typeof value === "string" ? value : ""
  * تمنع أن يفترق النموذجان بحقلٍ ينساه أحدهما.
  */
 function BlockFields({
+  scope,
   type,
   values,
   state,
 }: {
+  /** «إضافة» أو «تعديل» — النموذجان مُركَّبان معاً، فالمعرّف بالنوع وحده يتكرّر. */
+  scope: string;
   type: BlockType;
   values: Record<string, unknown>;
   state: FormState;
 }) {
-  const id = (name: string) => `${type}-${name}`;
+  const id = (name: string) => `${scope}-${type}-${name}`;
 
   return (
     <>
@@ -148,7 +151,18 @@ export function PageBuilder({
   const [admState, admAction, admPending] = useActionState(addAdmissionQuestion, EMPTY_FORM_STATE);
   const [type, setType] = useState<BlockType>("header");
   const [editing, setEditing] = useState<BlockRow | null>(null);
+  const [submittedFor, setSubmittedFor] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
+
+  /**
+   * **الإغلاق مشتقٌّ لا أثرٌ جانبي:** النافذة مفتوحةٌ ما لم يُحفظ صفّها.
+   *
+   * وبلا هذا كانت تبقى مفتوحة بعد الحفظ، و`ActionForm` يُعيد الحقول إلى نصّها
+   * **القديم** — فيرى المُعِدّ ما كتبه قد اختفى، ويضغط «احفظ» ثانيةً فيكتب
+   * القديم فوق الجديد. والفشل يُبقيها مفتوحة بخطئه ظاهراً.
+   */
+  const editShown = submittedFor === editing?.id ? editState : EMPTY_FORM_STATE;
+  const editOpen = editing !== null && !editShown.notice;
 
   return (
     <>
@@ -188,7 +202,10 @@ export function PageBuilder({
                 >
                   <ChevronDown size={ICON} aria-hidden />
                 </Button>
-                <Button aria-label="تعديل العنصر" onClick={() => setEditing(b)}>
+                <Button aria-label="تعديل العنصر" onClick={() => {
+                    setSubmittedFor(null);
+                    setEditing(b);
+                  }}>
                   <Pencil size={ICON} aria-hidden />
                 </Button>
                 <Button
@@ -206,6 +223,9 @@ export function PageBuilder({
           ))
         )}
       </div>
+
+      {/* النافذة تُغلق بالحفظ، فيُقال النجاح هنا — لا يختفي مع ما أغلقه. */}
+      {editShown.notice ? <p style={OK}>{editShown.notice}</p> : null}
 
       <section style={PANEL}>
         {blockState.error ? <p style={ERR}>{blockState.error}</p> : null}
@@ -231,7 +251,7 @@ export function PageBuilder({
             </Select>
           </Field>
 
-          <BlockFields type={type} values={{}} state={blockState} />
+          <BlockFields scope="add" type={type} values={{}} state={blockState} />
 
           <FormActions>
             <Button type="submit" variant="primary" pending={blockPending}>
@@ -242,22 +262,34 @@ export function PageBuilder({
       </section>
 
       <Modal
-        open={editing !== null}
+        open={editOpen}
         title={editing ? `تعديل — ${BLOCK_LABEL[editing.type]}` : "تعديل"}
         onClose={() => setEditing(null)}
       >
         {editing ? (
-          <ActionForm action={editAction} state={editState}>
+          <ActionForm key={editing.id} action={editAction} state={editShown}>
             <input type="hidden" name="programId" value={programId} />
             <input type="hidden" name="blockId" value={editing.id} />
             {/* النوع لا يُغيَّر: تغييره يُبطل المحتوى كلَّه، فالأصحّ حذفٌ وإضافة. */}
             <input type="hidden" name="blockType" value={editing.type} />
 
-            <BlockFields type={editing.type} values={editing.content} state={editState} />
+            <BlockFields
+              scope="edit"
+              type={editing.type}
+              values={editing.content}
+              state={editShown}
+            />
+
+            {editShown.error ? <p style={ERR}>{editShown.error}</p> : null}
 
             <FormActions>
               <Button onClick={() => setEditing(null)}>إلغاء</Button>
-              <Button type="submit" variant="primary" pending={editPending}>
+              <Button
+                type="submit"
+                variant="primary"
+                pending={editPending}
+                onClick={() => setSubmittedFor(editing.id)}
+              >
                 احفظ
               </Button>
             </FormActions>

@@ -37,6 +37,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   page_block_updated: "تعديل عنصر في الصفحة",
   help_entry_added: "إضافة سؤال شائع",
   help_entry_removed: "حذف سؤال شائع",
+  help_entry_updated: "تعديل سؤال شائع",
   participant_registered: "تسجيل مشارك",
   participant_status_changed: "تغيير حالة مشارك",
   participant_track_assigned: "إسناد مسار لمشارك",

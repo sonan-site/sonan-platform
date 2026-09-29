@@ -59,8 +59,10 @@ async function renumber<T extends { id: string; sort_order: number }>(
   direction: "up" | "down",
 ): Promise<boolean> {
   const index = rows.findIndex((r) => r.id === id);
+  // **الغائب ليس «عند الحافة»:** صفٌّ حُذف من شاشةٍ أخرى كان يُبلَّغ نجاحاً صامتاً.
+  if (index === -1) return false;
   const target = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || target < 0 || target >= rows.length) return true;
+  if (target < 0 || target >= rows.length) return true;
 
   const order = [...rows];
   order[index] = order[target]!;
@@ -113,7 +115,7 @@ export async function addBlock(_prev: FormState, form: FormData): Promise<FormSt
     p_after: { program_id: programId, block_type: type },
   });
 
-  revalidatePath(`/programs/${programId}`);
+  revalidatePath(`/programs/${programId}/page`);
   return { notice: "أُضيف العنصر." };
 }
 
@@ -156,7 +158,7 @@ export async function editBlock(_prev: FormState, form: FormData): Promise<FormS
     p_after: { block_type: rawType },
   });
 
-  revalidatePath(`/programs/${programId}`);
+  revalidatePath(`/programs/${programId}/page`);
   return { notice: "حُفظ العنصر." };
 }
 
@@ -180,7 +182,7 @@ export async function removeBlock(blockId: string, programId: string): Promise<F
     p_entity_id: blockId,
   });
 
-  revalidatePath(`/programs/${programId}`);
+  revalidatePath(`/programs/${programId}/page`);
   return EMPTY_FORM_STATE;
 }
 
@@ -193,7 +195,7 @@ export async function moveBlock(
   if (denied) return denied;
 
   const db = await createClient();
-  const { data } = await db
+  const { data, error } = await db
     .from("page_blocks")
     .select("id, sort_order")
     .eq("program_id", programId)
@@ -201,11 +203,13 @@ export async function moveBlock(
     .order("sort_order")
     .order("created_at");
 
-  if (!(await renumber(db, "page_blocks", data ?? [], blockId, direction))) {
+  // خطأ القراءة كان يُبتلع فيُبلَّغ نجاحاً صامتاً — وهو ما بُني `ActionNotice` لمنعه.
+  if (error || !data) return { error: "تعذّر تحريك العنصر." };
+  if (!(await renumber(db, "page_blocks", data, blockId, direction))) {
     return { error: "تعذّر تحريك العنصر." };
   }
 
-  revalidatePath(`/programs/${programId}`);
+  revalidatePath(`/programs/${programId}/page`);
   return EMPTY_FORM_STATE;
 }
 
@@ -284,6 +288,12 @@ export async function editHelpEntry(_prev: FormState, form: FormData): Promise<F
     .select("id");
   if (error || !data?.length) return { error: "تعذّر حفظ السؤال." };
 
+  await db.rpc("fn_write_audit", {
+    p_action: "help_entry_updated",
+    p_entity_table: "help_entries",
+    p_entity_id: entryId,
+  });
+
   revalidatePath(`/programs/${parsed.data.programId}/faq`);
   return { notice: "حُفظ السؤال." };
 }
@@ -321,7 +331,7 @@ export async function moveHelpEntry(
   if (denied) return denied;
 
   const db = await createClient();
-  const { data } = await db
+  const { data, error } = await db
     .from("help_entries")
     .select("id, sort_order")
     .eq("program_id", programId)
@@ -329,7 +339,8 @@ export async function moveHelpEntry(
     .order("sort_order")
     .order("created_at");
 
-  if (!(await renumber(db, "help_entries", data ?? [], entryId, direction))) {
+  if (error || !data) return { error: "تعذّر تحريك السؤال." };
+  if (!(await renumber(db, "help_entries", data, entryId, direction))) {
     return { error: "تعذّر تحريك السؤال." };
   }
 
@@ -353,6 +364,14 @@ export async function setHelpStatus(
     .eq("program_id", programId)
     .select("id");
   if (error || !data?.length) return { error: "تعذّر تغيير حالة النشر." };
+
+  // النشر يغيّر ما يراه الزائر، فيُكتب كما يُكتب نشر البرنامج.
+  await db.rpc("fn_write_audit", {
+    p_action: "help_entry_updated",
+    p_entity_table: "help_entries",
+    p_entity_id: entryId,
+    p_after: { status },
+  });
 
   revalidatePath(`/programs/${programId}/faq`);
   return EMPTY_FORM_STATE;

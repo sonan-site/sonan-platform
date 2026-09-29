@@ -68,5 +68,12 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
     }),
   };
 
-  return <ProgramView readinessItems={ready.items} program={program} canWrite={canWrite} />;
+  return (
+    <ProgramView
+      readinessItems={ready.items}
+      missing={ready.missing}
+      program={program}
+      canWrite={canWrite}
+    />
+  );
 }

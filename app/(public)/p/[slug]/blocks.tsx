@@ -111,7 +111,7 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
           ) : (
             // مجموعةً مجموعة بترتيب أول سؤالٍ فيها — وما لا مجموعة له يتقدّم بلا عنوان.
             groupFaq(data.faq).map(([category, items]) => (
-              <section key={category || "-"} className={styles.faqGroup}>
+              <section key={`group:${category}`} className={styles.faqGroup}>
                 {category ? <h3 className={styles.faqGroupTitle}>{category}</h3> : null}
                 {items.map((item) => (
                   <details key={item.id} className={styles.faqItem}>

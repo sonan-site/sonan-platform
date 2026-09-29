@@ -72,7 +72,19 @@ export function FaqView({ programId, rows }: { programId: string; rows: FaqRow[]
   const [addState, addAction, addPending] = useActionState(addHelpEntry, EMPTY_FORM_STATE);
   const [editState, editAction, editPending] = useActionState(editHelpEntry, EMPTY_FORM_STATE);
   const [editing, setEditing] = useState<FaqRow | null>(null);
+  // أيُّ صفٍّ تخصّه حالةُ النموذج؟ بلا هذا تظهر أخطاء صفٍّ سابق في نموذج غيره.
+  const [submittedFor, setSubmittedFor] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
+
+  /**
+   * **الإغلاق مشتقٌّ لا أثرٌ جانبي:** النافذة مفتوحةٌ ما لم يُحفظ صفّها.
+   *
+   * وبلا هذا كانت تبقى مفتوحة بعد الحفظ، و`ActionForm` يُعيد الحقول إلى نصّها
+   * **القديم** — فيرى المُعِدّ ما كتبه قد اختفى، ويضغط «احفظ» ثانيةً فيكتب
+   * القديم فوق الجديد. والفشل يُبقيها مفتوحة بخطئه ظاهراً.
+   */
+  const editShown = submittedFor === editing?.id ? editState : EMPTY_FORM_STATE;
+  const editOpen = editing !== null && !editShown.notice;
 
   const published = rows.filter((r) => r.published).length;
 
@@ -130,7 +142,10 @@ export function FaqView({ programId, rows }: { programId: string; rows: FaqRow[]
                 >
                   {r.published ? "إعادة لمسوّدة" : "نشر"}
                 </Button>
-                <Button aria-label="تعديل السؤال" onClick={() => setEditing(r)}>
+                <Button aria-label="تعديل السؤال" onClick={() => {
+                    setSubmittedFor(null);
+                    setEditing(r);
+                  }}>
                   <Pencil size={ICON} aria-hidden />
                 </Button>
                 <Button
@@ -151,6 +166,9 @@ export function FaqView({ programId, rows }: { programId: string; rows: FaqRow[]
         )}
       </div>
 
+      {/* النافذة تُغلق بالحفظ، فيُقال النجاح هنا — لا يختفي مع ما أغلقه. */}
+      {editShown.notice ? <p style={OK}>{editShown.notice}</p> : null}
+
       <section style={PANEL}>
         {addState.error ? <p style={ERR}>{addState.error}</p> : null}
         {addState.notice ? <p style={OK}>{addState.notice}</p> : null}
@@ -166,15 +184,22 @@ export function FaqView({ programId, rows }: { programId: string; rows: FaqRow[]
         </ActionForm>
       </section>
 
-      <Modal open={editing !== null} title="تعديل السؤال" onClose={() => setEditing(null)}>
+      <Modal open={editOpen} title="تعديل السؤال" onClose={() => setEditing(null)}>
         {editing ? (
-          <ActionForm action={editAction} state={editState}>
+          // المفتاح يُعيد بناء النموذج لكل صفّ، فلا تبقى قيمةُ صفٍّ في نموذج غيره.
+          <ActionForm key={editing.id} action={editAction} state={editShown}>
             <input type="hidden" name="programId" value={programId} />
             <input type="hidden" name="entryId" value={editing.id} />
-            <FaqFields row={editing} state={editState} />
+            <FaqFields row={editing} state={editShown} />
+            {editShown.error ? <p style={ERR}>{editShown.error}</p> : null}
             <FormActions>
               <Button onClick={() => setEditing(null)}>إلغاء</Button>
-              <Button type="submit" variant="primary" pending={editPending}>
+              <Button
+                type="submit"
+                variant="primary"
+                pending={editPending}
+                onClick={() => setSubmittedFor(editing.id)}
+              >
                 احفظ
               </Button>
             </FormActions>

@@ -1500,6 +1500,7 @@ export type Database = {
         Args: { p_program_id: string }
         Returns: {
           content_units: number
+          missing: string[]
           participants: number
           public_blocks: number
           published: boolean
@@ -1513,6 +1514,7 @@ export type Database = {
       fn_programs_publish_state: {
         Args: never
         Returns: {
+          can_write: boolean
           id: string
           kind: Database["public"]["Enums"]["program_kind"]
           missing: string[]

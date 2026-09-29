@@ -10,7 +10,15 @@ import { readiness, type ReadinessInput, type ReadinessItem } from "./readiness"
  * الجاهزية، فتُنفَّذ مرة واحدة للطلب.
  */
 export const programReadiness = cache(
-  async (programId: string): Promise<{ input: ReadinessInput; items: ReadinessItem[]; participants: number } | null> => {
+  async (
+    programId: string,
+  ): Promise<{
+    input: ReadinessInput;
+    items: ReadinessItem[];
+    participants: number;
+    /** ما يمنع النشر — **من الحارس نفسه** لا من حسابٍ موازٍ (الهجرة ٠٥١). */
+    missing: string[];
+  } | null> => {
     const db = await createClient();
     const { data, error } = await db.rpc("fn_program_readiness", { p_program_id: programId });
     const row = data?.[0];
@@ -26,6 +34,6 @@ export const programReadiness = cache(
       publicBlocks: row.public_blocks,
       published: row.published ?? false,
     };
-    return { input, items: readiness(input), participants: row.participants };
+    return { input, items: readiness(input), participants: row.participants, missing: row.missing ?? [] };
   },
 );
