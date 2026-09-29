@@ -48,12 +48,9 @@ export default async function ProgramLandingPage({
       .order("sort_order")
       // الفاصل نفسه الذي يرتّب به `moveBlock` — وإلا اختلف الفهرس عند التساوي.
       .order("created_at"),
-    db
-      .from("tracks")
-      .select("id, name, description, capacity")
-      .eq("program_id", program.id)
-      .is("deleted_at", null)
-      .order("sort_order"),
+    // المقاعد المتبقية وعدد الوحدات محسوبان في القاعدة — نداءٌ واحد لا نداء
+    // لكل مسار، وعدّ المشاركين محجوبٌ عن الزائر بسياسته (الهجرة ٠٥٣).
+    db.rpc("fn_public_tracks", { p_program_id: program.id }),
     db
       .from("help_entries")
       .select("id, question, answer, category")
@@ -75,7 +72,15 @@ export default async function ProgramLandingPage({
     participantLabel: program.participant_label,
     // [BR-CAP-01]
     registration: (await registrationStates(db, [program.id])).get(program.id) ?? "closed",
-    tracks: tracksResult.data ?? [],
+    tracks: (tracksResult.data ?? []).map((t) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description ?? "",
+      capacity: t.capacity,
+      taken: t.taken,
+      units: t.units,
+    })),
+    closesAt: program.registration_closes_at,
     faq: faqResult.data ?? [],
     // المرفقات تُوصَل عند بناء رفع الصور. حتى ذلك الحين عنصر الصورة يُتخطّى.
     attachments: new Map<string, string>(),

@@ -6,6 +6,7 @@ import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { blockInput } from "@/lib/programs/block-input";
 import { BLOCK_SCHEMAS, isBlockType, type BlockType } from "@/lib/programs/blocks";
 
 /**
@@ -32,16 +33,7 @@ const helpSchema = z.object({
 
 /** حقول المحتوى كما تصل من النموذج — واحدةٌ للإضافة والتعديل، فلا تفترقان. */
 function blockContent(type: BlockType, form: FormData) {
-  return BLOCK_SCHEMAS[type].safeParse({
-    title: form.get("title") ?? undefined,
-    subtitle: form.get("subtitle") ?? undefined,
-    heading: form.get("heading") ?? undefined,
-    text: form.get("text") ?? undefined,
-    alt: form.get("alt") ?? undefined,
-    attachmentId: form.get("attachmentId") ?? undefined,
-    buttonLabel: form.get("buttonLabel") ?? undefined,
-    showCapacity: form.get("showCapacity") === "on",
-  });
+  return BLOCK_SCHEMAS[type].safeParse(blockInput(type, form));
 }
 
 /**

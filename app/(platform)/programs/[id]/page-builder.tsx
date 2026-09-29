@@ -4,11 +4,12 @@ import { reportAction } from "@/components/shared/action-notice";
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { ActionForm } from "@/components/shared/action-form";
-import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
+import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
-import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
+import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
 import { addAdmissionQuestion, removeAdmissionQuestion } from "./participant-actions";
+import { BlockFields } from "./block-fields";
 import { addBlock, editBlock, moveBlock, removeBlock } from "./page-actions";
 
 export type BlockRow = {
@@ -23,13 +24,6 @@ export type AdmissionRow = {
   question: string;
   required: boolean;
   trackName: string | null;
-};
-
-/** تلميح العناصر التي تُملأ من بيانات البرنامج نفسه. */
-const BLOCK_HINT: Partial<Record<BlockType, string>> = {
-  tracks: "تُعرض مسارات البرنامج كما أدخلتها",
-  faq: "تُعرض الأسئلة الشائعة المنشورة في تبويبها",
-  registration: "يُفتح الزر حين يكون التسجيل مفتوحاً",
 };
 
 const PANEL = { maxInlineSize: "var(--form-max)", marginBlockEnd: "var(--space-6)" } as const;
@@ -51,89 +45,6 @@ const META = { color: "var(--color-text-subtle)", fontSize: "var(--text-xs)" } a
 const SPACER = { marginInlineStart: "auto", display: "flex", gap: "var(--space-2)" } as const;
 
 const ICON = 16;
-
-const text = (value: unknown): string => (typeof value === "string" ? value : "");
-
-/**
- * حقول المحتوى — **واحدةٌ للإضافة والتعديل**.
- *
- * كانت الحقول مكتوبةً في نموذج الإضافة وحده، ولا تعديل في المنصة أصلاً: من
- * أراد تصحيح حرفٍ حذف العنصر وأعاده، فيذهب إلى آخر الصفحة. ومشاركتُها هنا
- * تمنع أن يفترق النموذجان بحقلٍ ينساه أحدهما.
- */
-function BlockFields({
-  scope,
-  type,
-  values,
-  state,
-}: {
-  /** «إضافة» أو «تعديل» — النموذجان مُركَّبان معاً، فالمعرّف بالنوع وحده يتكرّر. */
-  scope: string;
-  type: BlockType;
-  values: Record<string, unknown>;
-  state: FormState;
-}) {
-  const id = (name: string) => `${scope}-${type}-${name}`;
-
-  return (
-    <>
-      {type === "header" ? (
-        <>
-          <Field id={id("title")} label="العنوان" required error={state.fieldErrors?.["title"]}>
-            <Input id={id("title")} name="title" defaultValue={text(values["title"])} required />
-          </Field>
-          <Field id={id("subtitle")} label="النبذة">
-            <Input id={id("subtitle")} name="subtitle" defaultValue={text(values["subtitle"])} />
-          </Field>
-        </>
-      ) : null}
-
-      {type === "free_text" ? (
-        <>
-          <Field id={id("heading")} label="عنوان الفقرة">
-            <Input id={id("heading")} name="heading" defaultValue={text(values["heading"])} />
-          </Field>
-          <Field id={id("text")} label="النص" required error={state.fieldErrors?.["text"]} span="full">
-            <Textarea
-              id={id("text")}
-              name="text"
-              rows={5}
-              defaultValue={text(values["text"])}
-              required
-            />
-          </Field>
-        </>
-      ) : null}
-
-      {type === "tracks" || type === "faq" || type === "registration" ? (
-        <Field id={id("heading")} label="العنوان" hint={BLOCK_HINT[type]}>
-          <Input id={id("heading")} name="heading" defaultValue={text(values["heading"])} />
-        </Field>
-      ) : null}
-
-      {type === "tracks" ? (
-        <Field id={id("showCapacity")} label="اعرض المقاعد" hint="المتبقي من سعة كل مسار">
-          <input
-            id={id("showCapacity")}
-            name="showCapacity"
-            type="checkbox"
-            defaultChecked={values["showCapacity"] === true}
-          />
-        </Field>
-      ) : null}
-
-      {type === "registration" ? (
-        <Field id={id("buttonLabel")} label="نصّ الزر">
-          <Input
-            id={id("buttonLabel")}
-            name="buttonLabel"
-            defaultValue={text(values["buttonLabel"]) || "سجّل في البرنامج"}
-          />
-        </Field>
-      ) : null}
-    </>
-  );
-}
 
 export function PageBuilder({
   programId,

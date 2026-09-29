@@ -161,3 +161,219 @@
   font-weight: var(--weight-bold);
   color: var(--color-text-muted);
 }
+
+/* ══ الغلاف ══ */
+
+.hero {
+  padding-block: var(--space-12);
+  text-align: center;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+}
+
+.heroText {
+  max-inline-size: 62ch;
+  margin: var(--space-4) auto 0;
+  color: var(--color-text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-block-start: var(--space-6);
+}
+
+/* الزرّ الثانوي شبحٌ: الفعل الأول يُرى أولاً (ق-١٧). */
+.heroGhost {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-6);
+  color: var(--color-brand);
+  text-decoration: none;
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-full);
+  transition: background var(--motion-fast) var(--ease-out);
+}
+
+.heroGhost:hover {
+  background: var(--color-surface-sunken);
+}
+
+.heroGhost:active {
+  scale: var(--press-scale);
+}
+
+/* ══ العدّاد ══ */
+
+.countdownBox {
+  text-align: center;
+}
+
+.countdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: center;
+}
+
+.countdownPart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-inline-size: 4rem;
+  padding: var(--space-3);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-md);
+}
+
+.countdownValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.countdownUnit {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.countdownEnded {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+}
+
+/* ══ الأرقام ══ */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.statValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-brand);
+  line-height: var(--leading-tight);
+}
+
+.statLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ══ المراحل ══ */
+
+/* خطٌّ واحد تتعلّق به المراحل — بدايته جهة البداية في الاتجاهين. */
+.timeline {
+  margin: 0;
+  padding-inline-start: var(--space-6);
+  list-style: none;
+  border-inline-start: 2px solid var(--color-brand-divider);
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-block-end: var(--space-6);
+}
+
+.stage::before {
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--space-6) - 5px);
+  inset-block-start: var(--space-1);
+  inline-size: 8px;
+  block-size: 8px;
+  content: "";
+  background: var(--color-brand);
+  border-radius: var(--radius-full);
+}
+
+.stageTitle {
+  font-weight: var(--weight-bold);
+}
+
+.stageDates {
+  font-size: var(--text-sm);
+  color: var(--color-brand);
+}
+
+.stageNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+/* ══ الشروط ══ */
+
+.terms {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  line-height: var(--leading-relaxed);
+}
+
+/* ══ بطاقات المسارات ══ */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.cardName {
+  font-weight: var(--weight-bold);
+}
+
+.cardFigure {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-brand);
+  line-height: var(--leading-tight);
+}
+
+.cardNote {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+.cardSeats {
+  margin-block-start: auto;
+  font-size: var(--text-sm);
+  color: var(--color-success);
+}
+
+/* المكتمل يُقال صراحةً لا برقمٍ صفر. */
+.cardFull {
+  margin-block-start: auto;
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+}

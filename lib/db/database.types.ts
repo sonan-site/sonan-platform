@@ -1525,6 +1525,17 @@ export type Database = {
           status: Database["public"]["Enums"]["program_status"]
         }[]
       }
+      fn_public_tracks: {
+        Args: { p_program_id: string }
+        Returns: {
+          capacity: number
+          description: string
+          id: string
+          name: string
+          taken: number
+          units: number
+        }[]
+      }
       fn_purge_account: { Args: { p_user_id: string }; Returns: undefined }
       fn_quick_setup: {
         Args: {
@@ -1592,6 +1603,13 @@ export type Database = {
         | "tracks"
         | "faq"
         | "registration"
+        | "hero"
+        | "countdown"
+        | "stats"
+        | "timeline"
+        | "prizes"
+        | "terms"
+        | "cta"
       change_direction: "up" | "down"
       day_type: "normal" | "rest" | "exam"
       exam_stage: "interim" | "final"
@@ -1744,6 +1762,13 @@ export const Constants = {
         "tracks",
         "faq",
         "registration",
+        "hero",
+        "countdown",
+        "stats",
+        "timeline",
+        "prizes",
+        "terms",
+        "cta",
       ],
       change_direction: ["up", "down"],
       day_type: ["normal", "rest", "exam"],

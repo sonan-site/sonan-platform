@@ -6,6 +6,7 @@ import {
   REGISTRATION_LABEL,
   type RegistrationState,
 } from "@/lib/programs/registration";
+import { Countdown } from "./countdown";
 import styles from "./blocks.module.css";
 
 /**
@@ -27,7 +28,18 @@ export type BlockData = {
   programSummary: string;
   participantLabel: string;
   registration: RegistrationState;
-  tracks: { id: string; name: string; description: string; capacity: number | null }[];
+  tracks: {
+    id: string;
+    name: string;
+    description: string;
+    capacity: number | null;
+    /** المأخوذ من مقاعد المسار — يُشتقّ منه المتبقي، ولا يُعرَض العدد نفسه. */
+    taken: number;
+    /** عدد وحدات المادة في نصيب المسار. */
+    units: number;
+  }[];
+  /** موعد إغلاق التسجيل — للعدّاد. فارغ = بلا موعد. */
+  closesAt: string | null;
   faq: { id: string; question: string; answer: string; category: string }[];
   attachments: Map<string, string>;
 };
@@ -85,21 +97,148 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
           {data.tracks.length === 0 ? (
             <p className={styles.hint}>لم تُعلَن المسارات بعد.</p>
           ) : (
-            <div className={styles.rows}>
-              {data.tracks.map((t) => (
-                <div key={t.id} className={styles.row}>
-                  <span>{t.name}</span>
-                  <span className={styles.rowMeta}>
-                    {t.description}
-                    {c["showCapacity"] && t.capacity !== null
-                      ? ` · السعة ${formatNumber(t.capacity)}`
-                      : ""}
-                  </span>
-                </div>
-              ))}
+            <div className={styles.cards}>
+              {data.tracks.map((t) => {
+                // **المتبقي لا العدد**: كم بقي لك، لا كم سبقك — والمقعد السالب صفر.
+                const left = t.capacity === null ? null : Math.max(0, t.capacity - t.taken);
+                return (
+                  <div key={t.id} className={styles.card}>
+                    <span className={styles.cardName}>{t.name}</span>
+                    {c["showUnits"] && t.units > 0 ? (
+                      <span className={styles.cardFigure}>{formatNumber(t.units)}</span>
+                    ) : null}
+                    {t.description ? (
+                      <span className={styles.cardNote}>{t.description}</span>
+                    ) : null}
+                    {c["showCapacity"] && left !== null ? (
+                      <span className={left === 0 ? styles.cardFull : styles.cardSeats}>
+                        {left === 0
+                          ? "اكتملت المقاعد"
+                          : `متبقٍ ${formatNumber(left)} من ${formatNumber(t.capacity ?? 0)} مقعداً`}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
+      );
+
+    case "hero":
+      return (
+        <div className={styles.hero}>
+          <h1 className={styles.heroTitle}>{String(c["title"])}</h1>
+          {c["subtitle"] ? <p className={styles.heroText}>{String(c["subtitle"])}</p> : null}
+          {c["primaryLabel"] || c["secondaryLabel"] ? (
+            <span className={styles.heroActions}>
+              {c["primaryLabel"] ? (
+                <Link href={String(c["primaryHref"] || "#")} className={styles.ctaButton}>
+                  {String(c["primaryLabel"])}
+                </Link>
+              ) : null}
+              {c["secondaryLabel"] ? (
+                <Link href={String(c["secondaryHref"] || "#")} className={styles.heroGhost}>
+                  {String(c["secondaryLabel"])}
+                </Link>
+              ) : null}
+            </span>
+          ) : null}
+        </div>
+      );
+
+    case "countdown":
+      // بلا موعد إغلاقٍ في البرنامج لا عدّاد — ولا يُخترَع له تاريخ.
+      if (!data.closesAt) return null;
+      return (
+        <div className={styles.countdownBox}>
+          <h2 className={styles.heading}>{String(c["heading"])}</h2>
+          <Countdown closesAt={data.closesAt} endedText={String(c["endedText"])} />
+        </div>
+      );
+
+    case "stats": {
+      const items = Array.isArray(c["items"]) ? (c["items"] as Record<string, string>[]) : [];
+      if (items.length === 0) return null;
+      return (
+        <>
+          {c["heading"] ? <h2 className={styles.heading}>{String(c["heading"])}</h2> : null}
+          <div className={styles.stats}>
+            {items.map((item, i) => (
+              <span key={i} className={styles.stat}>
+                <span className={`${styles.statValue} tabular`}>{item["value"]}</span>
+                <span className={styles.statLabel}>{item["label"]}</span>
+              </span>
+            ))}
+          </div>
+        </>
+      );
+    }
+
+    case "timeline": {
+      const stages = Array.isArray(c["stages"]) ? (c["stages"] as Record<string, string>[]) : [];
+      if (stages.length === 0) return null;
+      return (
+        <>
+          <h2 className={styles.heading}>{String(c["heading"])}</h2>
+          <ol className={styles.timeline}>
+            {stages.map((stage, i) => (
+              <li key={i} className={styles.stage}>
+                <span className={styles.stageTitle}>{stage["title"]}</span>
+                {stage["dates"] ? <span className={styles.stageDates}>{stage["dates"]}</span> : null}
+                {stage["note"] ? <span className={styles.stageNote}>{stage["note"]}</span> : null}
+              </li>
+            ))}
+          </ol>
+        </>
+      );
+    }
+
+    case "prizes": {
+      const places = Array.isArray(c["places"]) ? (c["places"] as Record<string, string>[]) : [];
+      if (places.length === 0) return null;
+      return (
+        <>
+          <h2 className={styles.heading}>{String(c["heading"])}</h2>
+          <div className={styles.rows}>
+            {places.map((place, i) => (
+              <div key={i} className={styles.row}>
+                <span>{place["label"]}</span>
+                <span className={`${styles.rowMeta} tabular`}>{place["value"]}</span>
+              </div>
+            ))}
+          </div>
+          {c["note"] ? <p className={styles.hint}>{String(c["note"])}</p> : null}
+        </>
+      );
+    }
+
+    case "terms": {
+      const items = Array.isArray(c["items"]) ? (c["items"] as string[]) : [];
+      if (items.length === 0) return null;
+      return (
+        <>
+          <h2 className={styles.heading}>{String(c["heading"])}</h2>
+          <ul className={styles.terms}>
+            {items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        </>
+      );
+    }
+
+    case "cta":
+      return (
+        <div className={styles.cta}>
+          {c["heading"] ? <h2 className={styles.heading}>{String(c["heading"])}</h2> : null}
+          <p className={styles.text}>{String(c["text"])}</p>
+          {c["buttonLabel"] ? (
+            <Link href={String(c["buttonHref"] || "#")} className={styles.ctaButton}>
+              {String(c["buttonLabel"])}
+            </Link>
+          ) : null}
+        </div>
       );
 
     case "faq":

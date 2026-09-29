@@ -293,13 +293,15 @@
 | `sort_order` | int | قابل للتحريك |
 | `content` | jsonb | حسب النوع · بمخطط Zod وقيد `CHECK` على المفاتيح الإلزامية (`adr/0012`) |
 
-`block_type`: `header` · `free_text` · `image` · `tracks` · `faq` · `registration`
+`block_type`: `header` · `hero` · `free_text` · `image` · `countdown` · `stats` · `timeline` · `tracks` · `prizes` · `terms` · `registration` · `faq` · `cta`
 
 | الصنف | الأنواع | ما يحمله `content` |
 |---|---|---|
-| محتوى | `header` · `free_text` · `image` | نصّه أو مرجع المرفق |
-| عرض بيانات | `tracks` · `faq` | إعدادات العرض فقط — البيانات مولَّدة |
-| إجراء | `registration` | إعدادات فقط |
+| محتوى | `header` · `hero` · `free_text` · `image` · `stats` · `timeline` · `prizes` · `terms` | نصّه أو قوائمه أو مرجع المرفق |
+| عرض بيانات | `countdown` · `tracks` · `faq` | إعدادات العرض فقط — البيانات مولَّدة |
+| إجراء | `registration` · `cta` | إعدادات فقط |
+
+**وما يُشتقّ من القاعدة لا يُكتب باليد** (`adr/0035`): موعدُ العدّاد من `registration_closes_at`، والمقاعد المتبقية وعددُ الوحدات من `fn_public_tracks`. فلا رقمٌ في الصفحة يناقض رقماً في المنصة.
 
 **يجوز تكرار النوع الواحد.** ولا حالة نشر للصفحة — تتبع `programs.status`.
 
