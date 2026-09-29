@@ -1,0 +1,32 @@
+/*
+ * تبويبا قسم البرامج — الشكل نفسه في «الإدارة» وفي شاشة البرنامج، فلا يتعلّم
+ * المستخدم تبويبات ثالثة.
+ */
+
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-block-end: var(--space-6);
+  overflow-x: auto;
+  border-block-end: 1px solid var(--color-border);
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  border-block-end: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabCurrent {
+  color: var(--color-brand);
+  font-weight: var(--weight-medium);
+  border-block-end-color: var(--color-brand);
+}

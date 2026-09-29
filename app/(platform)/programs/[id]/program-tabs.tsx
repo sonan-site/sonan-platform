@@ -29,6 +29,7 @@ export function ProgramTabs({
     { href: `${base}/content`, label: "المادة", show: canWrite },
     { href: `${base}/plans`, label: "الخطط", show: canWrite },
     { href: `${base}/page`, label: "الصفحة المعلنة", show: canWrite },
+    { href: `${base}/faq`, label: "الأسئلة الشائعة", show: canWrite },
     { href: `${base}/participants`, label: "المشاركون", show: canReadParticipants },
   ].filter((t) => t.show);
 

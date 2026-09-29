@@ -54,11 +54,12 @@ export default async function ProgramLandingPage({
       .order("sort_order"),
     db
       .from("help_entries")
-      .select("id, question, answer")
+      .select("id, question, answer, category")
       .eq("program_id", program.id)
       .eq("status", "published")
       .is("deleted_at", null)
-      .order("sort_order"),
+      .order("sort_order")
+      .order("created_at"),
   ]);
 
   const blocks: PageBlock[] = (blocksResult.data ?? [])

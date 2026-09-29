@@ -149,3 +149,15 @@
   border: 1px solid var(--color-success);
   background: var(--color-success-surface);
 }
+
+/* مجموعات الأسئلة الشائعة: عنوانٌ خفيف يفصل، لا إطارٌ يزاحم الأسئلة. */
+.faqGroup {
+  margin-block-end: var(--space-6);
+}
+
+.faqGroupTitle {
+  margin-block: var(--space-4) var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { ProgramsTabs } from "./programs-tabs";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -88,6 +89,7 @@ export function ProgramsView({
         title="البرامج"
         lede="القسم حاوية تجمع برامج الجمعية عبر السنوات، والبرنامج دورة واحدة بمساراتها ومادتها وخطتها."
       />
+      <ProgramsTabs />
 
       {canWriteSections ? (
         <Step

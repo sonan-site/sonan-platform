@@ -1,26 +1,23 @@
 "use client";
 
 import { reportAction } from "@/components/shared/action-notice";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
-import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
-import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
-import {
-  addAdmissionQuestion,
-  removeAdmissionQuestion,
-} from "./participant-actions";
-import {
-  addBlock,
-  addHelpEntry,
-  moveBlock,
-  removeBlock,
-  setHelpStatus,
-} from "./page-actions";
 import { ActionForm } from "@/components/shared/action-form";
+import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
+import { Modal } from "@/components/shared/modal";
+import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
+import { BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
+import { addAdmissionQuestion, removeAdmissionQuestion } from "./participant-actions";
+import { addBlock, editBlock, moveBlock, removeBlock } from "./page-actions";
 
-export type BlockRow = { id: string; type: BlockType; summary: string };
-export type HelpRow = { id: string; question: string; published: boolean };
+export type BlockRow = {
+  id: string;
+  type: BlockType;
+  summary: string;
+  /** محتوى العنصر كما هو — يملأ نموذج التعديل. */
+  content: Record<string, unknown>;
+};
 export type AdmissionRow = {
   id: string;
   question: string;
@@ -31,7 +28,7 @@ export type AdmissionRow = {
 /** تلميح العناصر التي تُملأ من بيانات البرنامج نفسه. */
 const BLOCK_HINT: Partial<Record<BlockType, string>> = {
   tracks: "تُعرض مسارات البرنامج كما أدخلتها",
-  faq: "تُعرض الأسئلة الشائعة المنشورة أدناه",
+  faq: "تُعرض الأسئلة الشائعة المنشورة في تبويبها",
   registration: "يُفتح الزر حين يكون التسجيل مفتوحاً",
 };
 
@@ -55,26 +52,102 @@ const SPACER = { marginInlineStart: "auto", display: "flex", gap: "var(--space-2
 
 const ICON = 16;
 
+const text = (value: unknown): string => (typeof value === "string" ? value : "");
+
+/**
+ * حقول المحتوى — **واحدةٌ للإضافة والتعديل**.
+ *
+ * كانت الحقول مكتوبةً في نموذج الإضافة وحده، ولا تعديل في المنصة أصلاً: من
+ * أراد تصحيح حرفٍ حذف العنصر وأعاده، فيذهب إلى آخر الصفحة. ومشاركتُها هنا
+ * تمنع أن يفترق النموذجان بحقلٍ ينساه أحدهما.
+ */
+function BlockFields({
+  type,
+  values,
+  state,
+}: {
+  type: BlockType;
+  values: Record<string, unknown>;
+  state: FormState;
+}) {
+  const id = (name: string) => `${type}-${name}`;
+
+  return (
+    <>
+      {type === "header" ? (
+        <>
+          <Field id={id("title")} label="العنوان" required error={state.fieldErrors?.["title"]}>
+            <Input id={id("title")} name="title" defaultValue={text(values["title"])} required />
+          </Field>
+          <Field id={id("subtitle")} label="النبذة">
+            <Input id={id("subtitle")} name="subtitle" defaultValue={text(values["subtitle"])} />
+          </Field>
+        </>
+      ) : null}
+
+      {type === "free_text" ? (
+        <>
+          <Field id={id("heading")} label="عنوان الفقرة">
+            <Input id={id("heading")} name="heading" defaultValue={text(values["heading"])} />
+          </Field>
+          <Field id={id("text")} label="النص" required error={state.fieldErrors?.["text"]}>
+            <Textarea
+              id={id("text")}
+              name="text"
+              rows={5}
+              defaultValue={text(values["text"])}
+              required
+            />
+          </Field>
+        </>
+      ) : null}
+
+      {type === "tracks" || type === "faq" || type === "registration" ? (
+        <Field id={id("heading")} label="العنوان" hint={BLOCK_HINT[type]}>
+          <Input id={id("heading")} name="heading" defaultValue={text(values["heading"])} />
+        </Field>
+      ) : null}
+
+      {type === "tracks" ? (
+        <Field id={id("showCapacity")} label="اعرض المقاعد" hint="المتبقي من سعة كل مسار">
+          <input
+            id={id("showCapacity")}
+            name="showCapacity"
+            type="checkbox"
+            defaultChecked={values["showCapacity"] === true}
+          />
+        </Field>
+      ) : null}
+
+      {type === "registration" ? (
+        <Field id={id("buttonLabel")} label="نصّ الزر">
+          <Input
+            id={id("buttonLabel")}
+            name="buttonLabel"
+            defaultValue={text(values["buttonLabel"]) || "سجّل في البرنامج"}
+          />
+        </Field>
+      ) : null}
+    </>
+  );
+}
+
 export function PageBuilder({
   programId,
   blocks,
-  help,
   admission,
   tracks,
 }: {
   programId: string;
   blocks: BlockRow[];
-  help: HelpRow[];
   admission: AdmissionRow[];
   tracks: { id: string; name: string }[];
 }) {
   const [blockState, blockAction, blockPending] = useActionState(addBlock, EMPTY_FORM_STATE);
-  const [helpState, helpAction, helpPending] = useActionState(addHelpEntry, EMPTY_FORM_STATE);
-  const [admState, admAction, admPending] = useActionState(
-    addAdmissionQuestion,
-    EMPTY_FORM_STATE,
-  );
+  const [editState, editAction, editPending] = useActionState(editBlock, EMPTY_FORM_STATE);
+  const [admState, admAction, admPending] = useActionState(addAdmissionQuestion, EMPTY_FORM_STATE);
   const [type, setType] = useState<BlockType>("header");
+  const [editing, setEditing] = useState<BlockRow | null>(null);
   const [busy, startTransition] = useTransition();
 
   return (
@@ -108,10 +181,15 @@ export function PageBuilder({
                   disabled={i === blocks.length - 1}
                   pending={busy}
                   onClick={() =>
-                    startTransition(async () => reportAction(await moveBlock(b.id, programId, "down")))
+                    startTransition(async () =>
+                      reportAction(await moveBlock(b.id, programId, "down")),
+                    )
                   }
                 >
                   <ChevronDown size={ICON} aria-hidden />
+                </Button>
+                <Button aria-label="تعديل العنصر" onClick={() => setEditing(b)}>
+                  <Pencil size={ICON} aria-hidden />
                 </Button>
                 <Button
                   aria-label="حذف العنصر"
@@ -153,43 +231,7 @@ export function PageBuilder({
             </Select>
           </Field>
 
-          {type === "header" ? (
-            <>
-              <Field id="title" label="العنوان" required error={blockState.fieldErrors?.["title"]}>
-                <Input id="title" name="title" required />
-              </Field>
-              <Field id="subtitle" label="النبذة">
-                <Input id="subtitle" name="subtitle" />
-              </Field>
-            </>
-          ) : null}
-
-          {type === "free_text" ? (
-            <>
-              <Field id="heading" label="عنوان الفقرة">
-                <Input id="heading" name="heading" />
-              </Field>
-              <Field id="text" label="النص" required error={blockState.fieldErrors?.["text"]}>
-                <Textarea id="text" name="text" rows={5} required />
-              </Field>
-            </>
-          ) : null}
-
-          {type === "tracks" || type === "faq" || type === "registration" ? (
-            <Field
-              id="heading"
-              label="العنوان"
-              hint={BLOCK_HINT[type]}
-            >
-              <Input id="heading" name="heading" />
-            </Field>
-          ) : null}
-
-          {type === "registration" ? (
-            <Field id="buttonLabel" label="نصّ الزر">
-              <Input id="buttonLabel" name="buttonLabel" defaultValue="سجّل في البرنامج" />
-            </Field>
-          ) : null}
+          <BlockFields type={type} values={{}} state={blockState} />
 
           <FormActions>
             <Button type="submit" variant="primary" pending={blockPending}>
@@ -199,63 +241,32 @@ export function PageBuilder({
         </ActionForm>
       </section>
 
-      <h2 style={H2}>الأسئلة الشائعة</h2>
-      <p style={META}>تظهر في عنصر «الأسئلة الشائعة» بالصفحة. المنشور منها وحده يراه الزائر.</p>
+      <Modal
+        open={editing !== null}
+        title={editing ? `تعديل — ${BLOCK_LABEL[editing.type]}` : "تعديل"}
+        onClose={() => setEditing(null)}
+      >
+        {editing ? (
+          <ActionForm action={editAction} state={editState}>
+            <input type="hidden" name="programId" value={programId} />
+            <input type="hidden" name="blockId" value={editing.id} />
+            {/* النوع لا يُغيَّر: تغييره يُبطل المحتوى كلَّه، فالأصحّ حذفٌ وإضافة. */}
+            <input type="hidden" name="blockType" value={editing.type} />
 
-      <div style={LIST}>
-        {help.length === 0 ? (
-          <p style={META}>لا أسئلة بعد.</p>
-        ) : (
-          help.map((h) => (
-            <div key={h.id} style={ITEM}>
-              <span>{h.question}</span>
-              <span style={META}>{h.published ? "منشور" : "مسوّدة"}</span>
-              <div style={SPACER}>
-                <Button
-                  pending={busy}
-                  onClick={() =>
-                    startTransition(
-                      async () =>
-                        reportAction(await setHelpStatus(
-                          h.id,
-                          programId,
-                          h.published ? "draft" : "published",
-                        )),
-                    )
-                  }
-                >
-                  {h.published ? "إعادة لمسوّدة" : "نشر"}
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+            <BlockFields type={editing.type} values={editing.content} state={editState} />
 
-      <section style={PANEL}>
-        {helpState.error ? <p style={ERR}>{helpState.error}</p> : null}
-        {helpState.notice ? <p style={OK}>{helpState.notice}</p> : null}
-
-        <ActionForm action={helpAction} state={helpState}>
-          <input type="hidden" name="programId" value={programId} />
-          <Field id="question" label="السؤال" required error={helpState.fieldErrors?.["question"]}>
-            <Input id="question" name="question" required />
-          </Field>
-          <Field id="answer" label="الجواب" required error={helpState.fieldErrors?.["answer"]}>
-            <Textarea id="answer" name="answer" required />
-          </Field>
-          <FormActions>
-            <Button type="submit" variant="primary" pending={helpPending}>
-              إضافة سؤال
-            </Button>
-          </FormActions>
-        </ActionForm>
-      </section>
+            <FormActions>
+              <Button onClick={() => setEditing(null)}>إلغاء</Button>
+              <Button type="submit" variant="primary" pending={editPending}>
+                احفظ
+              </Button>
+            </FormActions>
+          </ActionForm>
+        ) : null}
+      </Modal>
 
       <h2 style={H2}>أسئلة القبول التلقائي</h2>
-      <p style={META}>
-        يجيب عنها المتقدّم عند التسجيل. من أجاب عن الإلزامية منها قُبل فوراً.
-      </p>
+      <p style={META}>يجيب عنها المتقدّم عند التسجيل. من أجاب عن الإلزامية منها قُبل فوراً.</p>
 
       <div style={LIST}>
         {admission.length === 0 ? (
@@ -270,11 +281,12 @@ export function PageBuilder({
               </span>
               <div style={SPACER}>
                 <Button
+                  aria-label="حذف السؤال"
                   variant="danger"
                   pending={busy}
                   onClick={() =>
-                    startTransition(
-                      async () => reportAction(await removeAdmissionQuestion(q.id, programId)),
+                    startTransition(async () =>
+                      reportAction(await removeAdmissionQuestion(q.id, programId)),
                     )
                   }
                 >
@@ -320,7 +332,6 @@ export function PageBuilder({
           </FormActions>
         </ActionForm>
       </section>
-
     </>
   );
 }

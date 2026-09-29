@@ -315,3 +315,47 @@ export async function updateTrack(
   revalidatePath(`/programs/${programId}`);
   return { notice: "عُدِّل المسار." };
 }
+
+/**
+ * ترتيب البرنامج في المتجر العام.
+ *
+ * **بصلاحية عامة لا بنطاق برنامج:** الترتيب يمسّ الواجهة كلها، فمنسّقُ برنامجٍ
+ * واحد لا يقدّم برنامجه على غيره. وإعادةُ ترقيمٍ صريحة لا تبديل — الأرقام
+ * كلها صفرٌ قبل أول ترتيب، وتبديل صفرين لا يحرّك شيئاً.
+ */
+export async function moveProgram(
+  programId: string,
+  direction: "up" | "down",
+): Promise<FormState> {
+  if (!z.uuid().safeParse(programId).success) return { error: "برنامج غير معروف." };
+
+  const authz = await authorizeRequest({ permission: "programs.write", programId: null });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data } = await db
+    .from("programs")
+    .select("id, sort_order")
+    .is("deleted_at", null)
+    .order("sort_order")
+    .order("created_at", { ascending: false });
+
+  const rows = data ?? [];
+  const index = rows.findIndex((p) => p.id === programId);
+  const target = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || target < 0 || target >= rows.length) return EMPTY_FORM_STATE;
+
+  const order = [...rows];
+  order[index] = order[target]!;
+  order[target] = rows[index]!;
+
+  for (const [position, row] of order.entries()) {
+    if (row.sort_order === position) continue;
+    const { error } = await db.from("programs").update({ sort_order: position }).eq("id", row.id);
+    if (error) return { error: "تعذّر تغيير الترتيب." };
+  }
+
+  revalidatePath("/programs/publish");
+  revalidatePath("/");
+  return EMPTY_FORM_STATE;
+}

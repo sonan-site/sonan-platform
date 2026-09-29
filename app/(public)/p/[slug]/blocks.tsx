@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import { parseBlockContent, type BlockType } from "@/lib/programs/blocks";
+import { groupFaq } from "@/lib/programs/faq";
 import {
   REGISTRATION_LABEL,
   type RegistrationState,
@@ -27,7 +28,7 @@ export type BlockData = {
   participantLabel: string;
   registration: RegistrationState;
   tracks: { id: string; name: string; description: string; capacity: number | null }[];
-  faq: { id: string; question: string; answer: string }[];
+  faq: { id: string; question: string; answer: string; category: string }[];
   attachments: Map<string, string>;
 };
 
@@ -108,11 +109,17 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
           {data.faq.length === 0 ? (
             <p className={styles.hint}>لا أسئلة منشورة بعد.</p>
           ) : (
-            data.faq.map((item) => (
-              <details key={item.id} className={styles.faqItem}>
-                <summary className={styles.faqQuestion}>{item.question}</summary>
-                <p className={styles.faqAnswer}>{item.answer}</p>
-              </details>
+            // مجموعةً مجموعة بترتيب أول سؤالٍ فيها — وما لا مجموعة له يتقدّم بلا عنوان.
+            groupFaq(data.faq).map(([category, items]) => (
+              <section key={category || "-"} className={styles.faqGroup}>
+                {category ? <h3 className={styles.faqGroupTitle}>{category}</h3> : null}
+                {items.map((item) => (
+                  <details key={item.id} className={styles.faqItem}>
+                    <summary className={styles.faqQuestion}>{item.question}</summary>
+                    <p className={styles.faqAnswer}>{item.answer}</p>
+                  </details>
+                ))}
+              </section>
             ))
           )}
         </>

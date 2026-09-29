@@ -164,6 +164,7 @@
 | `name` | text | |
 | `summary` | text | النبذة في بطاقة المتجر العام |
 | `slug` | text · فريد | رابط الصفحة المعلنة |
+| `sort_order` | int | ترتيب البطاقة في المتجر العام — الأصغر أولاً، ثم الأحدث عند التساوي |
 | `kind` | enum `program_kind` | `competition` مبني · الآخران محجوزان (`adr/0003`) |
 | `participant_label` | text | «متسابق» — **نصّ لا enum** |
 | `status` | enum `program_status` | `draft` · `published` · `closed` |
@@ -310,9 +311,10 @@
 | `question` | text | |
 | `answer` | text | |
 | `status` | enum `publish_status` | `draft` · `published` |
-| `sort_order` | int | |
+| `sort_order` | int | يُحسب عند الإضافة — لا يُترك صفراً فيصير الترتيب بلا معنى |
+| `category` | text | مجموعة السؤال في الصفحة («التسجيل» · «الجوائز»…). فارغة = بلا مجموعة، تُعرض أولاً |
 
-**ليست نظام تذاكر.** سجل إداري يُدار هنا ويُعرَض في عنصر `faq`.
+**ليست نظام تذاكر.** سجل إداري يُدار هنا ويُعرَض في عنصر `faq`، **مجموعةً مجموعة بترتيب أول سؤالٍ فيها**.
 
 ---
 

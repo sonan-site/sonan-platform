@@ -32,6 +32,8 @@ export default async function StorePage() {
       "id, name, slug, summary, status, capacity, participant_label, registration_opens_at, registration_closes_at",
     )
     .is("deleted_at", null)
+    // ترتيب الإدارة أولاً، ثم الأحدث عند التساوي — فالبرنامج الأولى بالواجهة يتقدّم.
+    .order("sort_order")
     .order("created_at", { ascending: false });
 
   if (error) {

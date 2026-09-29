@@ -457,6 +457,7 @@ export type Database = {
       help_entries: {
         Row: {
           answer: string
+          category: string
           created_at: string
           deleted_at: string | null
           id: string
@@ -468,6 +469,7 @@ export type Database = {
         }
         Insert: {
           answer: string
+          category?: string
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -479,6 +481,7 @@ export type Database = {
         }
         Update: {
           answer?: string
+          category?: string
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -839,6 +842,7 @@ export type Database = {
           registration_opens_at: string | null
           section_id: string
           slug: string
+          sort_order: number
           status: Database["public"]["Enums"]["program_status"]
           summary: string
           updated_at: string
@@ -858,6 +862,7 @@ export type Database = {
           registration_opens_at?: string | null
           section_id: string
           slug: string
+          sort_order?: number
           status?: Database["public"]["Enums"]["program_status"]
           summary?: string
           updated_at?: string
@@ -877,6 +882,7 @@ export type Database = {
           registration_opens_at?: string | null
           section_id?: string
           slug?: string
+          sort_order?: number
           status?: Database["public"]["Enums"]["program_status"]
           summary?: string
           updated_at?: string
@@ -1472,6 +1478,7 @@ export type Database = {
         Args: { p: Database["public"]["Tables"]["profiles"]["Row"] }
         Returns: boolean
       }
+      fn_program_missing: { Args: { p_program_id: string }; Returns: string[] }
       fn_program_participants: {
         Args: { p_limit?: number; p_offset?: number; p_program_id: string }
         Returns: {
@@ -1501,6 +1508,19 @@ export type Database = {
           tracks: number
           tracks_with_parts: number
           tracks_with_plan_days: number
+        }[]
+      }
+      fn_programs_publish_state: {
+        Args: never
+        Returns: {
+          id: string
+          kind: Database["public"]["Enums"]["program_kind"]
+          missing: string[]
+          name: string
+          registration_state: string
+          slug: string
+          sort_order: number
+          status: Database["public"]["Enums"]["program_status"]
         }[]
       }
       fn_purge_account: { Args: { p_user_id: string }; Returns: undefined }

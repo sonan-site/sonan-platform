@@ -187,6 +187,15 @@ export function ProgramView({
             <Field id="psummary" label="النبذة">
               <Textarea id="psummary" name="summary" rows={2} defaultValue={program.summary} />
             </Field>
+            {/* بلا هذا الحقل لا سبيل لضبط جهة التواصل، ويُمحى ما في القاعدة مع كل حفظ. */}
+            <Field
+              id="pcontact"
+              label="جهة تواصل المشاركين"
+              hint="بريد أو رقم أو رابط — يظهر للمشارك حين يعترضه ما لا يحلّه بنفسه"
+              error={editState.fieldErrors?.["contact"]}
+            >
+              <Input id="pcontact" name="contact" defaultValue={program.contact} />
+            </Field>
             <Field
               id="pslug"
               label="رابط الصفحة المعلنة"
