@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { renumber } from "@/lib/programs/reorder";
 import { userMessage } from "@/lib/db/messages";
 import { programSchema, sectionSchema, trackSchema } from "@/lib/validation/programs";
 import { z } from "@/lib/validation/z";
@@ -147,12 +148,23 @@ export async function createTrack(_prev: FormState, form: FormData): Promise<For
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
+  // الترتيب يُحسب ولا يُكتب بيد: خانةٌ يُملأ فيها رقمٌ أنتجت مساريْن برقمٍ واحد
+  // في «برنامج المتون العلمية» — والجديد يلحق بآخر الصفّ ثم يُحرَّك بسهميه.
+  const { data: last } = await db
+    .from("tracks")
+    .select("sort_order")
+    .eq("program_id", parsed.data.programId)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { error } = await db.from("tracks").insert({
     program_id: parsed.data.programId,
     name: parsed.data.name,
     description: parsed.data.description,
     capacity: parsed.data.capacity,
-    sort_order: parsed.data.sortOrder,
+    sort_order: (last?.sort_order ?? -1) + 1,
   });
   if (error) return { error: "تعذّر إنشاء المسار." };
 
@@ -166,7 +178,14 @@ export async function createTrack(_prev: FormState, form: FormData): Promise<For
   return { notice: "أُنشئ المسار." };
 }
 
-export async function archiveTrack(trackId: string, programId: string): Promise<FormState> {
+/**
+ * حذف المسار — **بأثره عند المستخدم لا باسمه في القاعدة**.
+ *
+ * الفعل في القاعدة أرشفةٌ ناعمة (`deleted_at`)، وكان الزرّ يقول «أرشفة» —
+ * فيَعِد بأرشيفٍ لا شاشة له ولا استعادة منه. والذي يقع عند المستخدم أن المسار
+ * وخطته يخرجان من البرنامج، فهذا اسمه.
+ */
+export async function deleteTrack(trackId: string, programId: string): Promise<FormState> {
   const authz = await authorizeRequest({
     permission: "programs.write",
     programId,
@@ -175,7 +194,7 @@ export async function archiveTrack(trackId: string, programId: string): Promise<
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
-  // المسار مقيَّد ببرنامج التصريح قبل أرشفته.
+  // المسار مقيَّد ببرنامج التصريح قبل حذفه.
   const { data: track } = await db
     .from("tracks")
     .select("id")
@@ -185,18 +204,56 @@ export async function archiveTrack(trackId: string, programId: string): Promise<
   if (!track) return { error: "المسار غير موجود في هذا البرنامج." };
 
   // **المسار وخطته وأيامها وتدقيقها فعلٌ واحد في القاعدة** (الهجرة ٠٢٦): ثلاث
-  // كتابات منفصلة كانت تترك خطةً حيّة لمسار مؤرشَف إن فشلت آخرها.
+  // كتابات منفصلة كانت تترك خطةً حيّة لمسار محذوف إن فشلت آخرها.
   const { data, error } = await db.rpc("fn_archive_track", { p_track_id: trackId });
   if (error) {
     // رفضان بالرمز نفسه: مشاركون فيه الآن، أو سجلّ إنجاز لمن مرّوا به (الهجرة ٠٣٩).
     const message = error.message.includes("سجلّ إنجاز")
-      ? "للمسار سجلّ إنجاز لمشاركين مرّوا به، فلا يُؤرشَف."
+      ? "للمسار سجلّ إنجاز لمشاركين مرّوا به، فلا يُحذف."
       : error.code === "23514"
-        ? "في المسار مشاركون — انقلهم قبل أرشفته."
-        : "تعذّر أرشفة المسار.";
+        ? "في المسار مشاركون — انقلهم قبل حذفه."
+        : "تعذّر حذف المسار.";
     return { error: message };
   }
-  if (data === null) return { error: "لم يُؤرشَف المسار — تحقّق من صلاحيتك." };
+  if (data === null) return { error: "لم يُحذف المسار — تحقّق من صلاحيتك." };
+
+  // ولا سطر تدقيقٍ هنا: `fn_archive_track` تكتبه بنفسها (`track_archived`)
+  // في المعاملة نفسها — وكتابته ثانيةً سطران لفعلٍ واحد.
+  revalidatePath(`/programs/${programId}`);
+  return { notice: "حُذف المسار." };
+}
+
+/**
+ * تحريك المسار في ترتيبه.
+ *
+ * وإعادة ترقيمٍ لا تبديل: `sort_order` كان يُكتب بيد في نموذج الإضافة، فوقع
+ * مساران برقمٍ واحد فعلاً — وتبديل متساويين لا يحرّك شيئاً.
+ */
+export async function moveTrack(
+  trackId: string,
+  programId: string,
+  direction: "up" | "down",
+): Promise<FormState> {
+  const authz = await authorizeRequest({
+    permission: "programs.write",
+    programId,
+    resourceProgramId: programId,
+  });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("tracks")
+    .select("id, sort_order")
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .order("sort_order")
+    .order("created_at");
+
+  if (error || !data) return { error: "تعذّر تحريك المسار." };
+  if (!(await renumber(db, "tracks", data, trackId, direction))) {
+    return { error: "تعذّر تحريك المسار." };
+  }
 
   revalidatePath(`/programs/${programId}`);
   return EMPTY_FORM_STATE;

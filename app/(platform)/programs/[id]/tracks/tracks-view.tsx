@@ -1,22 +1,45 @@
 "use client";
 
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { InlineText } from "@/components/shared/inline-edit";
+import { Modal } from "@/components/shared/modal";
 import { Messages, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
-import { archiveTrack, createTrack, updateTrack } from "../../actions";
+import { createTrack, deleteTrack, moveTrack, updateTrack } from "../../actions";
+
+const ICON = 14;
+
+/** أزرار الصفّ في سطرٍ واحد بفواصلها — كما في شاشة النشر. */
+const ROW_ACTIONS = {
+  display: "flex",
+  gap: "var(--space-2)",
+  justifyContent: "flex-end",
+  flexWrap: "wrap",
+} as const;
 
 export type TrackRow = {
   id: string;
   name: string;
   description: string;
   capacity: number | null;
+  /** المشاركون فيه الآن — وجودهم يمنع الحذف، فيُعطَّل زرّه بسببه (`ق-٢٠`). */
+  participants: number;
+  /** خططه — تُحذف معه، والنافذة تقول ذلك قبل أن يقرّ. */
+  plans: number;
 };
+
+/** سبب منع الحذف، أو `null` حين لا مانع — نصٌّ واحد للزرّ وللنافذة. */
+function blocker(t: TrackRow): string | null {
+  return t.participants === 0
+    ? null
+    : `في المسار ${formatNumber(t.participants)} مشاركاً — انقلهم قبل حذفه`;
+}
 
 /**
  * تبويب المسارات — **الخطوة الأولى في بناء البرنامج**.
@@ -39,6 +62,7 @@ export function TracksView({
 }) {
   const [state, action, pending] = useActionState(createTrack, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
+  const [deleting, setDeleting] = useState<TrackRow | null>(null);
 
   const columns: Column<TrackRow>[] = [
     {
@@ -103,16 +127,48 @@ export function TracksView({
             key: "actions",
             header: "",
             align: "end" as const,
-            render: (t: TrackRow) => (
-              <Button
-                pending={busy}
-                onClick={() =>
-                  startTransition(async () => reportAction(await archiveTrack(t.id, programId)))
-                }
-              >
-                أرشفة
-              </Button>
-            ),
+            render: (t: TrackRow) => {
+              const i = tracks.findIndex((r) => r.id === t.id);
+              const why = blocker(t);
+              return (
+                <span style={ROW_ACTIONS}>
+                  <Button
+                    aria-label={`قدّم ${t.name}`}
+                    disabled={i === 0}
+                    pending={busy}
+                    onClick={() =>
+                      startTransition(async () =>
+                        reportAction(await moveTrack(t.id, programId, "up")),
+                      )
+                    }
+                  >
+                    <ChevronUp size={ICON} aria-hidden />
+                  </Button>
+                  <Button
+                    aria-label={`أخّر ${t.name}`}
+                    disabled={i === tracks.length - 1}
+                    pending={busy}
+                    onClick={() =>
+                      startTransition(async () =>
+                        reportAction(await moveTrack(t.id, programId, "down")),
+                      )
+                    }
+                  >
+                    <ChevronDown size={ICON} aria-hidden />
+                  </Button>
+                  {/* المعطَّل يقول سببه (`ق-٢٠`) — لا يُرفض بعد النقر. */}
+                  <Button
+                    aria-label={`احذف ${t.name}`}
+                    variant="danger"
+                    title={why ?? undefined}
+                    disabled={why !== null}
+                    onClick={() => setDeleting(t)}
+                  >
+                    <Trash2 size={ICON} aria-hidden />
+                  </Button>
+                </span>
+              );
+            },
           },
         ]
       : []),
@@ -167,10 +223,6 @@ export function TracksView({
               <Input id="tcap" name="capacity" numeric latin />
             </Field>
 
-            <Field id="tsort" label="الترتيب">
-              <Input id="tsort" name="sortOrder" numeric latin defaultValue="0" />
-            </Field>
-
             <FormActions>
               <Button type="submit" variant="primary" pending={pending}>
                 أضِف
@@ -180,6 +232,30 @@ export function TracksView({
           </StepForm>
         ) : null}
       </Step>
+
+      <Modal open={deleting !== null} title="حذف المسار" onClose={() => setDeleting(null)}>
+        <p>
+          يخرج «{deleting?.name}» من البرنامج، فلا يجده المسجِّل ولا يُختار بعدها.
+          {deleting && deleting.plans > 0
+            ? ` وتخرج معه ${formatNumber(deleting.plans)} خطةً مبنيّةً عليه.`
+            : ""}
+        </p>
+        <FormActions>
+          <Button
+            variant="danger"
+            pending={busy}
+            onClick={() => {
+              const target = deleting;
+              if (!target) return;
+              setDeleting(null);
+              startTransition(async () => reportAction(await deleteTrack(target.id, programId)));
+            }}
+          >
+            احذف المسار
+          </Button>
+          <Button onClick={() => setDeleting(null)}>تراجع</Button>
+        </FormActions>
+      </Modal>
 
       {canWrite && canQuickSetup && tracks.length > 0 ? (
         <Step

@@ -82,5 +82,6 @@ export const trackSchema = z.object({
     .transform((v) => (v === "" ? null : Number(v)))
     .nullable()
     .refine((v) => v === null || (Number.isInteger(v) && v > 0), "السعة عدد صحيح موجب"),
-  sortOrder: z.coerce.number().int().min(0).default(0),
+  // ولا `sortOrder` هنا: الترتيب يُحسب عند الإنشاء ويُغيَّر بالسهمين، ولا يُكتب
+  // رقماً بيد — وهي الخانة التي أنتجت مساريْن برقمٍ واحد.
 });

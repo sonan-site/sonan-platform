@@ -1583,6 +1583,14 @@ export type Database = {
         Returns: number
       }
       fn_track_unit_count: { Args: { p_track_id: string }; Returns: number }
+      fn_track_usage: {
+        Args: { p_program_id: string }
+        Returns: {
+          live_participants: number
+          plans: number
+          track_id: string
+        }[]
+      }
       fn_withdraw_participation: {
         Args: { p_participant_id: string }
         Returns: undefined

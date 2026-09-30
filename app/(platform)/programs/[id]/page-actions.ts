@@ -7,6 +7,7 @@ import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { blockInput } from "@/lib/programs/block-input";
+import { renumber } from "@/lib/programs/reorder";
 import { BLOCK_SCHEMAS, isBlockType, type BlockType } from "@/lib/programs/blocks";
 
 /**
@@ -34,38 +35,6 @@ const helpSchema = z.object({
 /** حقول المحتوى كما تصل من النموذج — واحدةٌ للإضافة والتعديل، فلا تفترقان. */
 function blockContent(type: BlockType, form: FormData) {
   return BLOCK_SCHEMAS[type].safeParse(blockInput(type, form));
-}
-
-/**
- * إعادة ترقيمٍ صريحة لا تبديل.
- *
- * **والعلّة مثبتة لا محتملة:** `sort_order` افتراضه صفر ولا قيد فريد عليه، فكل
- * صفٍّ لم يُنشأ من الشاشة يحمل صفراً — وتبديل صفرين لا يحرّك شيئاً. وهو ما
- * تتجنّبه `moveTemplateField` صراحةً منذ بنائها، وكان هذا الملفّ يقع فيه.
- */
-async function renumber<T extends { id: string; sort_order: number }>(
-  db: Awaited<ReturnType<typeof createClient>>,
-  table: "page_blocks" | "help_entries",
-  rows: T[],
-  id: string,
-  direction: "up" | "down",
-): Promise<boolean> {
-  const index = rows.findIndex((r) => r.id === id);
-  // **الغائب ليس «عند الحافة»:** صفٌّ حُذف من شاشةٍ أخرى كان يُبلَّغ نجاحاً صامتاً.
-  if (index === -1) return false;
-  const target = direction === "up" ? index - 1 : index + 1;
-  if (target < 0 || target >= rows.length) return true;
-
-  const order = [...rows];
-  order[index] = order[target]!;
-  order[target] = rows[index]!;
-
-  for (const [position, row] of order.entries()) {
-    if (row.sort_order === position) continue;
-    const { error } = await db.from(table).update({ sort_order: position }).eq("id", row.id);
-    if (error) return false;
-  }
-  return true;
 }
 
 export async function addBlock(_prev: FormState, form: FormData): Promise<FormState> {

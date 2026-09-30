@@ -20,23 +20,31 @@ export default async function TracksPage({ params }: { params: Promise<{ id: str
   ).ok;
 
   const db = await createClient();
-  const [tracksResult, ready] = await Promise.all([
+  const [tracksResult, usageResult, ready] = await Promise.all([
     db
       .from("tracks")
       .select("id, name, description, capacity")
       .eq("program_id", id)
-      .is("deleted_at", null)
-      .order("sort_order"),
+      // الترتيب الثاني يحسم التساوي: `sort_order` بلا قيد فريد، ومساران
+      // برقمٍ واحد كانا يتبادلان مواضعهما بين طلبٍ وطلب.
+      .order("sort_order")
+      .order("created_at"),
+    // ما يشغل كل مسار — ليُعطَّل زرّ حذفه بسببٍ مكتوب لا أن يُرفض بعد النقر.
+    db.rpc("fn_track_usage", { p_program_id: id }),
     programReadiness(id),
   ]);
 
   if (tracksResult.error) return <ErrorState body="تعذّر جلب المسارات." />;
+
+  const usage = new Map((usageResult.data ?? []).map((u) => [u.track_id, u]));
 
   const tracks: TrackRow[] = (tracksResult.data ?? []).map((t) => ({
     id: t.id,
     name: t.name,
     description: t.description,
     capacity: t.capacity,
+    participants: usage.get(t.id)?.live_participants ?? 0,
+    plans: usage.get(t.id)?.plans ?? 0,
   }));
 
   // الشرط نفسه الذي تفرضه `fn_quick_setup`: لا مادة ولا واجبات ولا أشكال.

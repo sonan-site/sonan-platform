@@ -204,13 +204,13 @@ export function StepForm({
     <div className={styles.fold}>
       <button
         type="button"
-        className={styles.foldToggle}
+        className={`${styles.foldToggle} ${open ? styles.foldOpen : styles.foldClosed}`}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen(!open)}
       >
         {open ? <ChevronUp size={16} aria-hidden /> : <Plus size={16} aria-hidden />}
-        {title}
+        {open ? "أخفِ النموذج" : title}
       </button>
       {/* يُخفى ولا يُنزَع: من طوى النموذج بعد كتابةٍ فيه يجد ما كتبه حين يعيده. */}
       <div id={panelId} hidden={!open} className={styles.foldPanel}>
