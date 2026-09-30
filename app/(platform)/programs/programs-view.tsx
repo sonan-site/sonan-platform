@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
@@ -54,6 +55,19 @@ export function ProgramsView({
     EMPTY_FORM_STATE,
   );
 
+  /**
+   * بطاقة الإنشاء **تظهر بطلبها** (`ق-٢٤`).
+   *
+   * وقيمتها الأولى من خلوّ القائمة لا مقودها: من لا قسم له تُفتح له البطاقة
+   * فيرى الطريق، ومن له أقسام يرى جدوله أوّلاً. ثم تبقى بيده، فلا تُغلق عليه
+   * لأن الحفظ نجح وزاد العدد.
+   */
+  const [sectionOpen, setSectionOpen] = useState(sections.length === 0);
+  const [programOpen, setProgramOpen] = useState(programs.length === 0);
+
+  const showSections = canWriteSections;
+  const showPrograms = canWritePrograms && sections.length > 0;
+
   const columns: Column<ProgramRow>[] = [
     {
       key: "name",
@@ -89,9 +103,30 @@ export function ProgramsView({
         title="البرامج"
         lede="القسم حاوية تجمع برامج الجمعية عبر السنوات، والبرنامج دورة واحدة بمساراتها ومادتها وخطتها."
       />
-      <ProgramsTabs />
+      <ProgramsTabs
+        actions={
+          <>
+            {showSections ? (
+              <Button aria-expanded={sectionOpen} onClick={() => setSectionOpen(!sectionOpen)}>
+                <Plus size={16} aria-hidden />
+                أنشئ قسماً
+              </Button>
+            ) : null}
+            {showPrograms ? (
+              <Button
+                variant="primary"
+                aria-expanded={programOpen}
+                onClick={() => setProgramOpen(!programOpen)}
+              >
+                <Plus size={16} aria-hidden />
+                أنشئ برنامجاً
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-      {canWriteSections ? (
+      {showSections && sectionOpen ? (
         <Step
           n={1}
           title="الأقسام"
@@ -105,12 +140,7 @@ export function ProgramsView({
             )
           }
         >
-          <StepForm
-            title="أنشئ قسماً"
-            action={sectionAction}
-            state={sectionState}
-            fold={sections.length === 0 ? "open" : "closed"}
-          >
+          <StepForm title="أنشئ قسماً" action={sectionAction} state={sectionState}>
             <Field id="sname" label="اسم القسم" required error={sectionState.fieldErrors?.["name"]}>
               <Input id="sname" name="name" required />
             </Field>
@@ -136,7 +166,7 @@ export function ProgramsView({
         </Step>
       ) : null}
 
-      {canWritePrograms && sections.length > 0 ? (
+      {showPrograms && programOpen ? (
         <Step
           n={2}
           title="البرامج"
@@ -150,12 +180,7 @@ export function ProgramsView({
             )
           }
         >
-          <StepForm
-            title="أنشئ برنامجاً"
-            action={programAction}
-            state={programState}
-            fold={programs.length === 0 ? "open" : "closed"}
-          >
+          <StepForm title="أنشئ برنامجاً" action={programAction} state={programState}>
             <Field
               id="sectionId"
               label="القسم"
@@ -301,7 +326,7 @@ export function ProgramsView({
           body:
             sections.length === 0
               ? "ابدأ بإنشاء قسم، ثم أنشئ البرنامج تحته."
-              : "أنشئ أول برنامج بالنموذج أعلاه.",
+              : "أنشئ أول برنامج من زرّ «أنشئ برنامجاً» في أعلى الشاشة.",
         }}
       />
     </>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import styles from "./programs-tabs.module.css";
 
 /**
@@ -12,8 +13,11 @@ import styles from "./programs-tabs.module.css";
  *
  * ولا تعيش في تخطيطٍ لهذا القسم: تخطيطُه يشمل `/programs/[id]` كذلك، فتظهر
  * فوق تبويبات البرنامج صفّاً ثانياً لا معنى له.
+ *
+ * **وأفعال الشاشة في طرفها** (`ق-٢٤`): «أنشئ» فعلُ الشاشة كلها لا فعلُ بطاقةٍ
+ * فيها، فموضعه حيث يُنتظر — سطرُ ترويستها — لا بطاقةٌ تشغل شاشةً قبل الجدول.
  */
-export function ProgramsTabs() {
+export function ProgramsTabs({ actions }: { actions?: ReactNode }) {
   const pathname = usePathname();
 
   const tabs = [
@@ -36,6 +40,7 @@ export function ProgramsTabs() {
           </Link>
         );
       })}
+      {actions ? <div className={styles.actions}>{actions}</div> : null}
     </div>
   );
 }
