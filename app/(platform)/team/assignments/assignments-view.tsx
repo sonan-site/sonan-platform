@@ -1,8 +1,10 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { reportAction } from "@/components/shared/action-notice";
-import { useActionState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { Button, Field, FormActions, Select } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -59,8 +61,20 @@ export function AssignmentsView({
       : []),
   ];
 
+  // مفتوحةٌ أوّلاً حين لا إسناد بعد — ولا أحد يملك شيئاً حتى يُسنَد.
+  const [adding, setAdding] = useState(assignments.length === 0);
+
   return (
     <>
+      {canAssign ? (
+        <ScreenActions>
+          <Button variant="primary" aria-expanded={adding} onClick={() => setAdding(!adding)}>
+            <Plus size={16} aria-hidden />
+            أسنِد دوراً
+          </Button>
+        </ScreenActions>
+      ) : null}
+
       <TabHead
         title="إسناد الأدوار"
         lede="الدور بلا إسناد لا يفعل شيئاً. والإسناد على المنصة كلها، أو محصوراً ببرنامج واحد — فمنسّق برنامج لا يرى غيره."
@@ -79,7 +93,7 @@ export function AssignmentsView({
           )
         }
       >
-        {canAssign ? (
+        {canAssign && adding ? (
           <StepForm title="أسنِد دوراً" action={action} state={state}>
             <Field id="userId" label="المستخدم" required>
               <Select id="userId" name="userId" required defaultValue="">

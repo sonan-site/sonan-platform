@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { SCREEN_ACTIONS_ID } from "@/components/shared/screen-actions";
 import styles from "./programs-tabs.module.css";
 
 /**
@@ -16,8 +16,9 @@ import styles from "./programs-tabs.module.css";
  *
  * **وأفعال الشاشة في طرفها** (`ق-٢٤`): «أنشئ» فعلُ الشاشة كلها لا فعلُ بطاقةٍ
  * فيها، فموضعه حيث يُنتظر — سطرُ ترويستها — لا بطاقةٌ تشغل شاشةً قبل الجدول.
+ * وتصل إليه من صفحتها عبر `ScreenActions`، كما في تبويبات البرنامج والفريق.
  */
-export function ProgramsTabs({ actions }: { actions?: ReactNode }) {
+export function ProgramsTabs() {
   const pathname = usePathname();
 
   const tabs = [
@@ -26,7 +27,8 @@ export function ProgramsTabs({ actions }: { actions?: ReactNode }) {
   ];
 
   return (
-    <div className={styles.tabs}>
+    <div className={styles.tabRow}>
+      <div className={styles.tabs}>
       {tabs.map((tab) => {
         const current = tab.href === "/programs" ? pathname === "/programs" : pathname === tab.href;
         return (
@@ -40,7 +42,8 @@ export function ProgramsTabs({ actions }: { actions?: ReactNode }) {
           </Link>
         );
       })}
-      {actions ? <div className={styles.actions}>{actions}</div> : null}
+      </div>
+      <div id={SCREEN_ACTIONS_ID} className={styles.screenActions} />
     </div>
   );
 }

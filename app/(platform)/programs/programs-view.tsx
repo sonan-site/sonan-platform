@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { ProgramsTabs } from "./programs-tabs";
 import { Messages, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
@@ -103,28 +104,25 @@ export function ProgramsView({
         title="البرامج"
         lede="القسم حاوية تجمع برامج الجمعية عبر السنوات، والبرنامج دورة واحدة بمساراتها ومادتها وخطتها."
       />
-      <ProgramsTabs
-        actions={
-          <>
-            {showSections ? (
-              <Button aria-expanded={sectionOpen} onClick={() => setSectionOpen(!sectionOpen)}>
-                <Plus size={16} aria-hidden />
-                أنشئ قسماً
-              </Button>
-            ) : null}
-            {showPrograms ? (
-              <Button
-                variant="primary"
-                aria-expanded={programOpen}
-                onClick={() => setProgramOpen(!programOpen)}
-              >
-                <Plus size={16} aria-hidden />
-                أنشئ برنامجاً
-              </Button>
-            ) : null}
-          </>
-        }
-      />
+      <ProgramsTabs />
+      <ScreenActions>
+        {showSections ? (
+          <Button aria-expanded={sectionOpen} onClick={() => setSectionOpen(!sectionOpen)}>
+            <Plus size={16} aria-hidden />
+            أنشئ قسماً
+          </Button>
+        ) : null}
+        {showPrograms ? (
+          <Button
+            variant="primary"
+            aria-expanded={programOpen}
+            onClick={() => setProgramOpen(!programOpen)}
+          >
+            <Plus size={16} aria-hidden />
+            أنشئ برنامجاً
+          </Button>
+        ) : null}
+      </ScreenActions>
 
       {showSections && sectionOpen ? (
         <Step

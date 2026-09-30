@@ -1,9 +1,11 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, TabHead, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
@@ -28,6 +30,10 @@ export function PlansView({
   const [state, action, pending] = useActionState(createPlan, EMPTY_FORM_STATE);
 
   const withoutPlan = rows.filter((r) => r.planId === null);
+  // لا زرَّ حين لا مسار ينتظر خطة — الأداة المعروضة تعمل (`ق-٢٠`).
+  const canBuild = withoutPlan.length > 0;
+  // ومفتوحةٌ أوّلاً حين لا خطة بعد: الشاشة عملُها الأول بناء الخطط.
+  const [adding, setAdding] = useState(withoutPlan.length === rows.length);
 
   const columns: Column<TrackPlanRow>[] = [
     { key: "track", header: "المسار", sortable: true, primary: true, render: (r) => r.trackName },
@@ -52,6 +58,15 @@ export function PlansView({
 
   return (
     <>
+      {canBuild ? (
+        <ScreenActions>
+          <Button variant="primary" aria-expanded={adding} onClick={() => setAdding(!adding)}>
+            <Plus size={16} aria-hidden />
+            أنشئ خطة
+          </Button>
+        </ScreenActions>
+      ) : null}
+
       <TabHead title="خطط المسارات" lede="الخطة قائمة أيام مرتّبة لكل مسار. لا تاريخ فيها — كل مشارك يبدأ من يومه الأول أياً كان تاريخ انضمامه. وللمسار خطة واحدة." />
 
       <DataTable
@@ -66,6 +81,7 @@ export function PlansView({
         }}
       />
 
+      {canBuild && adding ? (
       <Step
         n={1}
         title="خطة جديدة"
@@ -112,6 +128,7 @@ export function PlansView({
         </StepForm>
         )}
       </Step>
+      ) : null}
     </>
   );
 }

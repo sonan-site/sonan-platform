@@ -1,12 +1,13 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { InlineText } from "@/components/shared/inline-edit";
 import { Modal } from "@/components/shared/modal";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, Muted, Step, StepForm, TabHead } from "@/components/shared/steps";
 import {
   PERMISSIONS,
@@ -42,8 +43,20 @@ export function RolesView({ roles, canWrite }: { roles: RoleRow[]; canWrite: boo
   const [busy, startTransition] = useTransition();
   const [removing, setRemoving] = useState<RoleRow | null>(null);
 
+  // مفتوحةٌ أوّلاً حين لا دور مخصَّص بعد — النظاميّ وحده لا يكفي فريقاً.
+  const [adding, setAdding] = useState(roles.length <= 1);
+
   return (
     <>
+      {canWrite ? (
+        <ScreenActions>
+          <Button variant="primary" aria-expanded={adding} onClick={() => setAdding(!adding)}>
+            <Plus size={16} aria-hidden />
+            أنشئ دوراً
+          </Button>
+        </ScreenActions>
+      ) : null}
+
       <TabHead
         title="الأدوار"
         lede="الدور مجموعة صلاحيات تُسنَد لشخص. أنشئ ما يناسب عملكم — منسّق برنامج، أو مُعِدّ مادة — وأشِّر ما يملكه كلٌّ منهم."
@@ -114,7 +127,7 @@ export function RolesView({ roles, canWrite }: { roles: RoleRow[]; canWrite: boo
           </section>
         ))}
 
-        {canWrite ? (
+        {canWrite && adding ? (
           <StepForm title="أنشئ دوراً" action={action} state={state}>
             <Field id="rname" label="اسم الدور" required error={state.fieldErrors?.["name"]}>
               <Input id="rname" name="name" required placeholder="منسّق برنامج" />

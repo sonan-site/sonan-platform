@@ -1,9 +1,11 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Modal } from "@/components/shared/modal";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, TabHead, Step, StepForm } from "@/components/shared/steps";
 import {
   PARTICIPANT_STATUS_LABEL,
@@ -232,8 +234,21 @@ export function ParticipantsView({
       : []),
   ];
 
+  const canRequest = canWrite && participants.length > 0 && tracks.length > 1;
+  // طلب النقل حدثٌ نادر لا عملُ الشاشة الأول — فمطويٌّ حتى يُطلب (`ق-٢٤`).
+  const [requesting, setRequesting] = useState(false);
+
   return (
     <>
+      {canRequest ? (
+        <ScreenActions>
+          <Button aria-expanded={requesting} onClick={() => setRequesting(!requesting)}>
+            <Plus size={16} aria-hidden />
+            سجّل طلب نقل
+          </Button>
+        </ScreenActions>
+      ) : null}
+
       <TabHead title="المشاركون" lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته، وكم منها أتمّه كاملاً. ومنها تُبتّ طلبات تغيير المسار." />
 
       <Modal
@@ -302,7 +317,7 @@ export function ParticipantsView({
           )
         }
       >
-        {canWrite && participants.length > 0 && tracks.length > 1 ? (
+        {canRequest && requesting ? (
           <StepForm title="سجّل طلباً" action={action} state={state}>
             <input type="hidden" name="programId" value={programId} />
 

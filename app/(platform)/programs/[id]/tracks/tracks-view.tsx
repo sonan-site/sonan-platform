@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
@@ -8,6 +8,7 @@ import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { InlineText } from "@/components/shared/inline-edit";
 import { Modal } from "@/components/shared/modal";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
@@ -63,6 +64,8 @@ export function TracksView({
   const [state, action, pending] = useActionState(createTrack, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
   const [deleting, setDeleting] = useState<TrackRow | null>(null);
+  // بطاقة الإضافة تظهر بطلبها (`ق-٢٤`) — ومفتوحةٌ أوّلاً لمن لا مسار له.
+  const [adding, setAdding] = useState(tracks.length === 0);
 
   const columns: Column<TrackRow>[] = [
     {
@@ -176,6 +179,15 @@ export function TracksView({
 
   return (
     <>
+      {canWrite ? (
+        <ScreenActions>
+          <Button variant="primary" aria-expanded={adding} onClick={() => setAdding(!adding)}>
+            <Plus size={16} aria-hidden />
+            أضِف مساراً
+          </Button>
+        </ScreenActions>
+      ) : null}
+
       <Step
         n={1}
         title="المسارات"
@@ -198,11 +210,13 @@ export function TracksView({
           searchPlaceholder="ابحث باسم المسار…"
           empty={{
             title: "لا مسارات بعد",
-            body: canWrite ? "أضف أول مسار بالنموذج أدناه." : "لم تُضَف مسارات لهذا البرنامج.",
+            body: canWrite
+              ? "أضف أول مسار من زرّ «أضِف مساراً» في أعلى الشاشة."
+              : "لم تُضَف مسارات لهذا البرنامج.",
           }}
         />
 
-        {canWrite ? (
+        {canWrite && adding ? (
           <StepForm title="أضِف مساراً" action={action} state={state}>
             <input type="hidden" name="programId" value={programId} />
 

@@ -1,8 +1,10 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
 import { Modal } from "@/components/shared/modal";
+import { ScreenActions } from "@/components/shared/screen-actions";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Messages, Step, StepForm, TabHead } from "@/components/shared/steps";
@@ -82,14 +84,26 @@ export function PeopleView({
       : []),
   ];
 
+  // مفتوحةٌ أوّلاً حين لا عضو بعد — الدعوة أوّل عملٍ في الشاشة.
+  const [inviting, setInviting] = useState(rows.length === 0);
+
   return (
     <>
+      {canWrite ? (
+        <ScreenActions>
+          <Button variant="primary" aria-expanded={inviting} onClick={() => setInviting(!inviting)}>
+            <Plus size={16} aria-hidden />
+            أرسِل دعوة
+          </Button>
+        </ScreenActions>
+      ) : null}
+
       <TabHead
         title="الأعضاء"
         lede="من يعمل على المنصة بدورٍ مُسنَد. الدعوة تُرسِل بريداً يضبط فيه المدعوّ كلمة مروره، ثم يكتب بياناته — ولا يملك شيئاً حتى يُسنَد له دور. ومن أردت حذف حسابه اسحب دوره أولاً، ثم احذفه من «المشاركون في المنصة»."
       />
 
-      {canWrite ? (
+      {canWrite && inviting ? (
         <Step
           n={1}
           title="دعوة مستخدم"
@@ -130,7 +144,7 @@ export function PeopleView({
         empty={{
           title: "لا مستخدمين بعد",
           body: canWrite
-            ? "ادعُ أول مستخدم بالنموذج أعلاه."
+            ? "ادعُ أول مستخدم من زرّ «أرسِل دعوة» في أعلى الشاشة."
             : "لم يُسجَّل أحد في المنصة بعد.",
         }}
       />

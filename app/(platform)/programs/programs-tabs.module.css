@@ -3,13 +3,32 @@
  * المستخدم تبويبات ثالثة.
  */
 
+.tabRow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+  /* يحجز ارتفاعه لأفعال الشاشة، فلا يقفز ما تحته حين تظهر بعد الترطيب. */
+  min-block-size: calc(var(--touch-target) + var(--space-2));
+  margin-block-end: var(--space-6);
+  border-block-end: 1px solid var(--color-border);
+}
+
 .tabs {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-1);
-  margin-block-end: var(--space-6);
+  /* التبويبات وحدها تنزلق، والأفعال ثابتة في طرفها — فلا تُدفع خارج الشاشة. */
+  min-inline-size: 0;
   overflow-x: auto;
-  border-block-end: 1px solid var(--color-border);
+}
+
+/* أفعال الشاشة في طرف السطر — بعيداً عن التبويبات فلا تُقرأ تبويباً آخر. */
+.screenActions {
+  display: flex;
+  flex-shrink: 0;
+  align-self: center;
+  gap: var(--space-2);
 }
 
 .tab {
@@ -32,10 +51,3 @@
   border-block-end-color: var(--color-brand);
 }
 
-/* أفعال الشاشة في طرف السطر — بعيداً عن التبويبات فلا تُقرأ تبويباً ثالثاً. */
-.actions {
-  display: flex;
-  gap: var(--space-2);
-  margin-inline-start: auto;
-  padding-block-end: var(--space-2);
-}
