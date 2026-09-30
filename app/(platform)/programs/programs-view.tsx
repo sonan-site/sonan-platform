@@ -105,7 +105,12 @@ export function ProgramsView({
             )
           }
         >
-          <StepForm title="أنشئ قسماً" action={sectionAction} state={sectionState}>
+          <StepForm
+            title="أنشئ قسماً"
+            action={sectionAction}
+            state={sectionState}
+            fold={sections.length === 0 ? "open" : "closed"}
+          >
             <Field id="sname" label="اسم القسم" required error={sectionState.fieldErrors?.["name"]}>
               <Input id="sname" name="name" required />
             </Field>
@@ -145,7 +150,12 @@ export function ProgramsView({
             )
           }
         >
-          <StepForm title="أنشئ برنامجاً" action={programAction} state={programState}>
+          <StepForm
+            title="أنشئ برنامجاً"
+            action={programAction}
+            state={programState}
+            fold={programs.length === 0 ? "open" : "closed"}
+          >
             <Field
               id="sectionId"
               label="القسم"

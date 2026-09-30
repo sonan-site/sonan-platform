@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, Circle } from "lucide-react";
+import { Check, ChevronUp, Circle, Plus } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { FormState } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { ActionForm } from "./action-form";
@@ -167,19 +167,56 @@ export function StepForm({
   title,
   action,
   state,
+  fold,
   children,
 }: {
   title: string;
   action: (payload: FormData) => void;
   /** حالة الإجراء — بها يُعرف أنجح الحفظ فيُفرَّغ النموذج، أم فشل فيبقى ما كُتب. */
   state: FormState;
+  /**
+   * **يُطوى النموذج خلف زرٍّ بعنوانه** (`ق-٢٤`).
+   *
+   * الخطوة بُنيت تُعلّم الزائر أول مرة، ولم تتعلّم أنه **يعود**: فكانت تُعيد
+   * عليه النموذج كاملاً في كل زيارة، وتدفع بياناته تحت شاشة.
+   *
+   * والقيمة **حالته الأولى لا مقوده**: `open` حين لا شيء بعد — فأول زيارةٍ
+   * تُعلّم كما كانت — ثم تبقى بيد المستخدم، فلا يُغلق عليه ما فتحه لأن الحفظ
+   * نجح وزاد العدد.
+   */
+  fold?: "open" | "closed";
   children: ReactNode;
 }) {
-  return (
-    <ActionForm action={action} state={state} className={styles.form}>
-      <p className={styles.formTitle}>{title}</p>
+  const panelId = useId();
+  const [open, setOpen] = useState(fold !== "closed");
+
+  const form = (
+    <ActionForm action={action} state={state} className={fold ? styles.foldForm : styles.form}>
+      {/* المطويّ عنوانه على زرّه، فلا يُكرَّر فوق حقوله. */}
+      {fold ? null : <p className={styles.formTitle}>{title}</p>}
       {children}
     </ActionForm>
+  );
+
+  if (!fold) return form;
+
+  return (
+    <div className={styles.fold}>
+      <button
+        type="button"
+        className={styles.foldToggle}
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen(!open)}
+      >
+        {open ? <ChevronUp size={16} aria-hidden /> : <Plus size={16} aria-hidden />}
+        {title}
+      </button>
+      {/* يُخفى ولا يُنزَع: من طوى النموذج بعد كتابةٍ فيه يجد ما كتبه حين يعيده. */}
+      <div id={panelId} hidden={!open} className={styles.foldPanel}>
+        {form}
+      </div>
+    </div>
   );
 }
 

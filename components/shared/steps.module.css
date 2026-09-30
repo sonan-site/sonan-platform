@@ -197,6 +197,49 @@
   border-block-start: 1px solid var(--color-border);
 }
 
+/*
+ * **النموذج المطويّ** (`ق-٢٤`): الفاصل فوق زرّه لا فوق حقوله، فلا خطّان
+ * حين يُفتح. والعرض كامل كما هو — الطيّ يُخفي النموذج ولا يُضيّقه، فيبقى
+ * اقتسام العمودين (`ق-٢٣`) على حاله.
+ */
+.fold {
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.foldForm {
+  max-inline-size: var(--form-max);
+}
+
+.foldToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-4);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-out);
+}
+
+.foldToggle:hover {
+  border-color: var(--color-accent);
+}
+
+.foldToggle:active {
+  scale: var(--press-scale);
+}
+
+.foldPanel {
+  margin-block-start: var(--space-5);
+}
+
 .formTitle {
   font-size: var(--text-sm);
   font-weight: var(--weight-bold);
