@@ -51,8 +51,8 @@ beforeAll(async () => {
     [trackId],
   );
   planId = (await one<{ id: string }>(
-    `insert into public.plans (track_id, name) values ($1, 'خطة') returning id`,
-    [trackId],
+    `insert into public.plans (program_id, name, day_count) values ($1, 'خطة', 3) returning id`,
+    [programId],
   )).id;
 
   await db.query(
@@ -63,9 +63,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (programId) {
-    await db.query(`delete from public.achievements where participant_id in (select id from public.participants where program_id = $1)`, [programId]);
+    await db.query(`delete from public.field_marks where participant_id in (select id from public.participants where program_id = $1)`, [programId]);
     await db.query(`delete from public.participants where program_id = $1`, [programId]);
-    await db.query(`delete from public.plan_days where plan_id = $1`, [planId]);
+    await db.query(`delete from public.plan_values where plan_id = $1`, [planId]);
     await db.query(`delete from public.plans where id = $1`, [planId]);
     await db.query(`delete from public.day_template_fields where day_template_id in (select id from public.day_templates where program_id = $1)`, [programId]);
     await db.query(`delete from public.day_templates where program_id = $1`, [programId]);
@@ -108,14 +108,6 @@ async function attach(templateId: string, fieldId: string): Promise<string> {
   )).id;
 }
 
-async function dayUsing(templateId: string, dayNumber: number): Promise<string> {
-  return (await one<{ id: string }>(
-    `insert into public.plan_days (plan_id, day_number, day_type, day_template_id)
-     values ($1, $2, 'normal', $3) returning id`,
-    [planId, dayNumber, templateId],
-  )).id;
-}
-
 describe("وحدة المادة", () => {
   it("**داخل نصيب مسار ← لا تُحذف**", async () => {
     await expect(softDelete("content_units", await unit(5))).rejects.toThrow(/داخل نصيب مسار/);
@@ -153,24 +145,22 @@ describe("الواجب", () => {
     expect(rowCount).toBe(1);
   });
 
-  it("**له إرسال ← نوعه لا يُغيَّر ولا يُحذف**", async () => {
-    const f = await field("واجب مُرسَل");
-    const t = await template("شكل مُرسَل");
-    await attach(t, f);
-    const day = await dayUsing(t, 1);
+  it("**له رصد ← نوعه لا يُغيَّر ولا يُحذف**", async () => {
+    const f = await field("واجب مرصود");
     const participant = (await one<{ id: string }>(
       `insert into public.participants (user_id, program_id, track_id) values ($1, $2, $3) returning id`,
       [PLAYER, programId, trackId],
     )).id;
     await db.query(
-      `insert into public.achievements (participant_id, plan_day_id, task_field_id, is_done, amount)
-       values ($1, $2, $3, true, 1)`,
-      [participant, day, f],
+      `insert into public.field_marks (participant_id, plan_id, track_id, day_number, task_field_id, marked_at)
+       values ($1, $2, $3, 1, $4, now())`,
+      [participant, planId, trackId, f],
     );
 
     await expect(
       db.query(`update public.task_fields set kind = 'ranged' where id = $1`, [f]),
     ).rejects.toThrow(/فنوعه لا يُغيَّر/);
+    await expect(softDelete("task_fields", f)).rejects.toThrow(/فلا يُحذف/);
 
     const { rowCount } = await db.query(
       `update public.task_fields set label = 'اسم مصحَّح' where id = $1`,
@@ -179,7 +169,7 @@ describe("الواجب", () => {
     expect(rowCount).toBe(1);
   });
 
-  it("بلا إرسال ← نوعه يُغيَّر", async () => {
+  it("بلا رصد ← نوعه يُغيَّر", async () => {
     const f = await field("واجب جديد");
     const { rowCount } = await db.query(
       `update public.task_fields set kind = 'ranged' where id = $1`,
@@ -190,32 +180,13 @@ describe("الواجب", () => {
 });
 
 describe("شكل اليوم وواجباته", () => {
-  it("**مستعمَل في خطة ← لا يُحذف**، وغير المستعمَل يُحذف", async () => {
-    const used = await template("شكل في الخطة");
-    await attach(used, await field("واجب أ"));
-    await dayUsing(used, 2);
-    await expect(softDelete("day_templates", used)).rejects.toThrow(/مستعمَل في خطة/);
-
-    const unused = await template("شكل زائد");
-    const { rowCount } = await softDelete("day_templates", unused);
-    expect(rowCount).toBe(1);
-  });
-
-  it("**آخر واجب في شكلٍ مستعمَل ← لا يُزال**، وما قبله يُزال", async () => {
-    const t = await template("شكل بواجبين");
-    const first = await attach(t, await field("واجب ب"));
-    const second = await attach(t, await field("واجب ج"));
-    await dayUsing(t, 3);
-
-    const { rowCount } = await softDelete("day_template_fields", first);
-    expect(rowCount).toBe(1);
-    await expect(softDelete("day_template_fields", second)).rejects.toThrow(/آخر واجب/);
-  });
-
-  it("آخر واجب في شكلٍ غير مستعمَل ← يُزال", async () => {
-    const t = await template("شكل وحيد");
-    const only = await attach(t, await field("واجب د"));
-    const { rowCount } = await softDelete("day_template_fields", only);
+  // أداةُ تعبئةٍ للخطة لا جزءٌ منها (adr/0036): لا يومَ يشير إليه، فيُحذف ويُفرَّغ بلا حارس.
+  it("**الشكل يُحذف**، وواجبه الأخير يُزال", async () => {
+    const t = await template("شكل أداة");
+    const only = await attach(t, await field("واجب أ"));
+    const { rowCount: removed } = await softDelete("day_template_fields", only);
+    expect(removed).toBe(1);
+    const { rowCount } = await softDelete("day_templates", t);
     expect(rowCount).toBe(1);
   });
 });

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
 import { userMessage } from "@/lib/db/messages";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { parseSectionLines } from "@/lib/programs/material";
 
 /**
  * إعداد المادة والحقول والقوالب — كله إعداد برنامج، فصلاحيته `programs.write`
@@ -26,7 +27,7 @@ async function guard(programId: string): Promise<FormState | null> {
 
 const bulkSchema = z.object({
   programId: z.uuid(),
-  startAt: z.coerce.number().int().min(1, "رقم البداية عدد موجب"),
+  startAt: z.coerce.number().int().min(1, "رقم البداية عدد موجب").max(100000, "رقم البداية ١٠٠٬٠٠٠ على الأكثر"),
   lines: z
     .string()
     .transform((v) =>
@@ -38,7 +39,13 @@ const bulkSchema = z.object({
     .refine((l) => l.length > 0, "أدخل سطراً واحداً على الأقل"),
 });
 
-/** إدخال المادة سطراً سطراً: كل سطر وحدة، والترقيم متتابع من رقم البداية. */
+/**
+ * إدخال النصوص سطراً سطراً من رقم البداية.
+ *
+ * **في المادة المقسّمة** الوحدات قائمة من أبوابها، فالسطور تكتب نصوصها ولا
+ * تُنشئ وحدة (`fn_set_unit_labels`). **وفي المادة بلا أبواب** كل سطر وحدة جديدة،
+ * كما كانت قبل `adr/0039`.
+ */
 export async function addContentUnits(_prev: FormState, form: FormData): Promise<FormState> {
   const parsed = bulkSchema.safeParse({
     programId: form.get("programId"),
@@ -49,6 +56,18 @@ export async function addContentUnits(_prev: FormState, form: FormData): Promise
 
   const denied = await guard(parsed.data.programId);
   if (denied) return denied;
+
+  if (await hasSections(parsed.data.programId)) {
+    const db = await createClient();
+    const { data, error } = await db.rpc("fn_set_unit_labels", {
+      p_program_id: parsed.data.programId,
+      p_start: parsed.data.startAt,
+      p_labels: parsed.data.lines,
+    });
+    if (error) return { error: materialMessage(error, "تعذّر حفظ النصوص.") };
+    revalidatePath(`/programs/${parsed.data.programId}/content`);
+    return { notice: `حُفظت نصوص ${data ?? parsed.data.lines.length} وحدة.` };
+  }
 
   const rows = parsed.data.lines.map((label, i) => ({
     program_id: parsed.data.programId,
@@ -75,6 +94,220 @@ export async function addContentUnits(_prev: FormState, form: FormData): Promise
 
   revalidatePath(`/programs/${parsed.data.programId}/content`);
   return { notice: `أُدخلت ${rows.length} وحدة.` };
+}
+
+// ── الأبواب وصيغ العرض — adr/0039 ──
+
+/**
+ * إزاحة الأرقام تحت نصيب مسار يرفضها حارس الوحدة برسالةٍ عن وحدة واحدة.
+ * وهنا الفعل تغييرُ باب، فتُقال بلغته وبالطريقين المفتوحين.
+ */
+const SHIFT_UNDER_TRACK =
+  "هذا التغيير يُزيح أرقام وحدات داخل نصيب مسار، فيُنقل المسار إلى غير ما اختير له. أخرج تلك الوحدات من نصيب المسار أولاً، أو أضف الباب في آخر المادة.";
+
+function materialMessage(error: { code?: string; message: string }, fallback: string): string {
+  if (/داخل نصيب مسار/.test(error.message)) return SHIFT_UNDER_TRACK;
+  if ((error.code === "22023" || error.code === "40001") && /[؀-ۿ]/.test(error.message)) return `${error.message}.`;
+  return userMessage(error, fallback);
+}
+
+async function hasSections(programId: string): Promise<boolean> {
+  const db = await createClient();
+  const { count } = await db
+    .from("material_sections")
+    .select("id", { count: "exact", head: true })
+    .eq("program_id", programId)
+    .is("deleted_at", null);
+  return (count ?? 0) > 0;
+}
+
+type SectionEntry = { id?: string; name: string; count: number };
+
+/**
+ * يقرأ الأبواب بترتيبها، ويطبّق عليها التعديل، ثم يكتب القائمة كاملة بدالتها
+ * الواحدة — فهي التي تعيد الترقيم، ولا طريق غيرها لحجم الباب وموضعه.
+ */
+async function applySections(
+  programId: string,
+  change: (sections: SectionEntry[]) => SectionEntry[] | string,
+  notice: string,
+): Promise<FormState> {
+  const denied = await guard(programId);
+  if (denied) return denied;
+
+  const db = await createClient();
+  const { data, error: readError } = await db
+    .from("material_sections")
+    .select("id, name, unit_count")
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .order("sort_order")
+    .order("created_at");
+  if (readError) return { error: "تعذّر قراءة الأبواب." };
+
+  const seen = data ?? [];
+  const next = change(seen.map((s) => ({ id: s.id, name: s.name, count: s.unit_count })));
+  if (typeof next === "string") return { error: next };
+
+  // القائمة التي قُرئت تُرسل معها: إن تغيّرت قبل الكتابة رُفضت، فلا يُحذف ما أضافه غيرك.
+  const { error } = await db.rpc("fn_set_material_sections", {
+    p_program_id: programId,
+    p_sections: next,
+    p_expected: seen.map((s) => s.id),
+  });
+  if (error) return { error: materialMessage(error, "تعذّر حفظ الأبواب.") };
+
+  revalidatePath(`/programs/${programId}/content`);
+  return { notice };
+}
+
+const sectionLinesSchema = z.object({
+  programId: z.uuid(),
+  lines: z.string().trim().min(1, "الصق باباً واحداً على الأقل"),
+});
+
+/** أبوابٌ تُضاف في آخر المادة — سطرٌ لكل باب: اسمه ثم عدد وحداته. */
+export async function addMaterialSections(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = sectionLinesSchema.safeParse({
+    programId: form.get("programId"),
+    lines: form.get("lines") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const lines = parseSectionLines(parsed.data.lines);
+  if (!lines.ok) return { fieldErrors: { lines: lines.errors.slice(0, 3).join(" ") } };
+
+  return applySections(
+    parsed.data.programId,
+    (sections) => {
+      const taken = new Set(sections.map((s) => s.name));
+      const clash = lines.rows.find((row) => taken.has(row.name));
+      if (clash) return `الباب «${clash.name}» موجود في المادة.`;
+      return [...sections, ...lines.rows];
+    },
+    lines.rows.length === 1 ? "أُضيف الباب." : `أُضيفت ${lines.rows.length} أبواب.`,
+  );
+}
+
+export async function setMaterialSectionCount(
+  sectionId: string,
+  programId: string,
+  count: number,
+): Promise<FormState> {
+  if (!idsSchema.safeParse({ programId, id: sectionId }).success) return { error: "باب غير معروف." };
+  if (!Number.isInteger(count) || count < 1) return { error: "عدد الوحدات عدد صحيح موجب." };
+  return applySections(
+    programId,
+    (sections) => sections.map((s) => (s.id === sectionId ? { ...s, count } : s)),
+    "عُدِّل عدد وحدات الباب.",
+  );
+}
+
+export async function moveMaterialSection(
+  sectionId: string,
+  programId: string,
+  direction: "up" | "down",
+): Promise<FormState> {
+  if (!idsSchema.safeParse({ programId, id: sectionId }).success) return { error: "باب غير معروف." };
+  return applySections(
+    programId,
+    (sections) => {
+      const index = sections.findIndex((s) => s.id === sectionId);
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (index < 0 || target < 0 || target >= sections.length) return sections;
+      const order = [...sections];
+      [order[index], order[target]] = [order[target]!, order[index]!];
+      return order;
+    },
+    "تغيّر ترتيب الأبواب.",
+  );
+}
+
+export async function removeMaterialSection(sectionId: string, programId: string): Promise<FormState> {
+  if (!idsSchema.safeParse({ programId, id: sectionId }).success) return { error: "باب غير معروف." };
+  return applySections(
+    programId,
+    (sections) => sections.filter((s) => s.id !== sectionId),
+    "حُذف الباب بوحداته.",
+  );
+}
+
+/** الاسم وحده لا يُزيح رقماً، فيُكتب مباشرة لا عبر إعادة الترقيم. */
+export async function renameMaterialSection(
+  sectionId: string,
+  programId: string,
+  name: string,
+): Promise<FormState> {
+  const g = await guarded(programId, sectionId);
+  if ("denied" in g) return g.denied;
+  const text = z.string().trim().min(1).max(80).safeParse(name);
+  if (!text.success) return { error: "اسم الباب مطلوب." };
+
+  const { data, error } = await g.db
+    .from("material_sections")
+    .update({ name: text.data })
+    .eq("id", sectionId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) {
+    return { error: userMessage(error, "تعذّر تعديل اسم الباب.", "هذا الاسم لباب آخر في المادة.") };
+  }
+
+  contentPath(programId);
+  return { notice: "عُدِّل اسم الباب." };
+}
+
+const formText = z
+  .string()
+  .trim()
+  .max(30, "الصيغة ٣٠ حرفاً على الأكثر")
+  .transform((v) => (v.length === 0 ? null : v));
+
+const formsSchema = z.object({
+  programId: z.uuid(),
+  sectionLabel: formText,
+  singular: formText,
+  one: formText,
+  two: formText,
+  few: formText,
+  many: formText,
+});
+
+/** اسم القسم وصيغ الوحدة الخمس. الفارغ يُعرض بالصيغة العامة («الوحدة»). */
+export async function saveMaterialForms(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = formsSchema.safeParse({
+    programId: form.get("programId"),
+    sectionLabel: form.get("sectionLabel") ?? "",
+    singular: form.get("singular") ?? "",
+    one: form.get("one") ?? "",
+    two: form.get("two") ?? "",
+    few: form.get("few") ?? "",
+    many: form.get("many") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const denied = await guard(parsed.data.programId);
+  if (denied) return denied;
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("programs")
+    .update({
+      section_label: parsed.data.sectionLabel,
+      unit_singular: parsed.data.singular,
+      unit_one: parsed.data.one,
+      unit_two: parsed.data.two,
+      unit_few: parsed.data.few,
+      unit_many: parsed.data.many,
+    })
+    .eq("id", parsed.data.programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حفظ الصيغ." };
+
+  revalidatePath(`/programs/${parsed.data.programId}/content`);
+  return { notice: "حُفظت الصيغ." };
 }
 
 // ── مقاطع المسار ──
@@ -161,40 +394,126 @@ export async function removeTrackRange(rangeId: string, programId: string): Prom
 
 // ── حقول الواجب ──
 
-const fieldSchema = z.object({
-  programId: z.uuid(),
-  label: z.string().trim().min(2, "اسم الواجب مطلوب"),
-  kind: z.enum(["ranged", "counted"]),
-  sortOrder: z.coerce.number().int().min(0).default(0),
-});
+/**
+ * خصائص الحقل (`adr/0037`) — من نموذج الإضافة والتعديل معاً. والقيود في القاعدة
+ * (`chk_task_fields_properties`)، وهنا تُقال بلغة المُعِدّ قبل أن تُرسل.
+ */
+const fieldPropsSchema = z
+  .object({
+    label: z.string().trim().min(2, "اسم الواجب حرفان فأكثر").max(60),
+    kind: z.enum(["ranged", "explicit", "counted"]),
+    isBase: z.boolean(),
+    isConstrained: z.boolean(),
+    isMaterialLinked: z.boolean(),
+    isRequired: z.boolean(),
+    countUnit: z
+      .string()
+      .trim()
+      .max(20, "وحدة العدّ ٢٠ حرفاً على الأكثر")
+      .transform((v) => (v === "" ? null : v)),
+    defaultRepetition: z
+      .union([z.literal(""), z.coerce.number().int().min(1, "التكرار ١ فأكثر").max(1000)])
+      .transform((v) => (v === "" ? null : v)),
+    sortOrder: z.coerce.number().int().min(0).default(0),
+  })
+  .refine((v) => !v.isBase || (v.kind === "ranged" && v.isMaterialLinked), {
+    path: ["isBase"],
+    message: "الحقل الأساس تراكميٌّ مرتبطٌ بالمادة",
+  })
+  .refine((v) => !v.isConstrained || (v.kind === "explicit" && v.isMaterialLinked), {
+    path: ["isConstrained"],
+    message: "التقييد بالأساس للنطاق الصريح المرتبط بالمادة",
+  })
+  .refine((v) => v.kind !== "counted" || v.countUnit !== null, {
+    path: ["countUnit"],
+    message: "اكتب وحدة العدّ: مرة · صفحة · وجه",
+  });
 
-export async function addTaskField(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = fieldSchema.safeParse({
-    programId: form.get("programId"),
+function readFieldProps(form: FormData) {
+  const kind = form.get("kind");
+  return fieldPropsSchema.safeParse({
     label: form.get("label"),
-    kind: form.get("kind"),
+    kind,
+    isBase: form.get("isBase") === "on",
+    isConstrained: form.get("isConstrained") === "on",
+    // العددي لا يشير إلى موضع في المادة، فلا يرتبط بها مهما أُشّر.
+    isMaterialLinked: kind !== "counted" && form.get("isMaterialLinked") === "on",
+    isRequired: form.get("isRequired") === "on",
+    countUnit: kind === "counted" ? (form.get("countUnit") ?? "") : "",
+    defaultRepetition: form.get("defaultRepetition") ?? "",
     sortOrder: form.get("sortOrder") || 0,
   });
+}
+
+function fieldMessage(error: { code?: string; message: string }, fallback: string): string {
+  if (error.code === "23505" && /idx_task_fields_base/.test(error.message)) return "في البرنامج حقل أساس سلفاً — واحدٌ لكل برنامج.";
+  if (error.code === "23505") return "هذا الاسم مستخدَم لواجب آخر في البرنامج.";
+  if (/chk_task_fields_properties/.test(error.message)) return "خصائص الحقل لا تجتمع مع نوعه.";
+  return userMessage(error, fallback);
+}
+
+export async function addTaskField(_prev: FormState, form: FormData): Promise<FormState> {
+  const programId = z.uuid().safeParse(form.get("programId"));
+  if (!programId.success) return { error: "برنامج غير معروف." };
+  const parsed = readFieldProps(form);
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
 
-  const denied = await guard(parsed.data.programId);
+  const denied = await guard(programId.data);
   if (denied) return denied;
 
+  const p = parsed.data;
   const db = await createClient();
   const { error } = await db.from("task_fields").insert({
-    program_id: parsed.data.programId,
-    label: parsed.data.label,
-    kind: parsed.data.kind,
-    sort_order: parsed.data.sortOrder,
+    program_id: programId.data,
+    label: p.label,
+    kind: p.kind,
+    sort_order: p.sortOrder,
+    is_base: p.isBase,
+    is_constrained: p.isConstrained,
+    is_material_linked: p.isMaterialLinked,
+    is_required: p.isRequired,
+    count_unit: p.countUnit,
+    default_repetition: p.defaultRepetition,
   });
-  if (error) {
-    return {
-      error: error.code === "23505" ? "هذا الاسم مستخدَم لواجب آخر في البرنامج." : "تعذّر إضافة الواجب.",
-    };
-  }
+  if (error) return { error: fieldMessage(error, "تعذّر إضافة الواجب.") };
 
-  revalidatePath(`/programs/${parsed.data.programId}/content`);
+  revalidatePath(`/programs/${programId.data}/content`);
   return { notice: "أُضيف الواجب." };
+}
+
+/** تعديل الحقل كاملاً — الاسم والنوع والخصائص. وما يُفسد قيم خطةٍ قائمة ترفضه القاعدة. */
+export async function updateTaskField(_prev: FormState, form: FormData): Promise<FormState> {
+  const ids = idsSchema.safeParse({ programId: form.get("programId"), id: form.get("fieldId") });
+  if (!ids.success) return { error: "واجب غير معروف." };
+  const parsed = readFieldProps(form);
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const denied = await guard(ids.data.programId);
+  if (denied) return denied;
+
+  const p = parsed.data;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("task_fields")
+    .update({
+      label: p.label,
+      kind: p.kind,
+      sort_order: p.sortOrder,
+      is_base: p.isBase,
+      is_constrained: p.isConstrained,
+      is_material_linked: p.isMaterialLinked,
+      is_required: p.isRequired,
+      count_unit: p.countUnit,
+      default_repetition: p.defaultRepetition,
+    })
+    .eq("id", ids.data.id)
+    .eq("program_id", ids.data.programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: fieldMessage(error ?? { message: "" }, "تعذّر تعديل الواجب.") };
+
+  contentPath(ids.data.programId);
+  return { notice: "عُدِّل الواجب." };
 }
 
 // ── قوالب الأيام ──
@@ -242,6 +561,17 @@ export async function addTemplateField(_prev: FormState, form: FormData): Promis
   if (denied) return denied;
 
   const db = await createClient();
+  const { data: kindRow } = await db
+    .from("task_fields")
+    .select("kind")
+    .eq("id", parsed.data.taskFieldId)
+    .eq("program_id", parsed.data.programId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!kindRow) return { error: "الواجب ليس من هذا البرنامج." };
+  if (kindRow.kind === "explicit") {
+    return { error: "النطاق الصريح لا يُعبّأ من شكل يوم: «من/إلى» تُدخل في الخطة نفسها." };
+  }
   // يُضاف في آخر الشكل — الترتيب يُعرض للمشارك، فلا يُترك لتساوي الصفر.
   const { count } = await db
     .from("day_template_fields")
@@ -291,12 +621,13 @@ export async function updateContentUnitLabel(
 ): Promise<FormState> {
   const g = await guarded(programId, unitId);
   if ("denied" in g) return g.denied;
-  const text = z.string().trim().min(1).max(500).safeParse(label);
-  if (!text.success) return { error: "نصّ الوحدة مطلوب." };
+  // النصّ اختياري منذ `adr/0039`: الفراغ يمحوه، والعرض يبقى بالباب ورقمه.
+  const text = z.string().trim().max(500).safeParse(label);
+  if (!text.success) return { error: "نصّ الوحدة ٥٠٠ حرف على الأكثر." };
 
   const { data, error } = await g.db
     .from("content_units")
-    .update({ label: text.data })
+    .update({ label: text.data || null })
     .eq("id", unitId)
     .eq("program_id", programId)
     .is("deleted_at", null)
@@ -349,28 +680,6 @@ export async function renameTaskField(
 
   contentPath(programId);
   return { notice: "عُدِّل اسم الواجب." };
-}
-
-export async function setTaskFieldKind(
-  fieldId: string,
-  programId: string,
-  kind: "ranged" | "counted",
-): Promise<FormState> {
-  const g = await guarded(programId, fieldId);
-  if ("denied" in g) return g.denied;
-  if (kind !== "ranged" && kind !== "counted") return { error: "اختر النوع من القائمة." };
-
-  const { data, error } = await g.db
-    .from("task_fields")
-    .update({ kind })
-    .eq("id", fieldId)
-    .eq("program_id", programId)
-    .is("deleted_at", null)
-    .select("id");
-  if (error || !data?.length) return { error: userMessage(error, "تعذّر تغيير نوع الواجب.") };
-
-  contentPath(programId);
-  return { notice: "تغيّر نوع الواجب." };
 }
 
 export async function removeTaskField(fieldId: string, programId: string): Promise<FormState> {

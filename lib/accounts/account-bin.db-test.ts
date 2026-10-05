@@ -16,7 +16,6 @@ let db: Client;
 let sectionId: string;
 let programId: string;
 let trackId: string;
-let templateId: string;
 let fieldId: string;
 let planId: string;
 let questionId: string;
@@ -115,27 +114,16 @@ beforeAll(async () => {
       [programId],
     )
   ).rows[0]!.id;
-  templateId = (
+  planId = (
     await db.query<{ id: string }>(
-      `insert into public.day_templates (program_id, name) values ($1, 'يوم') returning id`,
+      `insert into public.plans (program_id, name, day_count) values ($1, 'خطة السلّة', 3) returning id`,
       [programId],
     )
   ).rows[0]!.id;
   await db.query(
-    `insert into public.day_template_fields (day_template_id, task_field_id, base_amount, sort_order)
-     values ($1, $2, 2, 0)`,
-    [templateId, fieldId],
-  );
-  planId = (
-    await db.query<{ id: string }>(
-      `insert into public.plans (track_id, name) values ($1, 'خطة السلّة') returning id`,
-      [trackId],
-    )
-  ).rows[0]!.id;
-  await db.query(
-    `insert into public.plan_days (plan_id, day_number, day_type, day_template_id)
-     select $1, g, 'normal', $2 from generate_series(1, 3) as g`,
-    [planId, templateId],
+    `insert into public.plan_values (plan_id, day_number, task_field_id, value)
+     select $1, g, $2, 2 from generate_series(1, 3) as g`,
+    [planId, fieldId],
   );
 
   questionId = (
@@ -165,16 +153,15 @@ beforeAll(async () => {
     [targetParticipant, questionId],
   );
 
-  const dayOne = (
-    await db.query<{ id: string }>(
-      `select id from public.plan_days where plan_id = $1 and day_number = 1`,
-      [planId],
-    )
-  ).rows[0]!.id;
   await db.query(
-    `insert into public.achievements (participant_id, plan_day_id, task_field_id, is_done, amount)
-     values ($1, $2, $3, true, 2)`,
-    [targetParticipant, dayOne, fieldId],
+    `insert into public.field_marks (participant_id, plan_id, track_id, day_number, task_field_id, marked_at)
+     values ($1, $2, $3, 1, $4, now())`,
+    [targetParticipant, planId, trackId, fieldId],
+  );
+  await db.query(
+    `insert into public.day_completions (participant_id, plan_id, track_id, day_number, completed_at)
+     values ($1, $2, $3, 1, now())`,
+    [targetParticipant, planId, trackId],
   );
 
   // طلبٌ لغير المحذوف، بتّ فيه المحذوف — فقراره يبقى واسمه يُثبَّت.
@@ -234,11 +221,13 @@ afterAll(async () => {
          (select id from public.participants where program_id = $1)`,
       [programId],
     );
-    await db.query(
-      `delete from public.achievements where participant_id in
-         (select id from public.participants where program_id = $1)`,
-      [programId],
-    );
+    for (const table of ["field_marks", "day_completions", "commitment_archive"]) {
+      await db.query(
+        `delete from public.${table} where participant_id in
+           (select id from public.participants where program_id = $1)`,
+        [programId],
+      );
+    }
     await db.query(
       `delete from public.admission_answers where participant_id in
          (select id from public.participants where program_id = $1)`,
@@ -246,12 +235,8 @@ afterAll(async () => {
     );
     await db.query(`delete from public.admission_questions where program_id = $1`, [programId]);
     await db.query(`delete from public.participants where program_id = $1`, [programId]);
-    await db.query(`delete from public.plan_days where plan_id = $1`, [planId]);
+    await db.query(`delete from public.plan_values where plan_id = $1`, [planId]);
     await db.query(`delete from public.plans where id = $1`, [planId]);
-    await db.query(`delete from public.day_template_fields where day_template_id = $1`, [
-      templateId,
-    ]);
-    await db.query(`delete from public.day_templates where id = $1`, [templateId]);
     await db.query(`delete from public.task_fields where program_id = $1`, [programId]);
     await db.query(`delete from public.tracks where program_id = $1`, [programId]);
     await db.query(`delete from public.programs where id = $1`, [programId]);
@@ -417,7 +402,7 @@ describe("المحو النهائي", () => {
     expect(rows[0]!.user_id).toBeNull();
 
     const done = await db.query(
-      `select 1 from public.achievements where participant_id = $1 and deleted_at is null`,
+      `select 1 from public.day_completions where participant_id = $1 and deleted_at is null and undone_at is null`,
       [targetParticipant],
     );
     expect(done.rowCount).toBe(1);

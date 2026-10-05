@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatClock,
+  toTimeInput,
   formatDate,
   formatDateBoth,
   formatHijri,
@@ -60,5 +62,13 @@ describe("التاريخ", () => {
   it("الفرق الزمني مقروء بالعربية", () => {
     const threeDaysLater = new Date(FIXED.getTime() + 3 * 24 * 60 * 60 * 1000);
     expect(formatRelative(threeDaysLater, FIXED)).toMatch(/[٠-٩]|غد/);
+  });
+
+  it("الساعة بتوقيت الرياض لاتينيةً للمقارنة، وبصيغة ١٢ ساعة للعرض", () => {
+    expect(toTimeInput(new Date("2026-09-02T18:05:00Z"))).toBe("21:05");
+    expect(toTimeInput(new Date("2026-09-02T21:00:00Z"))).toBe("00:00");
+    expect(formatClock("21:05")).toBe("٩:٠٥ م");
+    expect(formatClock("00:30")).toBe("١٢:٣٠ ص");
+    expect(formatClock("12:00")).toBe("١٢:٠٠ م");
   });
 });

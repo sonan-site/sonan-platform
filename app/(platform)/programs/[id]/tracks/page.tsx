@@ -20,7 +20,7 @@ export default async function TracksPage({ params }: { params: Promise<{ id: str
   ).ok;
 
   const db = await createClient();
-  const [tracksResult, usageResult, ready] = await Promise.all([
+  const [tracksResult, usageResult, ready, plansResult, templatesResult] = await Promise.all([
     db
       .from("tracks")
       .select("id, name, description, capacity")
@@ -32,6 +32,9 @@ export default async function TracksPage({ params }: { params: Promise<{ id: str
     // ما يشغل كل مسار — ليُعطَّل زرّ حذفه بسببٍ مكتوب لا أن يُرفض بعد النقر.
     db.rpc("fn_track_usage", { p_program_id: id }),
     programReadiness(id),
+    // الإعداد السريع يرفض أي خطةٍ أو شكل يوم ولو فارغين — فلا يُعرض زرّه لما سيُرفض.
+    db.from("plans").select("id", { count: "exact", head: true }).eq("program_id", id).is("deleted_at", null),
+    db.from("day_templates").select("id", { count: "exact", head: true }).eq("program_id", id).is("deleted_at", null),
   ]);
 
   if (tracksResult.error) return <ErrorState body="تعذّر جلب المسارات." />;
@@ -47,12 +50,13 @@ export default async function TracksPage({ params }: { params: Promise<{ id: str
     plans: usage.get(t.id)?.plans ?? 0,
   }));
 
-  // الشرط نفسه الذي تفرضه `fn_quick_setup`: لا مادة ولا واجبات ولا أشكال.
+  // الشرط الذي تفرضه `fn_quick_setup`: لا مادة ولا حقول ولا خطة ولا شكل يوم.
   const canQuickSetup =
     ready !== null &&
     ready.input.contentUnits === 0 &&
     ready.input.taskFields === 0 &&
-    ready.input.templatesWithFields === 0;
+    plansResult.count === 0 &&
+    templatesResult.count === 0;
 
   return (
     <TracksView programId={id} tracks={tracks} canWrite={canWrite} canQuickSetup={canQuickSetup} />

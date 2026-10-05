@@ -4,7 +4,7 @@ import { createClient } from "@/lib/db/server";
 import { readiness, type ReadinessInput, type ReadinessItem } from "./readiness";
 
 /**
- * جاهزية البرنامج من القاعدة — صفٌّ واحد (`fn_program_readiness`، الهجرة ٠٤١).
+ * جاهزية البرنامج من القاعدة — صفٌّ واحد (`fn_program_readiness`، الهجرة ٠٤١ ثم ٠٦٧).
  *
  * مُغلّفة بـ`cache`: التخطيط يقرؤها لشريط المعالج، والصفحة تقرؤها للوحة
  * الجاهزية، فتُنفَّذ مرة واحدة للطلب.
@@ -29,8 +29,7 @@ export const programReadiness = cache(
       tracksWithParts: row.tracks_with_parts,
       contentUnits: row.content_units,
       taskFields: row.task_fields,
-      templatesWithFields: row.templates_with_fields,
-      tracksWithPlanDays: row.tracks_with_plan_days,
+      tracksWithPlan: row.tracks_with_plan,
       publicBlocks: row.public_blocks,
       published: row.published ?? false,
     };

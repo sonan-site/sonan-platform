@@ -6,12 +6,15 @@ import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form
 import { createClient } from "@/lib/db/server";
 import { nowIso } from "@/lib/format";
 import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
-import { generateDays, MAX_PLAN_DAYS, parseUploadedPlan, planIssues } from "@/lib/plans/build";
 import { authorizeRequest } from "@/lib/permissions/server";
+import type { Json } from "@/lib/db/database.types";
 
 /**
- * الخطة إعداد برنامج: صلاحيتها `programs.write` بنطاق البرنامج — لا رمز
- * مستقل. ورمزٌ بلا حارس يستهلكه يُفشل `guard-permissions`.
+ * الخطة إعداد برنامج: صلاحيتها `programs.write` بنطاق البرنامج.
+ *
+ * **والكتابة كلها من دوالّ القاعدة** (`adr/0036`): `fn_create_plan` تنشئ،
+ * و`fn_save_plan` تكتب القيم وتفحصها وتحفظ نسخة، و`fn_remove_custom_plan` تُرجع
+ * المسار إلى الافتراضية. فالتحقّق والقفل في موضع واحد.
  */
 async function guard(programId: string): Promise<FormState | null> {
   const authz = await authorizeRequest({
@@ -22,422 +25,153 @@ async function guard(programId: string): Promise<FormState | null> {
   return authz.ok ? null : { error: authz.message };
 }
 
-/** عدد أيام الخطة الحيّة. البناء الجملي لا يقع على خطة مأهولة. */
-async function liveDayCount(
-  db: Awaited<ReturnType<typeof createClient>>,
-  planId: string,
-): Promise<number> {
-  const { count } = await db
-    .from("plan_days")
-    .select("id", { count: "exact", head: true })
-    .eq("plan_id", planId)
-    .is("deleted_at", null);
-  return count ?? 0;
-}
+const ARABIC = /[؀-ۿ]/;
 
-/**
- * رسالة القاعدة بلغة المُعِدّ. القيود تتكلّم بمصطلحها («القالب»)، والشاشة
- * بمصطلحها («شكل اليوم») — فلا يُمرَّر نصّ القاعدة كما هو.
- */
-function planMessage(dbMessage: string, fallback: string): string {
-  if (/القالب ليس من برنامج الخطة/.test(dbMessage)) return "شكل اليوم المختار ليس من هذا البرنامج.";
-  if (/الاختبار ليس من برنامج الخطة/.test(dbMessage)) return "الاختبار المختار ليس من هذا البرنامج.";
-  if (/الحدّ الأقصى/.test(dbMessage)) return dbMessage;
-  if (/إنجاز مسجَّل/.test(dbMessage)) return "أرسل مشاركٌ هذا اليوم، فلا يُحذف ولا يُغيَّر نوعه.";
+/** رسائل دوالّ الخطة مكتوبةٌ بلغة المُعِدّ، فتُعرض كما هي. */
+function planMessage(error: { message: string } | null, fallback: string): string {
+  if (error && ARABIC.test(error.message)) return error.message.endsWith(".") ? error.message : `${error.message}.`;
   return fallback;
 }
 
-// ── الخطة ──
-
-const createSchema = z.object({
-  programId: z.uuid(),
-  trackId: z.uuid("اختر مساراً"),
-  name: z.string().trim().min(2, "اسم الخطة مطلوب"),
-});
-
-export async function createPlan(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = createSchema.safeParse({
-    programId: form.get("programId"),
-    trackId: form.get("trackId"),
-    name: form.get("name"),
-  });
-  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
-
-  const denied = await guard(parsed.data.programId);
-  if (denied) return denied;
-
-  const db = await createClient();
-  const { error } = await db
-    .from("plans")
-    .insert({ track_id: parsed.data.trackId, name: parsed.data.name });
-  if (error) {
-    return {
-      error:
-        error.code === "23505"
-          ? "للمسار خطة سلفاً. المسار خطة واحدة — افتحها وعدّلها."
-          : "تعذّر إنشاء الخطة.",
-    };
-  }
-
-  revalidatePath(`/programs/${parsed.data.programId}/plans`);
-  return { notice: "أُنشئت الخطة. ابنِ أيامها." };
-}
-
-// ── البناء الجملي: توليد ورفع ──
-
-const generateSchema = z.object({
-  programId: z.uuid(),
-  planId: z.uuid(),
-  dayCount: z.coerce.number().int().min(1, "عدد الأيام واحد فأكثر").max(MAX_PLAN_DAYS),
-  dayTemplateId: z.uuid("اختر شكل اليوم"),
-  amountMultiplier: z.coerce.number().positive("ضِعف المقدار أكبر من صفر").default(1),
-  restEvery: z.coerce.number().int().min(0).max(MAX_PLAN_DAYS).default(0),
-});
-
-/**
- * التوليد بمعطيات — **على خطة فارغة وحدها**.
- *
- * البناء الجملي لا يمسّ خطة مأهولة: من ولّد فوق خطة قائمة فقد ترتيبها كلّه،
- * وقد يكون المشاركون قد بنوا عليه. التبديل قصدٌ يُعلَن بالمسح ثم البناء.
- */
-export async function generatePlan(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = generateSchema.safeParse({
-    programId: form.get("programId"),
-    planId: form.get("planId"),
-    dayCount: form.get("dayCount"),
-    dayTemplateId: form.get("dayTemplateId"),
-    amountMultiplier: form.get("amountMultiplier") || 1,
-    restEvery: form.get("restEvery") || 0,
-  });
-  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
-
-  const denied = await guard(parsed.data.programId);
-  if (denied) return denied;
-
-  const db = await createClient();
-  if ((await liveDayCount(db, parsed.data.planId)) > 0) {
-    return { error: "الخطة فيها أيام. امسحها أولاً ثم أنشئ الخطة من جديد." };
-  }
-
-  const days = generateDays({
-    dayCount: parsed.data.dayCount,
-    dayTemplateId: parsed.data.dayTemplateId,
-    amountMultiplier: parsed.data.amountMultiplier,
-    restEvery: parsed.data.restEvery,
-  });
-
-  const issues = planIssues(days);
-  if (issues.length > 0) return { error: issues[0] };
-
-  return writeDays(db, parsed.data.programId, parsed.data.planId, days);
-}
-
-const uploadSchema = z.object({
-  programId: z.uuid(),
-  planId: z.uuid(),
-  dayTemplateId: z.uuid("اختر شكل اليوم"),
-  text: z.string().min(1, "ألصق أيام الخطة"),
-});
-
-/** الرفع صورة من اليدوي: يُترجَم إلى الصفوف نفسها ثم يُحرَّر كأي خطة. */
-export async function uploadPlan(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = uploadSchema.safeParse({
-    programId: form.get("programId"),
-    planId: form.get("planId"),
-    dayTemplateId: form.get("dayTemplateId"),
-    text: form.get("text"),
-  });
-  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
-
-  const denied = await guard(parsed.data.programId);
-  if (denied) return denied;
-
-  const db = await createClient();
-  if ((await liveDayCount(db, parsed.data.planId)) > 0) {
-    return { error: "الخطة فيها أيام. امسحها أولاً ثم الصق القائمة." };
-  }
-
-  const result = parseUploadedPlan(parsed.data.text, parsed.data.dayTemplateId);
-  if (!result.ok) {
-    // الملف يُردّ كلّه: خطة نصفها مرفوع أسوأ من خطة لم تُرفع.
-    const head = result.issues
-      .slice(0, 5)
-      .map((i) => (i.line > 0 ? `سطر ${i.line}: ${i.message}` : i.message))
-      .join(" · ");
-    const rest = result.issues.length > 5 ? ` (و${result.issues.length - 5} غيرها)` : "";
-    return { error: `${head}${rest}` };
-  }
-
-  return writeDays(db, parsed.data.programId, parsed.data.planId, result.days);
-}
-
-/** الصفحتان معاً: القائمة تعرض «عدد الأيام»، فتبطل بتغيّرها لا بتغيّر الخطة وحدها. */
-function revalidateBoth(programId: string, planId: string): void {
-  revalidatePath(`/programs/${programId}/plans/${planId}`);
+function plansPath(programId: string, planId?: string): void {
   revalidatePath(`/programs/${programId}/plans`);
+  if (planId) revalidatePath(`/programs/${programId}/plans/${planId}`);
 }
 
-async function writeDays(
-  db: Awaited<ReturnType<typeof createClient>>,
+const ids = z.object({ programId: z.uuid(), trackId: z.uuid().nullable() });
+
+/** الخطة الافتراضية للبرنامج — يرثها كل مسار بلا مخصّصة. */
+export async function createDefaultPlan(programId: string): Promise<FormState & { planId?: string }> {
+  if (!ids.safeParse({ programId, trackId: null }).success) return { error: "برنامج غير معروف." };
+  const denied = await guard(programId);
+  if (denied) return denied;
+
+  const db = await createClient();
+  const { data, error } = await db.rpc("fn_create_plan", {
+    p_program_id: programId,
+    p_track_id: null as unknown as string,
+    p_copy: false,
+  });
+  if (error) return { error: planMessage(error, "تعذّر إنشاء الخطة.") };
+  plansPath(programId);
+  return { notice: "أُنشئت الخطة الافتراضية.", planId: data ?? undefined };
+}
+
+/** خطة مخصّصة لمسار — منسوخةً من الافتراضية أو فارغة. */
+export async function customizeTrackPlan(
   programId: string,
-  planId: string,
-  days: ReturnType<typeof generateDays>,
-): Promise<FormState> {
-  const { error } = await db.from("plan_days").insert(
-    days.map((d) => ({
-      plan_id: planId,
-      day_number: d.dayNumber,
-      day_type: d.dayType,
-      day_template_id: d.dayTemplateId,
-      amount_multiplier: d.amountMultiplier,
-      exam_id: d.examId,
-    })),
-  );
-  if (error) {
-    return {
-      error: planMessage(error.message, "تعذّر كتابة أيام الخطة."),
-    };
-  }
+  trackId: string,
+  copy: boolean,
+): Promise<FormState & { planId?: string }> {
+  if (!ids.safeParse({ programId, trackId }).success) return { error: "مسار غير معروف." };
+  const denied = await guard(programId);
+  if (denied) return denied;
 
-  await db.rpc("fn_write_audit", {
-    p_action: "plan_days_built",
-    p_entity_table: "plan_days",
-    p_entity_id: planId,
-    p_after: { count: days.length },
+  const db = await createClient();
+  const { data, error } = await db.rpc("fn_create_plan", {
+    p_program_id: programId,
+    p_track_id: trackId,
+    p_copy: copy,
   });
-
-  revalidateBoth(programId, planId);
-  return { notice: `بُنيت ${days.length} يوماً.` };
+  if (error) return { error: planMessage(error, "تعذّر تخصيص الخطة.") };
+  plansPath(programId);
+  return { notice: copy ? "خُصّصت للمسار خطة منسوخة من الافتراضية." : "خُصّصت للمسار خطة فارغة.", planId: data ?? undefined };
 }
 
-// ── التحرير اليدوي ──
+export async function revertTrackPlan(programId: string, planId: string): Promise<FormState> {
+  if (!z.object({ programId: z.uuid(), planId: z.uuid() }).safeParse({ programId, planId }).success) {
+    return { error: "خطة غير معروفة." };
+  }
+  const denied = await guard(programId);
+  if (denied) return denied;
 
-const daySchema = z
-  .object({
-    programId: z.uuid(),
-    planId: z.uuid(),
-    atNumber: z.coerce.number().int().min(1).optional(),
-    dayType: z.enum(["normal", "rest", "exam"]),
-    dayTemplateId: z.uuid("اختر شكل اليوم").optional(),
-    amountMultiplier: z.coerce.number().positive("ضِعف المقدار أكبر من صفر").default(1),
-    examId: z.uuid("اختر اختباراً").optional(),
-  })
-  .refine((v) => v.dayType !== "normal" || !!v.dayTemplateId, {
-    path: ["dayTemplateId"],
-    message: "اختر شكل اليوم لهذا اليوم",
-  })
-  .refine((v) => v.dayType !== "exam" || !!v.examId, {
-    path: ["examId"],
-    message: "اختر الاختبار لهذا اليوم",
-  });
+  const db = await createClient();
+  const { error } = await db.rpc("fn_remove_custom_plan", { p_plan_id: planId });
+  if (error) return { error: planMessage(error, "تعذّر الرجوع إلى الافتراضية.") };
+  plansPath(programId, planId);
+  return { notice: "رجع المسار إلى الخطة الافتراضية." };
+}
 
-export async function addPlanDay(_prev: FormState, form: FormData): Promise<FormState> {
-  const parsed = daySchema.safeParse({
-    programId: form.get("programId"),
-    planId: form.get("planId"),
-    atNumber: form.get("atNumber") || undefined,
-    dayType: form.get("dayType"),
-    dayTemplateId: form.get("dayTemplateId") || undefined,
-    amountMultiplier: form.get("amountMultiplier") || 1,
-    examId: form.get("examId") || undefined,
-  });
-  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+const payloadSchema = z.object({
+  day_count: z.number().int().min(1).max(366),
+  values: z
+    .array(
+      z.object({
+        day: z.number().int().min(1).max(366),
+        field_id: z.uuid(),
+        amount: z.number().int().positive().max(999_999).optional(),
+        from: z.number().int().positive().max(999_999).optional(),
+        to: z.number().int().positive().max(999_999).optional(),
+        value: z.number().positive().max(9_999_999).optional(),
+        repetition: z.number().int().min(1).max(1000).optional(),
+      }),
+    )
+    .max(366 * 20, "الخطة أكبر من الحدّ: ٢٠ حقلاً في كل يوم على الأكثر"),
+});
 
+const saveSchema = z.object({
+  programId: z.uuid(),
+  planId: z.uuid(),
+  note: z.string().trim().max(200).optional(),
+  /** النسخة التي بدأ منها المحرّر — يُرفض الحفظ إن حُفظت بعدها أحدث. */
+  baseVersion: z.number().int().min(0).optional(),
+  payload: payloadSchema,
+});
+
+/**
+ * حفظ الخطة كاملة — من المحرّر أو الاستيراد أو التعبئة. والقاعدة تفحص على
+ * كل مسار يستعملها، وتردّ الحفظ كله بأول ملاحظاتها إن وُجد خطأ.
+ */
+export async function savePlan(input: {
+  programId: string;
+  planId: string;
+  note?: string;
+  baseVersion?: number;
+  payload: unknown;
+}): Promise<FormState & { version?: number }> {
+  const parsed = saveSchema.safeParse(input);
+  if (!parsed.success) {
+    const big = parsed.error.issues.find((i) => i.code === "too_big" && i.path.length === 2);
+    return { error: big?.message ?? "صيغة الخطة غير صالحة.", fieldErrors: toFieldErrors(parsed.error.issues) };
+  }
   const denied = await guard(parsed.data.programId);
   if (denied) return denied;
 
   const db = await createClient();
-
-  // الموضع الغائب يعني الآخر. الدالة تَقصُر ما تجاوز النهاية، لكن الرقم يُحسَب
-  // هنا صراحةً: معامل الدالة إلزامي، وتمرير رقم مُصطنَع يُخفي القصد.
-  const at = parsed.data.atNumber ?? (await liveDayCount(db, parsed.data.planId)) + 1;
-
-  const { data, error } = await db.rpc("fn_plan_insert_day", {
+  const { data, error } = await db.rpc("fn_save_plan", {
     p_plan_id: parsed.data.planId,
-    p_at_number: at,
-    p_day_type: parsed.data.dayType,
-    p_day_template_id:
-      parsed.data.dayType === "normal" ? parsed.data.dayTemplateId : undefined,
-    p_amount_multiplier: parsed.data.dayType === "normal" ? parsed.data.amountMultiplier : 1,
-    p_exam_id: parsed.data.dayType === "exam" ? parsed.data.examId : undefined,
+    p_payload: parsed.data.payload as unknown as Json,
+    p_note: parsed.data.note ?? "حفظ",
+    ...(parsed.data.baseVersion !== undefined ? { p_base_version: parsed.data.baseVersion } : {}),
   });
-  if (error) {
-    return {
-      error: planMessage(error.message, "تعذّر إضافة اليوم."),
-    };
-  }
-  // الدالة تُرجع فارغاً حين تُصفّي سياسة الصفوف الخطة: رفضٌ لا نجاح صامت.
-  if (!data) return { error: "لا صلاحية لك على هذه الخطة." };
-
-  revalidateBoth(parsed.data.programId, parsed.data.planId);
-  return { notice: "أُضيف اليوم." };
+  if (error) return { error: planMessage(error, "تعذّر حفظ الخطة.") };
+  plansPath(parsed.data.programId, parsed.data.planId);
+  return { notice: `حُفظت الخطة — النسخة ${data ?? ""}.`, version: data ?? undefined };
 }
 
-/**
- * تعديل يومٍ قائم — القالب أو المضاعف.
- *
- * المخطَّط البصري ينصّ: «المقادير تُعدَّل هنا». والبديل — حذف اليوم وإعادة
- * إدراجه — يُزيح الخطة مرتين ويفقد اليوم هويّته، وبها تُربَط الإنجازات في `س٦`.
- * ولذلك التعديل في موضعه لا حولَه.
- */
-export async function updatePlanDay(
-  planDayId: string,
-  patch: { dayTemplateId?: string; amountMultiplier?: number },
-  planId: string,
+export async function restorePlanVersion(
   programId: string,
-): Promise<FormState> {
-  const denied = await guard(programId);
-  if (denied) return denied;
-
-  if (patch.amountMultiplier !== undefined && !(patch.amountMultiplier > 0)) {
-    return { error: "ضِعف المقدار أكبر من صفر." };
-  }
-  if (patch.dayTemplateId === undefined && patch.amountMultiplier === undefined) {
-    return EMPTY_FORM_STATE;
-  }
-
-  const db = await createClient();
-  // النوع لا يُعدَّل هنا: قيد الاتساق يربطه بمراجعه، وتغييره تركيبٌ لا تعديل حقل.
-  // `select` بعد `update` يكشف التصفية: سياسة الصفوف لا تُخطئ، تُرجع صفراً.
-  const { data, error } = await db
-    .from("plan_days")
-    .update({
-      ...(patch.dayTemplateId !== undefined ? { day_template_id: patch.dayTemplateId } : {}),
-      ...(patch.amountMultiplier !== undefined
-        ? { amount_multiplier: patch.amountMultiplier }
-        : {}),
-    })
-    .eq("id", planDayId)
-    .eq("day_type", "normal")
-    .is("deleted_at", null)
-    .select("id");
-
-  if (error) {
-    return { error: planMessage(error.message, "تعذّر تعديل اليوم.") };
-  }
-  if ((data?.length ?? 0) === 0) return { error: "لم يُعدَّل اليوم — تحقّق من صلاحيتك." };
-
-  revalidatePath(`/programs/${programId}/plans/${planId}`);
-  return EMPTY_FORM_STATE;
-}
-
-/**
- * تغيير نوع يومٍ في موضعه — عادي ↔ راحة ↔ اختبار.
- *
- * البديل كان حذف اليوم وإعادة إدراجه، فيُزاح ما بعده مرتين. والنوع وشكله
- * واختباره تُكتب **في تحديث واحد**: قيد الاتساق يرفض أي خطوة وسطى. وما له
- * إرسال يُرفض في القاعدة (`fn_guard_plan_day_delete`).
- */
-export async function setPlanDayType(
-  planDayId: string,
   planId: string,
-  programId: string,
-  dayType: "normal" | "rest" | "exam",
-  refId: string | null,
+  versionId: string,
 ): Promise<FormState> {
-  const denied = await guard(programId);
-  if (denied) return denied;
-
-  if (!["normal", "rest", "exam"].includes(dayType)) return { error: "اختر نوع اليوم من القائمة." };
-  if (dayType === "normal" && !refId) return { error: "لا شكل يوم في البرنامج. أنشئ شكلاً أولاً." };
-  if (dayType === "exam" && !refId) return { error: "لا اختبار معرَّف. عرّف اختباراً أولاً." };
-  if (refId && !z.uuid().safeParse(refId).success) return { error: "اختر من القائمة." };
-
-  const db = await createClient();
-  const { data, error } = await db
-    .from("plan_days")
-    .update({
-      day_type: dayType,
-      day_template_id: dayType === "normal" ? refId : null,
-      exam_id: dayType === "exam" ? refId : null,
-      amount_multiplier: 1,
-    })
-    .eq("id", planDayId)
-    .eq("plan_id", planId)
-    .is("deleted_at", null)
-    .select("id");
-
-  if (error) return { error: planMessage(error.message, "تعذّر تغيير نوع اليوم.") };
-  if (!data?.length) return { error: "لم يتغيّر اليوم — تحقّق من صلاحيتك." };
-
-  revalidateBoth(programId, planId);
-  return EMPTY_FORM_STATE;
-}
-
-export async function removePlanDay(
-  planDayId: string,
-  planId: string,
-  programId: string,
-): Promise<FormState> {
+  if (!z.object({ programId: z.uuid(), planId: z.uuid(), versionId: z.uuid() }).safeParse({ programId, planId, versionId }).success) {
+    return { error: "نسخة غير معروفة." };
+  }
   const denied = await guard(programId);
   if (denied) return denied;
 
   const db = await createClient();
-  const { data, error } = await db.rpc("fn_plan_remove_day", { p_plan_day_id: planDayId });
-  if (error) return { error: planMessage(error.message, "تعذّر حذف اليوم.") };
-  if (!data) return { error: "لم يُحذف اليوم — تحقّق من صلاحيتك." };
-
-  revalidateBoth(programId, planId);
-  return EMPTY_FORM_STATE;
+  const { data, error } = await db.rpc("fn_restore_plan_version", { p_version_id: versionId });
+  if (error) return { error: planMessage(error, "تعذّر الرجوع إلى النسخة.") };
+  plansPath(programId, planId);
+  return { notice: `رجعت الخطة إلى النسخة المختارة — وحُفظت نسخةً ${data ?? ""}.` };
 }
 
-export async function movePlanDay(
-  planDayId: string,
-  toNumber: number,
-  planId: string,
-  programId: string,
-): Promise<FormState> {
-  const denied = await guard(programId);
-  if (denied) return denied;
-
-  const db = await createClient();
-  const { data, error } = await db.rpc("fn_plan_move_day", {
-    p_plan_day_id: planDayId,
-    p_to_number: toNumber,
-  });
-  if (error) return { error: "تعذّر نقل اليوم." };
-  if (!data) return { error: "لم يُنقل اليوم." };
-
-  revalidatePath(`/programs/${programId}/plans/${planId}`);
-  return EMPTY_FORM_STATE;
-}
-
-/**
- * مسح أيام الخطة — حذف ليّن للجميع.
- *
- * **س٦ يقيّده:** حين تُبنى `achievements`، يُمنع المسح على خطة لها إنجاز
- * مسجَّل — عندئذٍ يصير المسح إتلافاً لعمل مشاركين لا تصحيحاً لخطة.
- */
-export async function clearPlanDays(planId: string, programId: string): Promise<FormState> {
-  const denied = await guard(programId);
-  if (denied) return denied;
-
-  const db = await createClient();
-  const { data, error } = await db
-    .from("plan_days")
-    .update({ deleted_at: nowIso() })
-    .eq("plan_id", planId)
-    .is("deleted_at", null)
-    .select("id");
-  if (error) return { error: planMessage(error.message, "تعذّر مسح الأيام.") };
-  if ((data?.length ?? 0) === 0) return { error: "لم يُمسح شيء — تحقّق من صلاحيتك." };
-
-  await db.rpc("fn_write_audit", {
-    p_action: "plan_days_cleared",
-    p_entity_table: "plan_days",
-    p_entity_id: planId,
-  });
-
-  revalidateBoth(programId, planId);
-  return { notice: `مُسحت ${data.length} يوماً.` };
-}
-
-// ── الاختبار: تعريفاً فقط (adr/0022) ──
+// ── الاختبار: تعريفاً فقط (adr/0022 · adr/0040) ──
 
 const examSchema = z
   .object({
     programId: z.uuid(),
-    planId: z.uuid(),
     trackId: z.uuid().optional(),
     name: z.string().trim().min(2, "اسم الاختبار مطلوب"),
     examType: z.enum(["remote", "oral"]),
@@ -463,15 +197,13 @@ const examSchema = z
   });
 
 /**
- * تعريف اختبار — **بنيةً لا تدفّقاً** (adr/0022). لا أسئلة ولا جلسات ولا
- * تحكيم في المرحلة الأولى. يُبنى لأن يوم الاختبار في الخطة يشير إليه، ولولاه
- * لبقي `day_type = 'exam'` قيمةً لا تُبلَغ.
+ * تعريف اختبار — **بنيةً لا تدفّقاً** (adr/0022). خرج من الخطة (`adr/0040`):
+ * لا يشغل يوم خطة، ووحدة الاختبارات تقرأ نسبة الإنجاز من المحرّك.
  */
 export async function createExam(_prev: FormState, form: FormData): Promise<FormState> {
   const remote = form.get("examType") === "remote";
   const parsed = examSchema.safeParse({
     programId: form.get("programId"),
-    planId: form.get("planId"),
     trackId: form.get("trackId") || undefined,
     name: form.get("name"),
     examType: form.get("examType"),
@@ -505,21 +237,15 @@ export async function createExam(_prev: FormState, form: FormData): Promise<Form
   });
   if (error) return { error: "تعذّر تعريف الاختبار." };
 
-  revalidatePath(`/programs/${parsed.data.programId}/plans/${parsed.data.planId}`);
-  return { notice: "عُرِّف الاختبار. أضِف له يوماً في الخطة." };
+  plansPath(parsed.data.programId);
+  return { notice: "عُرِّف الاختبار." };
 }
 
-/**
- * تسمية الاختبار — المستهلِك الوحيد لسياسة `exams_update`.
- *
- * سياسةٌ بلا فعل يستهلكها تعني عملياً أن خطأً مطبعياً في اسم اختبار دائم.
- */
-export async function renameExam(
-  examId: string,
-  name: string,
-  planId: string,
-  programId: string,
-): Promise<FormState> {
+/** تسمية الاختبار — المستهلِك الوحيد لسياسة `exams_update`. */
+export async function renameExam(examId: string, name: string, programId: string): Promise<FormState> {
+  if (!z.object({ examId: z.uuid(), programId: z.uuid() }).safeParse({ examId, programId }).success) {
+    return { error: "اختبار غير معروف." };
+  }
   const denied = await guard(programId);
   if (denied) return denied;
 
@@ -538,6 +264,68 @@ export async function renameExam(
   if (error) return { error: "تعذّر تعديل الاسم." };
   if ((data?.length ?? 0) === 0) return { error: "لم يُعدَّل الاسم — تحقّق من صلاحيتك." };
 
-  revalidatePath(`/programs/${programId}/plans/${planId}`);
+  plansPath(programId);
   return EMPTY_FORM_STATE;
+}
+
+// ── قوالب الاستيراد (adr/0042) ──
+
+const mappingSchema = z.object({
+  headerRow: z.boolean(),
+  columns: z
+    .array(
+      z.object({
+        header: z.string().max(200),
+        role: z.enum(["ignore", "day", "amount", "from", "to", "value", "repetition", "section", "section_from", "section_to"]),
+        fieldId: z.uuid().nullable(),
+      }),
+    )
+    .min(1)
+    .max(200),
+});
+
+/** يحفظ تعيين الأعمدة باسمٍ في البرنامج — والاسم نفسه يُحدَّث لا يتكرّر. */
+export async function saveImportMapping(programId: string, name: string, mapping: unknown): Promise<FormState> {
+  const parsed = z
+    .object({ programId: z.uuid(), name: z.string().trim().min(1, "اسم القالب مطلوب").max(60), mapping: mappingSchema })
+    .safeParse({ programId, name, mapping });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "قالب غير صالح." };
+  const denied = await guard(programId);
+  if (denied) return denied;
+
+  const db = await createClient();
+  const { data: existing } = await db
+    .from("plan_import_mappings")
+    .select("id")
+    .eq("program_id", programId)
+    .eq("name", parsed.data.name)
+    .is("deleted_at", null)
+    .maybeSingle();
+  const { error } = existing
+    ? await db.from("plan_import_mappings").update({ mapping: parsed.data.mapping as unknown as Json }).eq("id", existing.id)
+    : await db
+        .from("plan_import_mappings")
+        .insert({ program_id: programId, name: parsed.data.name, mapping: parsed.data.mapping as unknown as Json });
+  if (error) return { error: "تعذّر حفظ القالب." };
+  revalidatePath(`/programs/${programId}/plans`, "layout");
+  return { notice: existing ? "حُدِّث القالب." : "حُفظ القالب." };
+}
+
+export async function removeImportMapping(programId: string, mappingId: string): Promise<FormState> {
+  if (!z.object({ programId: z.uuid(), mappingId: z.uuid() }).safeParse({ programId, mappingId }).success) {
+    return { error: "قالب غير معروف." };
+  }
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("plan_import_mappings")
+    .update({ deleted_at: nowIso() })
+    .eq("id", mappingId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حذف القالب." };
+  revalidatePath(`/programs/${programId}/plans`, "layout");
+  return { notice: "حُذف القالب." };
 }

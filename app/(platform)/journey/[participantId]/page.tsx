@@ -3,17 +3,20 @@ import { JourneyBail } from "@/components/shared/journey-bail";
 import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
+import { now, toDateInput, toTimeInput } from "@/lib/format";
 import {
-  canSubmit,
+  canMark,
+  canUndo,
   followsPlan,
-  journeyProgress,
-  neighbours,
-  priorRecord,
-  resolveDayNumber,
+  lastVisibleDay,
+  pace,
+  parseJourneyState,
+  resolveDay,
+  type JourneyState,
 } from "@/lib/participants/journey";
-import type { JourneyDay } from "@/lib/participants/journey";
-import { JourneyView, type SpanPart, type TaskRow } from "./journey-view";
-
+import { countedText, spanParts, type TrackShare } from "@/lib/plans/engine";
+import { withStarts, type Material } from "@/lib/programs/material";
+import { JourneyView, type ArchiveRow, type TaskRow } from "./journey-view";
 
 export default async function JourneyDayPage({
   params,
@@ -32,11 +35,13 @@ export default async function JourneyDayPage({
 
   const db = await createClient();
 
-  // المشاركة للمستخدم نفسه أو لا شيء. `fn_plan_day_tasks` تحرس نفسها كذلك،
-  // لكن الصفحة لا تُظهر عنواناً لمشاركةٍ لا تخصّه ثم تفشل في محتواها.
+  // المشاركة للمستخدم نفسه أو لا شيء. دوالّ المحرّك تحرس نفسها كذلك، لكن
+  // الصفحة لا تُظهر عنواناً لمشاركةٍ لا تخصّه ثم تفشل في محتواها.
   const { data: participant, error: participantError } = await db
     .from("participants")
-    .select("id, status, track_id, programs!inner(id, name, slug, contact), tracks(id, name)")
+    .select(
+      "id, status, track_id, programs!inner(id, name, slug, contact, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name)",
+    )
     .eq("id", participantId)
     .eq("user_id", session.userId)
     .is("deleted_at", null)
@@ -50,181 +55,150 @@ export default async function JourneyDayPage({
     name: string;
     slug: string;
     contact: string;
+    section_label: string | null;
+    unit_singular: string | null;
+    unit_one: string | null;
+    unit_two: string | null;
+    unit_few: string | null;
+    unit_many: string | null;
   };
   const track = participant.tracks as unknown as { id: string; name: string } | null;
+  const bail = (title: string, body: string) => (
+    <JourneyBail
+      title={title}
+      body={body}
+      programName={program.name}
+      programSlug={program.slug}
+      contact={program.contact}
+    />
+  );
 
   if (!participant.track_id || !track) {
-    return (
-      <JourneyBail
-        title="لم يُحدَّد مسارك"
-        body="تواصل مع إدارة البرنامج ليُحدَّد مسارك، وبعدها يظهر واجبك هنا."
-        programName={program.name}
-        programSlug={program.slug}
-        contact={program.contact}
-      />
-    );
+    return bail("لم يُحدَّد مسارك", "تواصل مع إدارة البرنامج ليُحدَّد مسارك، وبعدها يظهر واجبك هنا.");
   }
-
-  // من انتهت رحلته لا خطة تُقرأ له (`fn_follows_plan` تحصر السياسة)، فيُقال
-  // له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
+  // من انتهت رحلته لا يُرصد له شيء، فيُقال له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
   if (!followsPlan(participant.status)) {
-    return (
-      <JourneyBail
-        title="انتهت رحلتك في هذا البرنامج"
-        body="سجلّك محفوظ. تابع إعلانات الجمعية للدورة القادمة."
-        programName={program.name}
-        programSlug={program.slug}
-        contact={program.contact}
-      />
-    );
+    return bail("انتهت رحلتك في هذا البرنامج", "سجلّك محفوظ. تابع إعلانات الجمعية للدورة القادمة.");
   }
 
-  const [planResult, daysResult, recordResult] = await Promise.all([
+  // ══ الحال — وقراءتها تسوّي ما مضى أولاً، فالأرشيف بعدها كاملٌ إلى الآن (adr/0041) ══
+  const stateResult = await db.rpc("fn_journey_state", { p_participant_id: participantId });
+  if (stateResult.error) return <ErrorState body="تعذّر جلب حالك في الخطة." />;
+  let state: JourneyState | null;
+  try {
+    state = parseJourneyState(stateResult.data);
+  } catch {
+    return <ErrorState body="تعذّر جلب حالك في الخطة." />;
+  }
+  if (!state) return bail("لا خطة لمسارك", "خطة مسارك ليست جاهزة.");
+
+  const requested = day && /^\d+$/.test(day) ? Number(day) : null;
+  const shown = resolveDay(state, requested);
+
+  const [tasksResult, rangesResult, sectionsResult, archiveResult, recordResult] = await Promise.all([
+    db.rpc("fn_day_tasks", { p_participant_id: participantId, p_day: shown }),
     db
-      .from("plans")
-      .select("id, name")
-      .eq("track_id", participant.track_id)
+      .from("track_content_ranges")
+      .select("from_sequence, to_sequence, sort_order")
+      .eq("track_id", state.trackId)
+      .is("deleted_at", null),
+    db
+      .from("material_sections")
+      .select("id, name, unit_count")
+      .eq("program_id", program.id)
       .is("deleted_at", null)
-      .maybeSingle(),
-    // **صفٌّ لكل يوم محسوبٌ في القاعدة**، لا صفّ لكل واجب في كل يوم. واجهة REST
-    // تقطع الناتج عند ألف صفّ بصمت، فكانت الأيام المُرسَلة تُقرأ ناقصة بعد
-    // ٢٥٠ يوماً ويُعرَض للمشارك يومٌ أرسله سلفاً (الهجرة ٠٢٩).
-    db.rpc("fn_journey_days", { p_participant_id: participantId }),
-    // أيامه في مساراتٍ سبقت هذا — تبقى ظاهرة بعد نقله (adr/0027).
+      .order("sort_order")
+      .order("created_at"),
+    db
+      .from("commitment_archive")
+      .select("id, calendar_date, status, plan_day, completed_days, compensated_at")
+      .eq("participant_id", participantId)
+      // سجلّ مساره الحالي — وبه تُعدّ أيام تعثّره فوقه، فلا يختلف العدّ عن القائمة.
+      .eq("track_id", state.trackId)
+      .is("deleted_at", null)
+      .order("calendar_date", { ascending: false })
+      .limit(400),
+    // أيامه في مساراتٍ قبل هذا — تبقى ظاهرة بعد نقله (adr/0027).
     db.rpc("fn_participant_record", { p_participant_id: participantId }),
   ]);
 
-  if (planResult.error) return <ErrorState body="تعذّر جلب خطة مسارك." />;
-  if (!planResult.data) {
-    return (
-      <JourneyBail
-        title="لا خطة لمسارك"
-        body="خطة مسارك ليست جاهزة."
-        programName={program.name}
-        programSlug={program.slug}
-        contact={program.contact}
-      />
-    );
-  }
-  const plan = planResult.data;
-
-  // **لا استعلام يبتلع خطأه.** فشل استعلام الأيام يجعلها تبدو غير مُرسَلة،
-  // فيُعرَض اليوم الأول قابلاً للإرسال ويُصدَم المشارك بـ«أُرسل سلفاً».
-  if (daysResult.error) return <ErrorState body="تعذّر جلب أيام الخطة." />;
-  // والسجلّ كذلك: فشله يُخفي أيامه السابقة فيبدو كمن لم يُرسل شيئاً قبل نقله.
-  if (recordResult.error) return <ErrorState body="تعذّر جلب سجلّك." />;
-
-  const days: JourneyDay[] = (daysResult.data ?? []).map((d) => ({
-    id: d.id,
-    dayNumber: d.day_number,
-    dayType: d.day_type,
-    submitted: d.submitted,
-    hasWork: d.has_work,
-    taskCount: d.task_count,
-    doneCount: d.done_count,
-  }));
-
-  const requested = day && /^\d+$/.test(day) ? Number(day) : null;
-  const shown = resolveDayNumber(days, requested);
-
-  if (shown === null) {
-    return (
-      <JourneyBail
-        title="الخطة بلا أيام"
-        body="خطة مسارك بلا أيام بعد."
-        programName={program.name}
-        programSlug={program.slug}
-        contact={program.contact}
-      />
-    );
-  }
-
-  const current = days.find((d) => d.dayNumber === shown)!;
-
-  // ══ واجب اليوم — من الدالة وحدها ══
-  const [tasksResult, unitCountResult] = await Promise.all([
-    db.rpc("fn_plan_day_tasks", {
-      p_participant_id: participantId,
-      p_plan_day_id: current.id,
-    }),
-    db.rpc("fn_track_unit_count", { p_track_id: participant.track_id }),
-  ]);
-
+  // **لا استعلام يبتلع خطأه.** نصيبٌ فارغ يجعل كل نطاقٍ «بعد آخر نصيب المسار».
   if (tasksResult.error) return <ErrorState body="تعذّر جلب واجب اليوم." />;
+  if (rangesResult.error || sectionsResult.error) return <ErrorState body="تعذّر جلب مادة مسارك." />;
+  if (archiveResult.error || recordResult.error) return <ErrorState body="تعذّر جلب سجلّ التزامك." />;
+  const priorDays = (recordResult.data ?? []).filter((r) => !r.is_current).reduce((sum, r) => sum + r.done_days, 0);
+
+  const share: TrackShare = {
+    id: state.trackId,
+    name: track.name,
+    ranges: (rangesResult.data ?? []).map((r) => ({ from: r.from_sequence, to: r.to_sequence, sortOrder: r.sort_order })),
+  };
+  // المادة المقسّمة تُعرض بالباب ورقمه فيه (adr/0039)، وغيرها بالأرقام.
+  const material: Material = {
+    forms: {
+      sectionLabel: program.section_label,
+      singular: program.unit_singular,
+      one: program.unit_one,
+      two: program.unit_two,
+      few: program.unit_few,
+      many: program.unit_many,
+    },
+    sections: withStarts(sectionsResult.data ?? []),
+  };
 
   const rawTasks = tasksResult.data ?? [];
-  // يفرّق «مسارٌ بلا مقاطع بعد» عن «أتممتَ مادة مسارك» — والعلامة واحدة فيهما.
-  const trackHasContent = (unitCountResult.data ?? 0) > 0;
-
-  // ══ المقاطع ونصوصها ══
-  // النطاق العابر لفجوة يُعرَض مقطعين: «من ٤٠ إلى ٤٠، ومن ٨١ إلى ٨٢».
-  // و«من ٤٠ إلى ٨٢» كذبٌ — بينهما أبوابٌ ليست من مساره (adr/0021).
-  const spansByField = new Map<string, SpanPart[]>();
-  const neededSequences = new Set<number>();
-
-  // خطأٌ هنا صفحة خطأ عربية لا استثناء يُظهر صفحة الإطار الإنجليزية.
-  const spanResults = await Promise.all(
-    rawTasks.map(async (task) => {
-      if (task.ordinal_start === null || task.ordinal_end === null) return true;
-      const { data: parts, error } = await db.rpc("fn_track_ordinal_span", {
-        p_track_id: participant.track_id!,
-        p_from: task.ordinal_start,
-        p_to: task.ordinal_end,
-      });
-      if (error) return false;
-      const span = (parts ?? []).map((p) => ({
-        from: p.from_sequence,
-        to: p.to_sequence,
-        fromLabel: "",
-        toLabel: "",
-      }));
-      for (const p of span) {
-        neededSequences.add(p.from);
-        neededSequences.add(p.to);
-      }
-      spansByField.set(task.task_field_id, span);
-      return true;
-    }),
+  const spans = rawTasks.map((t) =>
+    t.kind === "counted"
+      ? [{ text: countedText(t.value, t.count_unit), from: null, to: null }]
+      : t.kind === "explicit" && t.is_material_linked && (t.ord_from === null || t.ord_to === null)
+        ? [{ text: "خارج نصيب مسارك", from: null, to: null }]
+        : spanParts(t.is_material_linked, share, material, t.ord_from, t.ord_to),
   );
 
-  if (spanResults.includes(false)) return <ErrorState body="تعذّر جلب واجب اليوم." />;
-
+  // أوائل الوحدات («إنما الأعمال بالنيات…») لطرفَي كل مقطع — إن كُتبت.
+  const needed = new Set<number>();
+  for (const parts of spans) {
+    for (const p of parts) {
+      if (p.from !== null) needed.add(p.from);
+      if (p.to !== null) needed.add(p.to);
+    }
+  }
   const labels = new Map<number, string>();
-  if (neededSequences.size > 0) {
+  if (needed.size > 0) {
     const { data: units } = await db
       .from("content_units")
       .select("sequence, label")
       .eq("program_id", program.id)
-      .in("sequence", [...neededSequences])
+      .in("sequence", [...needed])
       .is("deleted_at", null);
-    for (const unit of units ?? []) labels.set(unit.sequence, unit.label);
+    for (const unit of units ?? []) if (unit.label) labels.set(unit.sequence, unit.label);
   }
 
-  const tasks: TaskRow[] = rawTasks.map((task) => ({
-    fieldId: task.task_field_id,
-    label: task.label,
-    kind: task.kind,
-    amount: Number(task.amount ?? 0),
-    isDone: task.is_done,
-    exhausted: task.kind === "ranged" && task.ordinal_start === null && trackHasContent,
-    trackEmpty: task.kind === "ranged" && !trackHasContent,
-    span: (spansByField.get(task.task_field_id) ?? []).map((p) => ({
-      ...p,
-      fromLabel: labels.get(p.from) ?? "",
-      toLabel: labels.get(p.to) ?? "",
+  const clock = toTimeInput(now());
+  const s = state;
+  const tasks: TaskRow[] = rawTasks.map((t, i) => ({
+    fieldId: t.task_field_id,
+    label: t.label,
+    isRequired: t.is_required,
+    lines: (spans[i] ?? []).map((p) => ({
+      text: p.text,
+      fromLabel: p.from !== null ? (labels.get(p.from) ?? null) : null,
+      toLabel: p.to !== null && p.to !== p.from ? (labels.get(p.to) ?? null) : null,
     })),
+    repetition: t.repetition,
+    count: t.count,
+    markedAt: t.marked_at,
+    undoable: t.marked_at !== null && canUndo(s, shown, toDateInput(t.marked_at), clock),
   }));
 
-  let examName: string | null = null;
-  if (current.dayType === "exam") {
-    const { data: dayRow } = await db
-      .from("plan_days")
-      .select("exams(name)")
-      .eq("id", current.id)
-      .maybeSingle();
-    const exam = dayRow?.exams as unknown as { name: string } | null;
-    examName = exam?.name ?? "اختبار";
-  }
+  const archive: ArchiveRow[] = (archiveResult.data ?? []).map((a) => ({
+    id: a.id,
+    date: a.calendar_date,
+    status: a.status,
+    planDay: a.plan_day,
+    completedDays: a.completed_days,
+    compensated: a.compensated_at !== null,
+  }));
 
   return (
     <JourneyView
@@ -232,16 +206,14 @@ export default async function JourneyDayPage({
       justJoined={joined === "1"}
       programName={program.name}
       trackName={track.name}
-      planName={plan.name}
-      day={current}
-      totalDays={days.length}
+      state={state}
+      pace={pace(state)}
+      day={shown}
+      lastDay={lastVisibleDay(state)}
+      markable={canMark(state, shown, clock)}
       tasks={tasks}
-      examName={examName}
-      submittable={canSubmit(days, shown) && (trackHasContent || !tasks.some((t) => t.kind === "ranged"))}
-      contentMissing={!trackHasContent && tasks.some((t) => t.kind === "ranged")}
-      progress={journeyProgress(days)}
-      prior={priorRecord(recordResult.data ?? [])}
-      {...neighbours(days, shown)}
+      archive={archive}
+      priorDays={priorDays}
     />
   );
 }

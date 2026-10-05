@@ -111,3 +111,110 @@
     padding: var(--space-4);
   }
 }
+
+/* ══ المادة بأبوابها — adr/0039 ══ */
+
+/* زرّ نصّي في سطر الحالة: «اعرض الوحدات». */
+.chipRemove {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-inline-start: var(--space-3);
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sectionActions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionCount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+}
+
+.warn {
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.formsWhy {
+  grid-column: 1 / -1;
+  color: var(--color-text-subtle);
+  font-size: var(--text-sm);
+  margin-block: 0;
+}
+
+.samples {
+  grid-column: 1 / -1;
+  font-size: var(--text-sm);
+}
+
+.samplesTitle {
+  margin-block: 0 var(--space-1);
+  color: var(--color-text-subtle);
+}
+
+.samples ul {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+/* نصّ مقطع المسار تحت أرقامه: «من الحديث ١ من باب الإيمان…». */
+.partText {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+/* ══ حقول الخطة — adr/0037 ══ */
+
+.edit {
+  margin-block-start: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.edit > summary {
+  cursor: pointer;
+  color: var(--color-brand);
+}
+
+.editForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.checks {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+}
+
+.fieldError {
+  inline-size: 100%;
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+}

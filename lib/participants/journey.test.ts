@@ -1,186 +1,153 @@
 import { describe, expect, it } from "vitest";
 import {
-  canSubmit,
-  currentDayNumber,
-  dayState,
-  journeyProgress,
-  neighbours,
-  resolveDayNumber,
-  type JourneyDay,
+  canMark,
+  canUndo,
+  commitmentLabel,
+  daysText,
+  defaultDay,
+  followsPlan,
+  pace,
+  parseJourneyState,
+  resolveDay,
+  type JourneyState,
 } from "./journey";
 
-/**
- * خطة عشرة أيام، راحة في السابع، واختبار في العاشر. ثلاثة واجبات لكل يوم عمل،
- * والمُرسَل مكتمل ما لم يُذكر في `done` عددُ ما أُتمّ منه.
- */
-function plan(
-  submittedUpTo: number,
-  workless: number[] = [],
-  done: Record<number, number> = {},
-): JourneyDay[] {
-  return Array.from({ length: 10 }, (_, i) => {
-    const dayNumber = i + 1;
-    const dayType: JourneyDay["dayType"] =
-      dayNumber === 7 ? "rest" : dayNumber === 10 ? "exam" : "normal";
-    const hasWork = dayType === "normal" && !workless.includes(dayNumber);
-    const submitted = dayType === "normal" && dayNumber <= submittedUpTo;
-    const taskCount = hasWork ? 3 : 0;
-    return {
-      id: `d${dayNumber}`,
-      dayNumber,
-      dayType,
-      submitted,
-      hasWork,
-      taskCount,
-      doneCount: submitted ? (done[dayNumber] ?? taskCount) : 0,
-    };
-  });
+function state(over: Partial<JourneyState> = {}): JourneyState {
+  return {
+    stage: "tasks",
+    planId: "p",
+    trackId: "t",
+    dayCount: 40,
+    currentDay: 5,
+    doneDays: 4,
+    completedToday: 0,
+    lastCompletedToday: false,
+    dailyLimit: 2,
+    startDate: "2026-10-01",
+    today: "2026-10-05",
+    isProgramDay: true,
+    deadline: "23:00",
+    expectedDay: 5,
+    dueDays: 4,
+    progressPct: 10,
+    progressUnits: 20,
+    shareSize: 200,
+    measure: "units",
+    stumbled: 0,
+    compensated: 0,
+    carried: false,
+    ...over,
+  };
 }
 
-describe("اليوم الجاري", () => {
-  it("خطة لم تبدأ: أول يوم", () => {
-    expect(currentDayNumber(plan(0))).toBe(1);
+describe("قراءة الحال", () => {
+  it("لا خطة = null", () => {
+    expect(parseJourneyState({ state: "no_plan" })).toBeNull();
   });
 
-  it("**الراحة تُتخطّى** — ولو عُدّت لتوقّفت الرحلة عندها", () => {
-    // أُرسلت ١–٦، والسابع راحة فلا يُرسَل.
-    expect(currentDayNumber(plan(6))).toBe(8);
+  it("تُقرأ الحقول بأسمائها في القاعدة", () => {
+    const s = parseJourneyState({
+      state: "done_today",
+      plan_id: "p1",
+      track_id: "t1",
+      day_count: 40,
+      current_day: 6,
+      done_days: 5,
+      deadline: "21:30",
+      is_program_day: true,
+      measure: "days",
+      carried: false,
+    });
+    expect(s).toMatchObject({ stage: "done_today", currentDay: 6, doneDays: 5, deadline: "21:30", measure: "days" });
   });
 
-  it("يوم الاختبار يُتخطّى كذلك", () => {
-    const days = plan(9);
-    expect(currentDayNumber(days)).toBeNull();
-  });
-
-  it("خطة فارغة بلا يوم جارٍ", () => {
-    expect(currentDayNumber([])).toBeNull();
-  });
-
-  it("المتعثّر يجد يومه حيث تركه لا حيث كان يُفترَض", () => {
-    expect(currentDayNumber(plan(3))).toBe(4);
+  it("حالٌ لا تُعرف تُرمى ولا تُختلَق", () => {
+    expect(() => parseJourneyState({ state: "other" })).toThrow();
+    expect(() => parseJourneyState(null)).toThrow();
   });
 });
 
 describe("اليوم المعروض", () => {
-  it("المطلوب يُحترَم إن كان موجوداً", () => {
-    expect(resolveDayNumber(plan(2), 9)).toBe(9);
+  it("من يرصد يرى يومه الحالي", () => {
+    expect(defaultDay(state())).toBe(5);
   });
 
-  it("رقم خارج الخطة يسقط على الجاري لا يُفشل الصفحة", () => {
-    expect(resolveDayNumber(plan(2), 99)).toBe(3);
+  it("من أتمّ يوماً اليوم يرى ما أتمّه لا ما لم يبدأه", () => {
+    expect(defaultDay(state({ stage: "done_today", currentDay: 6 }))).toBe(5);
+    expect(defaultDay(state({ stage: "limit", currentDay: 7 }))).toBe(6);
   });
 
-  it("بلا طلب: الجاري", () => {
-    expect(resolveDayNumber(plan(5), null)).toBe(6);
+  it("من أتمّ الخطة يرى آخر أيامها", () => {
+    expect(defaultDay(state({ stage: "finished", currentDay: 41, doneDays: 40 }))).toBe(40);
   });
 
-  it("خطة أُتمّت: آخر يوم", () => {
-    expect(resolveDayNumber(plan(9), null)).toBe(10);
-  });
-
-  it("خطة فارغة: لا يوم", () => {
-    expect(resolveDayNumber([], null)).toBeNull();
-  });
-});
-
-describe("التنقّل", () => {
-  it("الجوار يشمل الراحة — التنقّل يعرضها ولا يتخطّاها", () => {
-    expect(neighbours(plan(0), 7)).toEqual({ previous: 6, next: 8 });
-  });
-
-  it("الطرفان بلا جار خارجهما", () => {
-    expect(neighbours(plan(0), 1).previous).toBeNull();
-    expect(neighbours(plan(0), 10).next).toBeNull();
-  });
-
-  it("رقم غير موجود بلا جوار", () => {
-    expect(neighbours(plan(0), 44)).toEqual({ previous: null, next: null });
+  it("لا يُفتح يومٌ بعد يومه، والرابط القديم يُصحَّح", () => {
+    expect(resolveDay(state(), 3)).toBe(3);
+    expect(resolveDay(state(), 6)).toBe(5);
+    expect(resolveDay(state(), 0)).toBe(5);
+    expect(resolveDay(state({ stage: "done_today", currentDay: 6 }), 6)).toBe(6);
   });
 });
 
-describe("الإرسال — الجاري وحده", () => {
-  it("اليوم الجاري يُرسَل", () => {
-    expect(canSubmit(plan(3), 4)).toBe(true);
+describe("الرصد والتراجع", () => {
+  it("يُرصد اليوم الحالي وحده وهو يرصد", () => {
+    expect(canMark(state(), 5, "10:00")).toBe(true);
+    expect(canMark(state(), 4, "10:00")).toBe(false);
+    expect(canMark(state({ stage: "done_today", currentDay: 6 }), 6, "10:00")).toBe(false);
+    expect(canMark(state({ stage: "not_started" }), 5, "10:00")).toBe(false);
   });
 
-  it("**الماضي لا يُرسَل ثانيةً** — اللقطة تُثبَّت مرة", () => {
-    expect(canSubmit(plan(3), 2)).toBe(false);
+  it("واليوم المتمّ للتوّ يُكمَل اختياريّه قبل وقت نهاية رصده", () => {
+    const done = state({ stage: "done_today", currentDay: 6, lastCompletedToday: true });
+    expect(canMark(done, 5, "10:00")).toBe(true);
+    expect(canMark(done, 5, "23:30")).toBe(false);
+    // أُتمّ في يومٍ سبق: أُغلق.
+    expect(canMark(state({ stage: "finished", currentDay: 41, lastCompletedToday: false }), 40, "10:00")).toBe(false);
   });
 
-  it("**المستقبل لا يُرسَل** — سلسلةٌ فيها ثقوب", () => {
-    expect(canSubmit(plan(3), 8)).toBe(false);
+  it("التراجع لرصد اليوم قبل وقت نهاية رصده", () => {
+    expect(canUndo(state(), 5, "2026-10-05", "20:00")).toBe(true);
+    expect(canUndo(state(), 5, "2026-10-05", "23:00")).toBe(false);
+    expect(canUndo(state(), 5, "2026-10-04", "20:00")).toBe(false);
   });
 
-  it("الراحة لا تُرسَل", () => {
-    expect(canSubmit(plan(6), 7)).toBe(false);
-  });
-
-  it("خطة أُتمّت: لا إرسال لأي يوم", () => {
-    const done = plan(9);
-    expect(done.every((d) => !canSubmit(done, d.dayNumber))).toBe(true);
-  });
-});
-
-describe("التقدّم", () => {
-  it("أيام العمل تستثني الراحة والاختبار", () => {
-    expect(journeyProgress(plan(0)).workDays).toBe(8);
-  });
-
-  it("التقدّم عددُ المُرسَل، والإتمام نسبة المكتمل منه", () => {
-    const p = journeyProgress(plan(4, [], { 2: 1, 4: 0 }));
-    expect(p.submittedDays).toBe(4);
-    expect(p.completeDays).toBe(2);
-    expect(p.completion).toBe(0.5);
-  });
-
-  it("**من أرسل أيامه فارغة لا يبلغ مئة بالمئة**", () => {
-    const p = journeyProgress(plan(6, [], { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }));
-    expect(p.submittedDays).toBe(6);
-    expect(p.completion).toBe(0);
-  });
-
-  it("خطة فارغة بلا قسمة على صفر", () => {
-    expect(journeyProgress([])).toEqual({
-      workDays: 0,
-      submittedDays: 0,
-      completeDays: 0,
-      completion: 0,
-    });
+  it("وعن اليوم المتمّ للتوّ ما لم يبدأ ما بعده", () => {
+    expect(canUndo(state({ stage: "done_today", currentDay: 6 }), 5, "2026-10-05", "20:00")).toBe(true);
+    expect(canUndo(state({ stage: "finished", currentDay: 41 }), 40, "2026-10-05", "20:00")).toBe(true);
+    // بدأ السادس: «tasks» على السادس، فالخامس مغلق.
+    expect(canUndo(state({ stage: "tasks", currentDay: 6 }), 5, "2026-10-05", "20:00")).toBe(false);
   });
 });
 
-describe("حالة اليوم", () => {
-  it("**مكتمل · جزئي · أُرسل فارغاً · لم يُرسَل** — أربع لا واحدة", () => {
-    const days = plan(4, [], { 2: 2, 3: 0 });
-    expect(days.slice(0, 5).map(dayState)).toEqual([
-      "complete",
-      "partial",
-      "empty",
-      "complete",
-      "pending",
-    ]);
+describe("الموعد", () => {
+  it("ما أتمّه مقابل ما انقضى وقته — من القاعدة", () => {
+    expect(pace(state({ dueDays: 4, doneDays: 4 }))).toEqual({ tone: "on", text: "في موعدك" });
+    expect(pace(state({ dueDays: 5, doneDays: 4 }))).toEqual({ tone: "behind", text: "متأخر يوماً واحداً" });
+  });
+
+  it("المتأخر والمتقدّم بأيامهما", () => {
+    expect(pace(state({ dueDays: 4, doneDays: 1 })).text).toBe("متأخر ٣ أيام");
+    expect(pace(state({ dueDays: 4, doneDays: 6 })).text).toBe("متقدّم يومين");
   });
 });
 
-describe("اليوم بقالبٍ بلا حقول", () => {
-  it("**يُتخطّى ولا يعلق المشارك عنده** — لا شيء فيه يُرسَل", () => {
-    // اليومان الرابع والخامس بقالب بلا حقول، ولم يُرسَل شيء.
-    expect(currentDayNumber(plan(3, [4, 5]))).toBe(6);
+describe("صيغ", () => {
+  it("الأيام على وجوهها الأربعة", () => {
+    expect(daysText(1)).toBe("يوماً واحداً");
+    expect(daysText(2)).toBe("يومين");
+    expect(daysText(3)).toBe("٣ أيام");
+    expect(daysText(11)).toBe("١١ يوماً");
+    expect(daysText(103)).toBe("١٠٣ أيام");
   });
 
-  it("لا يُحتسَب يوم عمل في الالتزام", () => {
-    const p = journeyProgress(plan(0, [2, 3]));
-    // ثمانية أيام عادية، اثنان بلا حقول.
-    expect(p.workDays).toBe(6);
+  it("حكم الأرشيف — والمعوَّض يبقى متعثّراً", () => {
+    expect(commitmentLabel("completed", false)).toBe("أتمّ");
+    expect(commitmentLabel("exempt", false)).toBe("معفى برصيد التقدّم");
+    expect(commitmentLabel("stumbled", true)).toBe("متعثّر · معوَّض");
   });
 
-  it("لا يُرسَل", () => {
-    expect(canSubmit(plan(3, [4]), 4)).toBe(false);
-  });
-
-  it("خطة كلها بلا حقول: لا يوم جارٍ ولا قسمة على صفر", () => {
-    const empty = plan(0, [1, 2, 3, 4, 5, 6, 8, 9]);
-    expect(currentDayNumber(empty)).toBeNull();
-    expect(journeyProgress(empty).completion).toBe(0);
+  it("الحالات التي تتبع الخطة", () => {
+    expect(followsPlan("memorizing")).toBe(true);
+    expect(followsPlan("withdrawn")).toBe(false);
   });
 });

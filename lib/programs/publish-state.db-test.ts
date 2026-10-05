@@ -13,7 +13,6 @@ let sectionId: string;
 let emptyProgram: string;
 let readyProgram: string;
 let trackId: string;
-let templateId: string;
 let fieldId: string;
 let planId: string;
 let roleId: string;
@@ -97,7 +96,7 @@ beforeAll(async () => {
     )
   ).rows[0]!.id;
 
-  // بناءُ الجاهز كاملاً — البنود السبعة التي يعدّها الحارس.
+  // بناءُ الجاهز كاملاً — البنود الستّة التي يعدّها الحارس.
   trackId = (
     await db.query<{ id: string }>(
       `insert into public.tracks (program_id, name) values ($1, 'مسار النشر') returning id`,
@@ -116,32 +115,21 @@ beforeAll(async () => {
   );
   fieldId = (
     await db.query<{ id: string }>(
-      `insert into public.task_fields (program_id, label, kind, sort_order)
-       values ($1, 'حفظ', 'ranged', 0) returning id`,
+      `insert into public.task_fields (program_id, label, kind, sort_order, is_base)
+       values ($1, 'حفظ', 'ranged', 0, true) returning id`,
       [readyProgram],
     )
   ).rows[0]!.id;
-  templateId = (
-    await db.query<{ id: string }>(
-      `insert into public.day_templates (program_id, name) values ($1, 'يوم') returning id`,
-      [readyProgram],
-    )
-  ).rows[0]!.id;
-  await db.query(
-    `insert into public.day_template_fields (day_template_id, task_field_id, base_amount, sort_order)
-     values ($1, $2, 1, 0)`,
-    [templateId, fieldId],
-  );
   planId = (
     await db.query<{ id: string }>(
-      `insert into public.plans (track_id, name) values ($1, 'خطة النشر') returning id`,
-      [trackId],
+      `insert into public.plans (program_id, name, day_count) values ($1, 'خطة النشر', 2) returning id`,
+      [readyProgram],
     )
   ).rows[0]!.id;
   await db.query(
-    `insert into public.plan_days (plan_id, day_number, day_type, day_template_id)
-     select $1, g, 'normal', $2 from generate_series(1, 2) as g`,
-    [planId, templateId],
+    `insert into public.plan_values (plan_id, day_number, task_field_id, amount)
+     select $1, g, $2, 1 from generate_series(1, 2) as g`,
+    [planId, fieldId],
   );
   await db.query(
     `insert into public.page_blocks (program_id, block_type, sort_order, content)
@@ -188,14 +176,8 @@ afterAll(async () => {
     await db.query(`delete from public.help_entries where program_id = any($1::uuid[])`, [programs]);
     await db.query(`delete from public.page_blocks where program_id = any($1::uuid[])`, [programs]);
     if (planId) {
-      await db.query(`delete from public.plan_days where plan_id = $1`, [planId]);
+      await db.query(`delete from public.plan_values where plan_id = $1`, [planId]);
       await db.query(`delete from public.plans where id = $1`, [planId]);
-    }
-    if (templateId) {
-      await db.query(`delete from public.day_template_fields where day_template_id = $1`, [
-        templateId,
-      ]);
-      await db.query(`delete from public.day_templates where id = $1`, [templateId]);
     }
     await db.query(`delete from public.task_fields where program_id = any($1::uuid[])`, [programs]);
     if (trackId) {

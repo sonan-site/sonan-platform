@@ -168,3 +168,14 @@
   background: var(--color-danger);
   color: var(--color-text-on-accent);
 }
+
+/*
+ * خانتان أو ثلاث **داخل حقلٍ واحد**: الرقم وتسميته، والمرحلة وتاريخها وشرحها.
+ * تنهار إلى عمود على الضيّق كما تنهار شبكة النموذج — بالقاعدة نفسها لا بغيرها.
+ */
+.inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  column-gap: var(--space-2);
+  row-gap: var(--space-2);
+}

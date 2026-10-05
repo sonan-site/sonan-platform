@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
   birthYears,
+  eventYears,
   initialMonth,
   monthGrid,
   MONTHS,
@@ -26,15 +27,18 @@ export function DateField({
   name,
   defaultValue = "",
   invalid,
+  kind = "birth",
 }: {
   id: string;
   name: string;
   defaultValue?: string;
   invalid?: boolean;
+  /** `birth` للميلاد: مئة سنة مضت. و`event` لموعدٍ قريب: سنة قبل وثلاث بعد، ويُفتح على الشهر الجاري. */
+  kind?: "birth" | "event";
 }) {
   const [value, setValue] = useState(defaultValue);
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState(() => initialMonth(defaultValue));
+  const [view, setView] = useState(() => initialMonth(defaultValue, kind));
   const wrap = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,7 +77,7 @@ export function DateField({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
-          setView(initialMonth(value));
+          setView(initialMonth(value, kind));
           setOpen((v) => !v);
         }}
       >
@@ -105,7 +109,7 @@ export function DateField({
               value={view.year}
               onChange={(e) => setView((v) => ({ ...v, year: Number(e.target.value) }))}
             >
-              {birthYears().map((year) => (
+              {(kind === "event" ? eventYears() : birthYears()).map((year) => (
                 <option key={year} value={year}>
                   {formatNumber(year)}
                 </option>

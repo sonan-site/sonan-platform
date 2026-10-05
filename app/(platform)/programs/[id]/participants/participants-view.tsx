@@ -15,6 +15,7 @@ import {
 import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatDateBoth, formatNumber, formatPercent } from "@/lib/format";
+import { daysText } from "@/lib/participants/journey";
 import {
   assignTrack,
   decideTrackChange,
@@ -30,15 +31,19 @@ export type ParticipantRow = {
   status: string;
   joinedAt: string;
   baseline: number | null;
-  /** أيام أُرسلت — متابعة تشغيلية لا إحصاء. */
-  submittedDays: number;
-  /** ما أُتمّت واجباته كلها من المُرسَل. */
-  completeDays: number;
-  /** أيام العمل في خطة مساره. صفر = لا خطة بعد. */
-  workDays: number;
+  /** أيام خطة مساره. صفر = لا خطة بعد. */
+  dayCount: number;
+  /** أيام الخطة التي أتمّها في مساره الحالي. */
+  doneDays: number;
+  /** أيام البرنامج التي انقضى وقت رصدها — موعده. */
+  dueDays: number;
+  /** أيامٌ حُكم عليه فيها بالتعثّر (`adr/0041`)، ومنها ما عُوِّض. */
+  stumbledDays: number;
+  compensatedDays: number;
   /** أيامه في مساراتٍ قبل الحالي — لا تُمحى بنقله. */
-  priorSubmittedDays: number;
-  priorCompleteDays: number;
+  priorDoneDays: number;
+  /** يتبع الخطة الآن — لمن انتهت رحلته لا موعد. */
+  followsPlan: boolean;
 };
 
 export type ChangeRow = {
@@ -120,25 +125,30 @@ export function ParticipantsView({
     },
     {
       key: "progress",
-      header: "الإرسال",
+      header: "يوم الخطة",
       align: "end",
       sortable: true,
       render: (p) =>
         withPrior(
-          p.workDays === 0 ? "لا خطة" : `${formatNumber(p.submittedDays)} من ${formatNumber(p.workDays)}`,
-          p.priorSubmittedDays,
+          p.dayCount === 0 ? "لا خطة" : `أتمّ ${formatNumber(p.doneDays)} من ${formatNumber(p.dayCount)}`,
+          p.priorDoneDays,
         ),
     },
     {
-      key: "complete",
-      header: "المكتمل",
+      key: "pace",
+      header: "الموعد",
+      align: "center",
+      render: (p) => paceText(p),
+    },
+    {
+      key: "stumbled",
+      header: "التعثّر",
       align: "end",
-      // المُرسَل فارغاً أو ناقصاً لا يُحسب هنا — فيظهر من يُرسل ولا يحفظ.
+      // المعوَّض يبقى تعثّراً لا يُمحى — ويُذكر ليُرى من عاد إلى موعده.
       render: (p) =>
-        withPrior(
-          p.submittedDays === 0 ? "—" : `${formatNumber(p.completeDays)} من ${formatNumber(p.submittedDays)}`,
-          p.priorCompleteDays,
-        ),
+        p.stumbledDays === 0
+          ? "—"
+          : `${formatNumber(p.stumbledDays)}${p.compensatedDays > 0 ? ` (عُوِّض ${formatNumber(p.compensatedDays)})` : ""}`,
     },
     {
       key: "status",
@@ -382,6 +392,15 @@ export function ParticipantsView({
       </Step>
     </>
   );
+}
+
+/** موعده: أيام البرنامج التي انقضى وقتها مقابل ما أتمّه — «في موعده» · «متأخر ٣ أيام». */
+function paceText(p: ParticipantRow): string {
+  if (!p.followsPlan || p.dayCount === 0 || p.doneDays >= p.dayCount) return "—";
+  const lag = p.dueDays - p.doneDays;
+  if (lag > 0) return `متأخر ${daysText(lag)}`;
+  if (lag < 0) return `متقدّم ${daysText(-lag)}`;
+  return "في موعده";
 }
 
 /** الرقم الحالي، ومعه ما جاء من مسارٍ سابق إن وُجد. */

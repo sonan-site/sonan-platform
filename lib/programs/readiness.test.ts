@@ -6,8 +6,7 @@ const full: ReadinessInput = {
   tracksWithParts: 2,
   contentUnits: 20,
   taskFields: 2,
-  templatesWithFields: 1,
-  tracksWithPlanDays: 2,
+  tracksWithPlan: 2,
   publicBlocks: 3,
   published: true,
 };
@@ -22,7 +21,7 @@ function missing(input: Partial<ReadinessInput>) {
 describe("جاهزية البرنامج", () => {
   it("البرنامج المكتمل بلا نواقص", () => {
     expect(missing({})).toEqual([]);
-    expect(readinessSummary(itemsOf({}))).toEqual({ done: 8, total: 8 });
+    expect(readinessSummary(itemsOf({}))).toEqual({ done: 7, total: 7 });
   });
 
   it("**مسار واحد بلا نصيب يُبقي البند ناقصاً** — لا يكفي أن يُحدَّد بعضها", () => {
@@ -30,7 +29,7 @@ describe("جاهزية البرنامج", () => {
   });
 
   it("مسار واحد بلا خطة يُبقي البند ناقصاً", () => {
-    expect(missing({ tracksWithPlanDays: 1 })).toContain("plans");
+    expect(missing({ tracksWithPlan: 1 })).toContain("plans");
   });
 
   it("برنامج فارغ: كل البنود ناقصة", () => {
@@ -39,16 +38,15 @@ describe("جاهزية البرنامج", () => {
       tracksWithParts: 0,
       contentUnits: 0,
       taskFields: 0,
-      templatesWithFields: 0,
-      tracksWithPlanDays: 0,
+      tracksWithPlan: 0,
       publicBlocks: 0,
       published: false,
     });
-    expect(empty).toHaveLength(8);
+    expect(empty).toHaveLength(7);
   });
 
   it("**بلا مسارات لا يُعَدّ النصيب ولا الخطة مكتملين** — وإلا لبدا الفارغ جاهزاً", () => {
-    const none = missing({ tracks: 0, tracksWithParts: 0, tracksWithPlanDays: 0 });
+    const none = missing({ tracks: 0, tracksWithParts: 0, tracksWithPlan: 0 });
     expect(none).toContain("parts");
     expect(none).toContain("plans");
   });
@@ -62,7 +60,7 @@ describe("جاهزية البرنامج", () => {
   });
 });
 
-describe("الخطوة التالية — واحدة لا ثماني", () => {
+describe("الخطوة التالية — واحدة لا سبع", () => {
   const stepOf = (input: Partial<ReadinessInput>) => nextStep(itemsOf(input));
 
   it("**المكتمل بلا خطوة** — لا يُقال لمن أتمّ «افعل»", () => {
@@ -75,8 +73,7 @@ describe("الخطوة التالية — واحدة لا ثماني", () => {
       tracksWithParts: 0,
       contentUnits: 0,
       taskFields: 0,
-      templatesWithFields: 0,
-      tracksWithPlanDays: 0,
+      tracksWithPlan: 0,
       publicBlocks: 0,
       published: false,
     });
@@ -84,12 +81,12 @@ describe("الخطوة التالية — واحدة لا ثماني", () => {
   });
 
   it("**الترتيب ترتيب البناء:** المادة قبل نصيبها، والنصيب قبل الخطة", () => {
-    expect(stepOf({ contentUnits: 0, tracksWithParts: 0, tracksWithPlanDays: 0, publicBlocks: 0 })).toMatchObject({
+    expect(stepOf({ contentUnits: 0, tracksWithParts: 0, tracksWithPlan: 0, publicBlocks: 0 })).toMatchObject({
       key: "content",
       tab: "content",
     });
-    expect(stepOf({ tracksWithParts: 1, tracksWithPlanDays: 0 })).toMatchObject({ key: "parts" });
-    expect(stepOf({ tracksWithPlanDays: 1 })).toMatchObject({ key: "plans", tab: "plans" });
+    expect(stepOf({ tracksWithParts: 1, tracksWithPlan: 0 })).toMatchObject({ key: "parts" });
+    expect(stepOf({ tracksWithPlan: 1 })).toMatchObject({ key: "plans", tab: "plans" });
   });
 
   it("وآخرها الصفحة ثم النشر", () => {

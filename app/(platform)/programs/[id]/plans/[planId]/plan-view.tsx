@@ -1,713 +1,647 @@
 "use client";
 
-import { reportAction } from "@/components/shared/action-notice";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
-import { DataTable, type Column } from "@/components/shared/data-table";
-import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { reportAction } from "@/components/shared/action-notice";
+import { Button, Input, Select } from "@/components/shared/form";
 import { TabHead } from "@/components/shared/steps";
-import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatNumber } from "@/lib/format";
-import { kindAllowsExams, type ProgramKind } from "@/lib/programs/kinds";
-import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
+import { formatDateTime, formatNumber, toLatinDigits } from "@/lib/format";
 import {
-  addPlanDay,
-  clearPlanDays,
-  createExam,
-  generatePlan,
-  movePlanDay,
-  removePlanDay,
-  renameExam,
-  setPlanDayType,
-  updatePlanDay,
-  uploadPlan,
-} from "../actions";
-import { ActionForm } from "@/components/shared/action-form";
+  dayTasks,
+  fieldLines,
+  MAX_DAYS,
+  planIssues,
+  repetitionText,
+  toPayload,
+  valueAt,
+  type PlanDraft,
+  type PlanField,
+  type PlanValue,
+  type TrackShare,
+} from "@/lib/plans/engine";
+import type { Material } from "@/lib/programs/material";
+import { restorePlanVersion, savePlan } from "../actions";
+import styles from "../plans.module.css";
+import { ImportPanel, type SavedMapping } from "./import-panel";
 
-export type DayRow = {
-  id: string;
-  dayNumber: number;
-  dayType: "normal" | "rest" | "exam";
-  templateId: string | null;
-  multiplier: number;
-  examName: string | null;
+export type VersionRow = { id: string; number: number; note: string; at: string };
+export type TemplateOption = { id: string; name: string; fields: { fieldId: string; amount: number }[] };
+
+const KIND_LABEL: Record<PlanField["kind"], string> = {
+  ranged: "تراكمي",
+  explicit: "نطاق صريح",
+  counted: "عددي",
 };
 
-export type ExamRow = {
-  id: string;
-  name: string;
-  examType: "remote" | "oral";
-  stage: "interim" | "final";
-  trackName: string | null;
-};
+/** رقمٌ من خانة: لاتيني، صحيح موجب، أو `undefined` للفارغ. */
+function parseCount(raw: string): number | undefined {
+  const text = toLatinDigits(raw).trim();
+  if (text === "") return undefined;
+  const value = Number(text);
+  return Number.isFinite(value) ? value : NaN;
+}
 
-const PANEL = { maxInlineSize: "var(--form-max)", marginBlockEnd: "var(--space-8)" } as const;
-const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
-const ERR = { color: "var(--color-danger)" } as const;
-const OK = { color: "var(--color-success)" } as const;
-const NOTE = {
-  fontSize: "var(--text-sm)",
-  color: "var(--color-text-muted)",
-  marginBlockEnd: "var(--space-4)",
-  maxInlineSize: "68ch",
-} as const;
-const META = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "var(--space-4)",
-  fontSize: "var(--text-sm)",
-  color: "var(--color-text-muted)",
-  marginBlockEnd: "var(--space-6)",
-} as const;
-
-const DAY_TYPE_LABEL = { normal: "عادي", rest: "راحة", exam: "اختبار" } as const;
+function rangeDays(from: number, to: number, max: number): number[] {
+  const a = Math.max(1, Math.min(from, to));
+  const b = Math.min(max, Math.max(from, to));
+  return Array.from({ length: Math.max(0, b - a + 1) }, (_, i) => a + i);
+}
 
 /**
- * خليّتان تُحرَّران في الجدول نفسه — «المقادير تُعدَّل هنا» في المخطَّط البصري.
+ * محرّر الخطة — تُحرَّر في المتصفح كاملةً وتُحفظ دفعة واحدة.
  *
- * غير مُتحكَّم بهما، و`key` مربوط بالقيمة الخادمية: بعد كل حفظ تُعاد القيمة من
- * الخادم فيُعاد بناء الحقل عليها. وهذا يتجنّب مزامنة حالةٍ داخل أثر — وهي
- * المزامنة التي يمنعها `react-hooks`، ويمنعها لسبب.
+ * الملاحظات تظهر وأنت تكتب (`lib/plans/engine`)، والحفظ يمرّ بفحص القاعدة
+ * نفسه (`fn_save_plan`). والأيام التي أتمّها مشاركٌ مقفلة لا تُعدَّل.
  */
-function MultiplierCell({
-  day,
-  planId,
+export function PlanEditor({
   programId,
-}: {
-  day: DayRow;
-  planId: string;
-  programId: string;
-}) {
-  const [pending, startTransition] = useTransition();
-
-  if (day.dayType !== "normal") return <>—</>;
-
-  return (
-    <Input
-      key={day.multiplier}
-      aria-label={`ضِعف المقدار في اليوم ${formatNumber(day.dayNumber)}`}
-      type="number"
-      min={0.25}
-      step={0.25}
-      numeric
-      disabled={pending}
-      defaultValue={day.multiplier}
-      style={{ maxInlineSize: "5.5rem" }}
-      onBlur={(e) => {
-        const next = Number(e.currentTarget.value);
-        if (!Number.isFinite(next) || next <= 0 || next === day.multiplier) return;
-        startTransition(
-          async () =>
-            reportAction(await updatePlanDay(day.id, { amountMultiplier: next }, planId, programId)),
-        );
-      }}
-    />
-  );
-}
-
-function ExamNameCell({
-  exam,
-  planId,
-  programId,
-}: {
-  exam: ExamRow;
-  planId: string;
-  programId: string;
-}) {
-  const [pending, startTransition] = useTransition();
-
-  return (
-    <Input
-      key={exam.name}
-      aria-label={`اسم الاختبار ${exam.name}`}
-      defaultValue={exam.name}
-      disabled={pending}
-      style={{ maxInlineSize: "14rem" }}
-      onBlur={(e) => {
-        const next = e.currentTarget.value.trim();
-        if (next.length < 2 || next === exam.name) return;
-        startTransition(
-          async () => reportAction(await renameExam(exam.id, next, planId, programId)),
-        );
-      }}
-    />
-  );
-}
-
-function TemplateCell({
-  day,
-  templates,
-  planId,
-  programId,
-}: {
-  day: DayRow;
-  templates: { id: string; name: string }[];
-  planId: string;
-  programId: string;
-}) {
-  const [pending, startTransition] = useTransition();
-
-  if (day.dayType === "rest") return <>بلا واجب</>;
-  if (day.dayType === "exam") return <>{day.examName}</>;
-
-  return (
-    <Select
-      key={day.templateId ?? ""}
-      aria-label={`شكل اليوم ${formatNumber(day.dayNumber)}`}
-      disabled={pending}
-      defaultValue={day.templateId ?? ""}
-      style={{ maxInlineSize: "12rem" }}
-      onChange={(e) => {
-        const next = e.target.value;
-        if (!next || next === day.templateId) return;
-        startTransition(
-          async () =>
-            reportAction(await updatePlanDay(day.id, { dayTemplateId: next }, planId, programId)),
-        );
-      }}
-    >
-      {/* شكلٌ حُذف بعد إسناده: يُسمّى صراحةً، فالسقوط على أول خيار كذبٌ صامت. */}
-      {day.templateId && !templates.some((t) => t.id === day.templateId) ? (
-        <option value={day.templateId}>شكل محذوف</option>
-      ) : null}
-      {templates.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.name}
-        </option>
-      ))}
-    </Select>
-  );
-}
-
-/**
- * نوع اليوم يُغيَّر في موضعه. الانتقال إلى «عادي» يأخذ أول شكل يوم، وإلى
- * «اختبار» أول اختبار — ثم يُختار غيرهما من خليّة اليوم نفسها.
- */
-function TypeCell({
-  day,
-  planId,
-  programId,
-  templates,
-  exams,
-  allowsExams,
-}: {
-  day: DayRow;
-  planId: string;
-  programId: string;
-  templates: { id: string; name: string }[];
-  exams: ExamRow[];
-  allowsExams: boolean;
-}) {
-  const [pending, startTransition] = useTransition();
-  return (
-    <Select
-      key={day.dayType}
-      aria-label={`نوع اليوم ${formatNumber(day.dayNumber)}`}
-      defaultValue={day.dayType}
-      disabled={pending}
-      style={{ maxInlineSize: "7rem" }}
-      onChange={(e) => {
-        const next = e.target.value as DayRow["dayType"];
-        if (next === day.dayType) return;
-        const refId =
-          next === "normal" ? (templates[0]?.id ?? null) : next === "exam" ? (exams[0]?.id ?? null) : null;
-        startTransition(async () =>
-          reportAction(await setPlanDayType(day.id, planId, programId, next, refId)),
-        );
-      }}
-    >
-      <option value="normal">{DAY_TYPE_LABEL.normal}</option>
-      <option value="rest">{DAY_TYPE_LABEL.rest}</option>
-      {allowsExams || day.dayType === "exam" ? (
-        <option value="exam">{DAY_TYPE_LABEL.exam}</option>
-      ) : null}
-    </Select>
-  );
-}
-
-export function PlanView({
-  programId,
-  kind,
-  planId,
-  planName,
-  trackName,
-  days,
-  templates,
-  exams,
+  plan,
+  initial,
+  fields,
   tracks,
+  material,
+  lockedThrough,
+  versions,
+  templates,
+  programName,
+  mappings,
 }: {
   programId: string;
-  kind: ProgramKind;
-  planId: string;
-  planName: string;
-  trackName: string;
-  days: DayRow[];
-  templates: { id: string; name: string }[];
-  exams: ExamRow[];
-  tracks: { id: string; name: string }[];
+  plan: { id: string; name: string; scope: string };
+  initial: PlanDraft;
+  fields: PlanField[];
+  /** المسارات التي تستعمل الخطة — تُفحص على نصيب كلٍّ منها. */
+  tracks: TrackShare[];
+  material: Material;
+  lockedThrough: number;
+  versions: VersionRow[];
+  templates: TemplateOption[];
+  programName: string;
+  /** قوالب الاستيراد المحفوظة في البرنامج. */
+  mappings: SavedMapping[];
 }) {
-  const [genState, genAction, genPending] = useActionState(generatePlan, EMPTY_FORM_STATE);
-  const [upState, upAction, upPending] = useActionState(uploadPlan, EMPTY_FORM_STATE);
-  const [dayState, dayAction, dayPending] = useActionState(addPlanDay, EMPTY_FORM_STATE);
-  const [examState, examAction, examPending] = useActionState(createExam, EMPTY_FORM_STATE);
-  const [busy, startTransition] = useTransition();
+  const router = useRouter();
+  const [draft, setDraft] = useState<PlanDraft>(initial);
+  const [dirty, setDirty] = useState(false);
+  const [saving, startSave] = useTransition();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [trackId, setTrackId] = useState(tracks[0]?.id ?? "");
+  const [previewDay, setPreviewDay] = useState(Math.min(Math.max(lockedThrough + 1, 1), Math.max(initial.dayCount, 1)));
 
-  const [newDayType, setNewDayType] = useState<"normal" | "rest" | "exam">("normal");
-  const [examType, setExamType] = useState<"remote" | "oral">("remote");
+  const track = tracks.find((t) => t.id === trackId) ?? tracks[0] ?? null;
+  const sortedFields = useMemo(
+    () => [...fields].sort((a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, "ar")),
+    [fields],
+  );
+  // ما بعد عدد الأيام يبقى في الحالة ولا يُحسب: إنقاص العدد ثم زيادته لا يمحو ما كُتب.
+  const effective = useMemo(
+    () => ({ dayCount: draft.dayCount, values: draft.values.filter((v) => v.day <= draft.dayCount) }),
+    [draft],
+  );
+  const issues = useMemo(() => planIssues(effective, fields, tracks), [effective, fields, tracks]);
+  // خطأ اليوم المقفل لا يحجب الحفظ: لا يملك المحرّر تصحيحه، والقاعدة تتجاوزه كذلك.
+  const errors = issues.filter((i) => i.severity === "error" && (i.day === null || i.day > lockedThrough));
+  const warnings = issues.filter((i) => i.severity === "warning");
+  const cellIssues = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const issue of issues) {
+      if (issue.day === null) continue;
+      const key = `${issue.day}|${issue.fieldId ?? ""}`;
+      map.set(key, [...(map.get(key) ?? []), issue.message]);
+    }
+    return map;
+  }, [issues]);
 
-  const allowsExams = kindAllowsExams(kind);
-  const isEmpty = days.length === 0;
-  const restCount = days.filter((d) => d.dayType === "rest").length;
-  const examCount = days.filter((d) => d.dayType === "exam").length;
-  const last = days.length;
+  // تحذير قبل مغادرة صفحةٍ فيها ما لم يُحفظ.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
-  const dayColumns: Column<DayRow>[] = [
-    {
-      key: "number",
-      header: "اليوم",
-      align: "end",
-      sortable: true,
-      primary: true,
-      render: (d) => formatNumber(d.dayNumber),
-    },
-    {
-      key: "type",
-      header: "النوع",
-      align: "center",
-      render: (d) => (
-        <TypeCell
-          day={d}
-          planId={planId}
-          programId={programId}
-          templates={templates}
-          exams={exams}
-          allowsExams={allowsExams}
-        />
-      ),
-    },
-    {
-      key: "what",
-      header: "شكل اليوم",
-      render: (d) => (
-        <TemplateCell day={d} templates={templates} planId={planId} programId={programId} />
-      ),
-    },
-    {
-      key: "multiplier",
-      header: "الضِّعف",
-      align: "end",
-      render: (d) => <MultiplierCell day={d} planId={planId} programId={programId} />,
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "end",
-      render: (d) => (
-        <span style={{ display: "inline-flex", gap: "var(--space-1)" }}>
-          <Button
-            aria-label="تقديم اليوم"
-            variant="secondary"
-            disabled={d.dayNumber === 1}
-            pending={busy}
-            onClick={() =>
-              startTransition(
-                async () =>
-                  reportAction(await movePlanDay(d.id, d.dayNumber - 1, planId, programId)),
-              )
-            }
-          >
-            <ChevronUp size={16} aria-hidden />
-          </Button>
-          <Button
-            aria-label="تأخير اليوم"
-            variant="secondary"
-            disabled={d.dayNumber === last}
-            pending={busy}
-            onClick={() =>
-              startTransition(
-                async () =>
-                  reportAction(await movePlanDay(d.id, d.dayNumber + 1, planId, programId)),
-              )
-            }
-          >
-            <ChevronDown size={16} aria-hidden />
-          </Button>
-          <Button
-            aria-label="حذف اليوم"
-            variant="danger"
-            pending={busy}
-            onClick={() =>
-              startTransition(async () => reportAction(await removePlanDay(d.id, planId, programId)))
-            }
-          >
-            <Trash2 size={16} aria-hidden />
-          </Button>
-        </span>
-      ),
-    },
-  ];
+  function update(next: (d: PlanDraft) => PlanDraft) {
+    setDraft((d) => next(d));
+    setDirty(true);
+    setServerError(null);
+  }
 
-  const examColumns: Column<ExamRow>[] = [
-    {
-      key: "name",
-      header: "الاختبار",
-      primary: true,
-      render: (e) => <ExamNameCell exam={e} planId={planId} programId={programId} />,
-    },
-    {
-      key: "type",
-      header: "النوع",
-      align: "center",
-      render: (e) => (e.examType === "remote" ? "عن بعد" : "شفهي حضوري"),
-    },
-    {
-      key: "stage",
-      header: "المرحلة",
-      align: "center",
-      render: (e) => (e.stage === "interim" ? "مرحلي" : "نهائي"),
-    },
-    {
-      key: "track",
-      header: "المسار",
-      render: (e) => e.trackName ?? "كل المسارات",
-    },
-  ];
+  /** يكتب قيمة خانة — والفارغ كله يحذف القيمة من اليوم. */
+  function setCell(day: number, fieldId: string, patch: Partial<PlanValue>) {
+    if (day <= lockedThrough) return;
+    update((d) => {
+      const rest = d.values.filter((v) => !(v.day === day && v.fieldId === fieldId));
+      const current = valueAt(d, fieldId, day) ?? { day, fieldId };
+      const merged: PlanValue = { ...current, ...patch, day, fieldId };
+      for (const key of ["amount", "from", "to", "value", "repetition"] as const) {
+        if (merged[key] === undefined) delete merged[key];
+      }
+      const empty =
+        merged.amount === undefined && merged.from === undefined && merged.to === undefined && merged.value === undefined;
+      return { ...d, values: empty ? rest : [...rest, merged] };
+    });
+  }
+
+  function setDayCount(count: number) {
+    const next = Math.max(Math.max(lockedThrough, 1), Math.min(MAX_DAYS, Math.trunc(count)));
+    update((d) => ({ ...d, dayCount: next }));
+  }
+
+  function fillField(field: PlanField, quantity: number, from: number, to: number) {
+    update((d) => {
+      const days = rangeDays(from, to, d.dayCount).filter((day) => day > lockedThrough);
+      const rest = d.values.filter((v) => !(v.fieldId === field.id && days.includes(v.day)));
+      const added = days.map((day): PlanValue => {
+        const old = valueAt(d, field.id, day);
+        const repetition = old?.repetition ?? field.defaultRepetition ?? undefined;
+        const base: PlanValue = field.kind === "counted" ? { day, fieldId: field.id, value: quantity } : { day, fieldId: field.id, amount: quantity };
+        return repetition ? { ...base, repetition } : base;
+      });
+      return { ...d, values: [...rest, ...added] };
+    });
+  }
+
+  function fillTemplate(template: TemplateOption, multiplier: number, from: number, to: number) {
+    for (const tf of template.fields) {
+      const field = fields.find((f) => f.id === tf.fieldId);
+      if (!field || field.kind === "explicit") continue;
+      fillField(field, Math.max(1, Math.round(tf.amount * multiplier)), from, to);
+    }
+  }
+
+  function fillRepetition(field: PlanField, count: number | undefined, from: number, to: number) {
+    update((d) => {
+      const days = new Set(rangeDays(from, to, d.dayCount).filter((day) => day > lockedThrough));
+      return {
+        ...d,
+        values: d.values.map((v) => {
+          if (v.fieldId !== field.id || !days.has(v.day)) return v;
+          const next = { ...v };
+          if (count === undefined) delete next.repetition;
+          else next.repetition = count;
+          return next;
+        }),
+      };
+    });
+  }
+
+  function save() {
+    startSave(async () => {
+      let result: Awaited<ReturnType<typeof savePlan>>;
+      try {
+        result = await savePlan({
+          programId,
+          planId: plan.id,
+          baseVersion: versions[0]?.number ?? 0,
+          payload: toPayload(effective),
+        });
+      } catch {
+        setServerError("تعذّر إرسال الخطة — قد تكون أكبر من حدّ الإرسال. جرّب مرة أخرى.");
+        return;
+      }
+      if (result.error) {
+        setServerError(result.error);
+        return;
+      }
+      reportAction(result);
+      setDirty(false);
+      router.refresh();
+    });
+  }
+
+  const days = Array.from({ length: draft.dayCount }, (_, i) => i + 1);
+  const preview = track && draft.dayCount > 0 ? dayTasks(effective, fields, track, material, previewDay) : [];
 
   return (
     <>
-      <p style={{ fontSize: "var(--text-sm)" }}>
-        <Link href={`/programs/${programId}/plans`}>الخطط</Link>
-      </p>
       <TabHead
-        title={planName}
-        lede="أيام الخطة بالترتيب: نوع كل يوم وشكله وضِعف مقداره. ومن أرسل يوماً لم يعد يُحذف."
+        title={plan.name}
+        lede="أيامٌ مرقّمة بلا تواريخ، وفي كل يوم قيمةٌ لكل حقل له فيه نشاط. والمشارك لا ينتقل ليوم حتى يُتمّ ما قبله."
       />
 
-      <div style={META}>
-        <span>المسار: {trackName}</span>
-        <span>الأيام: {formatNumber(days.length)}</span>
-        <span>الراحة: {formatNumber(restCount)}</span>
-        <span>الاختبارات: {formatNumber(examCount)}</span>
+      <div className={styles.bar}>
+        <div className={styles.barInfo}>
+          <span className={styles.chip}>{plan.scope}</span>
+          <span className={styles.chip}>
+            يستعملها: {tracks.length > 0 ? tracks.map((t) => t.name).join("، ") : "لا مسار"}
+          </span>
+          <label className={styles.label}>
+            عدد الأيام
+            <Input
+              type="number"
+              min={Math.max(lockedThrough, 1)}
+              max={MAX_DAYS}
+              numeric
+              className={styles.num}
+              value={draft.dayCount || ""}
+              onChange={(e) => {
+                const value = parseCount(e.target.value);
+                if (value !== undefined && Number.isFinite(value)) setDayCount(value);
+              }}
+              aria-label="عدد أيام الخطة"
+            />
+          </label>
+          {lockedThrough > 0 ? <span className={styles.chip}>المقفل ١–{formatNumber(lockedThrough)}</span> : null}
+          {errors.length > 0 ? (
+            <span className={`${styles.chip} ${styles.chipBad}`}>{formatNumber(errors.length)} ملاحظات تمنع الحفظ</span>
+          ) : warnings.length > 0 ? (
+            <span className={`${styles.chip} ${styles.chipWarn}`}>{warnings[0]!.message}</span>
+          ) : draft.dayCount > 0 ? (
+            <span className={styles.chip}>سليمة</span>
+          ) : null}
+          {dirty ? <span className={`${styles.chip} ${styles.chipWarn}`}>تعديلات لم تُحفظ</span> : null}
+        </div>
+        <Button variant="primary" pending={saving} disabled={!dirty || errors.length > 0 || draft.dayCount < 1} onClick={save}>
+          احفظ الخطة
+        </Button>
       </div>
 
-      <DataTable
-        columns={dayColumns}
-        rows={days}
-        rowKey={(d) => d.id}
-        total={days.length}
-        page={1}
-        pageSize={days.length || 1}
-        empty={{
-          title: "الخطة بلا أيام",
-          body: "ابنِها دفعةً واحدة، أو الصق قائمة جاهزة، أو يوماً يوماً.",
-        }}
-      />
-
-      {/* ══ البناء الجملي — على خطة فارغة وحدها ══ */}
-      {isEmpty ? (
-        <>
-          <h2 style={H2}>ابنِ الخطة دفعة واحدة</h2>
-          <p style={NOTE}>
-            شكل يوم واحد يتكرّر، وراحة كل عدد من الأيام. والراحة بالترتيب لا بيوم الأسبوع،
-            لأن الخطة بلا تاريخ بدء — كل مشارك يبدأ من يومه الأول. ومن أراد راحة يوم بعينه
-            حرّكها بعد البناء.
-          </p>
-          {templates.length === 0 ? (
-            <p style={ERR}>
-              لا أشكال أيام في هذا البرنامج.{" "}
-              <Link href={`/programs/${programId}/content`}>عرّف شكل يوم أولاً</Link>.
-            </p>
-          ) : (
-            <ActionForm action={genAction} state={genState} style={PANEL}>
-              <input type="hidden" name="programId" value={programId} />
-              <input type="hidden" name="planId" value={planId} />
-
-              <Field id="dayCount" label="عدد الأيام" required error={genState.fieldErrors?.dayCount}>
-                <Input id="dayCount" name="dayCount" type="number" min={1} max={366} required
-                       defaultValue={30} numeric />
-              </Field>
-
-              <Field id="dayTemplateId" label="شكل اليوم العادي" required
-                     error={genState.fieldErrors?.dayTemplateId}>
-                <Select id="dayTemplateId" name="dayTemplateId" required defaultValue="">
-                  <option value="" disabled>
-                    اختر شكلاً
-                  </option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field id="amountMultiplier" label="ضِعف المقدار"
-                     hint="١ = المقدار المعتاد. ٢ = ضِعفه. يُضرب في مقادير شكل اليوم."
-                     error={genState.fieldErrors?.amountMultiplier}>
-                <Input id="amountMultiplier" name="amountMultiplier" type="number" min={0.25}
-                       step={0.25} defaultValue={1} numeric />
-              </Field>
-
-              <Field id="restEvery" label="راحة كل كم يوم" hint="صفر = بلا راحة."
-                     error={genState.fieldErrors?.restEvery}>
-                <Input id="restEvery" name="restEvery" type="number" min={0} max={366}
-                       defaultValue={0} numeric />
-              </Field>
-
-              <FormActions>
-                <Button type="submit" pending={genPending}>
-                  ولّد الخطة
-                </Button>
-              </FormActions>
-
-              {genState.error ? <p style={ERR}>{genState.error}</p> : null}
-              {genState.notice ? <p style={OK}>{genState.notice}</p> : null}
-            </ActionForm>
-          )}
-
-          <h2 style={H2}>أو الصق قائمة جاهزة</h2>
-          <p style={NOTE}>
-            سطر لكل يوم: النوع ثم فاصلة ثم الضِّعف. المقبول <bdi>عادي</bdi> و<bdi>راحة</bdi>،
-            والسطر الأول هو اليوم الأول. أيام الاختبار تُضاف بعد اللصق.
-          </p>
-          {templates.length > 0 ? (
-            <ActionForm action={upAction} state={upState} style={PANEL}>
-              <input type="hidden" name="programId" value={programId} />
-              <input type="hidden" name="planId" value={planId} />
-
-              <Field id="upTemplate" label="شكل اليوم العادي" required
-                     error={upState.fieldErrors?.dayTemplateId}>
-                <Select id="upTemplate" name="dayTemplateId" required defaultValue="">
-                  <option value="" disabled>
-                    اختر شكلاً
-                  </option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field id="text" label="أيام الخطة" required error={upState.fieldErrors?.text} span="full">
-                <Textarea id="text" name="text" rows={8} required
-                          placeholder={"عادي,1\nعادي,1\nراحة"} />
-              </Field>
-
-              <FormActions>
-                <Button type="submit" pending={upPending}>
-                  أنشئ الأيام
-                </Button>
-              </FormActions>
-
-              {upState.error ? <p style={ERR}>{upState.error}</p> : null}
-              {upState.notice ? <p style={OK}>{upState.notice}</p> : null}
-            </ActionForm>
-          ) : null}
-        </>
+      {serverError ? <p className={styles.bad}>{serverError}</p> : null}
+      {errors.length > 0 ? (
+        <ul className={styles.issues}>
+          {errors.slice(0, 8).map((e, i) => (
+            <li key={i} className={styles.bad}>
+              {e.message}
+            </li>
+          ))}
+          {errors.length > 8 ? <li>و{formatNumber(errors.length - 8)} غيرها — مظلّلة في الجداول.</li> : null}
+        </ul>
       ) : null}
 
-      {/* ══ التحرير اليدوي ══ */}
-      <h2 style={H2}>أضِف يوماً</h2>
-      <p style={NOTE}>
-        اليوم يُدرَج في موضعه، وما بعده ينزاح يوماً واحداً. اترك الموضع فارغاً ليُضاف في الآخر.
-      </p>
-      <ActionForm action={dayAction} state={dayState} style={PANEL}>
-        <input type="hidden" name="programId" value={programId} />
-        <input type="hidden" name="planId" value={planId} />
+      {fields.length === 0 ? (
+        <p className={styles.warn}>
+          لا حقول بعد. سمِّ واجبات اليوم من <Link href={`/programs/${programId}/content`}>تبويب المادة</Link> أولاً.
+        </p>
+      ) : null}
 
-        <Field id="dayType" label="نوع اليوم" required>
-          <Select
-            id="dayType"
-            name="dayType"
-            value={newDayType}
-            onChange={(e) => setNewDayType(e.target.value as typeof newDayType)}
-          >
-            <option value="normal">عادي</option>
-            <option value="rest">راحة</option>
-            {/* المحجوب يُخفى لا يُعطَّل (`platform.md §٨`). والقاعدة ترفضه أيضاً. */}
-            {allowsExams ? <option value="exam">اختبار</option> : null}
-          </Select>
-        </Field>
+      <div className={styles.tools}>
+        <ImportPanel
+          programId={programId}
+          programName={programName}
+          fields={fields}
+          tracks={tracks}
+          track={track}
+          material={material}
+          lockedThrough={lockedThrough}
+          current={draft}
+          mappings={mappings}
+          onApply={(next) =>
+            update((d) => ({
+              dayCount: Math.max(next.dayCount, lockedThrough),
+              // الأيام المقفلة من المحرّر كما هي — والمستورد ما بعدها.
+              values: [...d.values.filter((v) => v.day <= lockedThrough), ...next.values.filter((v) => v.day > lockedThrough)],
+            }))
+          }
+        />
+        <TemplateTool templates={templates} dayCount={draft.dayCount} onApply={fillTemplate} />
+        <FieldTool fields={sortedFields} dayCount={draft.dayCount} onApply={fillField} />
+        <RepetitionTool fields={sortedFields} dayCount={draft.dayCount} onApply={fillRepetition} />
+      </div>
 
-        <Field id="atNumber" label="الموضع" hint={`من ١ إلى ${formatNumber(last + 1)}.`}>
-          <Input id="atNumber" name="atNumber" type="number" min={1} max={last + 1}
-                 placeholder="الآخر" numeric />
-        </Field>
-
-        {newDayType === "normal" ? (
-          <>
-            <Field id="dayTemplate" label="شكل اليوم" required
-                   error={dayState.fieldErrors?.dayTemplateId}>
-              <Select id="dayTemplate" name="dayTemplateId" required defaultValue="">
-                <option value="" disabled>
-                  اختر شكلاً
+      {track && draft.dayCount > 0 ? (
+        <section className={styles.preview} aria-label="معاينة يوم">
+          <div className={styles.previewHead}>
+            <strong>ما يراه المشارك في اليوم</strong>
+            <Select
+              className={styles.select}
+              aria-label="اليوم"
+              value={previewDay}
+              onChange={(e) => setPreviewDay(Number(e.target.value))}
+            >
+              {days.map((day) => (
+                <option key={day} value={day}>
+                  اليوم {formatNumber(day)}
                 </option>
-                {templates.map((t) => (
+              ))}
+            </Select>
+            {tracks.length > 1 ? (
+              <Select className={styles.select} aria-label="المسار" value={trackId} onChange={(e) => setTrackId(e.target.value)}>
+                {tracks.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
                 ))}
               </Select>
-            </Field>
-            <Field id="dayMultiplier" label="ضِعف المقدار"
-                   error={dayState.fieldErrors?.amountMultiplier}>
-              <Input id="dayMultiplier" name="amountMultiplier" type="number" min={0.25}
-                     step={0.25} defaultValue={1} numeric />
-            </Field>
-          </>
-        ) : null}
-
-        {newDayType === "exam" ? (
-          <Field id="examId" label="الاختبار" required error={dayState.fieldErrors?.examId}>
-            {exams.length === 0 ? (
-              <p style={ERR}>لا اختبارات معرَّفة. عرّف اختباراً في القسم الأخير أولاً.</p>
-            ) : (
-              <Select id="examId" name="examId" required defaultValue="">
-                <option value="" disabled>
-                  اختر اختباراً
-                </option>
-                {exams.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
-                  </option>
+            ) : null}
+          </div>
+          {preview.length === 0 ? (
+            <p>لا نشاط في هذا اليوم.</p>
+          ) : (
+            preview.map((task) => (
+              <div key={task.field.id} className={styles.previewTask}>
+                <div className={styles.previewName}>
+                  {task.field.label}
+                  {task.field.isRequired ? "" : " — اختياري"}
+                </div>
+                {task.lines.map((line) => (
+                  <div key={line}>{line}</div>
                 ))}
-              </Select>
+                {task.repetition ? <div>كرّره {repetitionText(task.repetition)}</div> : null}
+              </div>
+            ))
+          )}
+        </section>
+      ) : null}
+
+      {sortedFields.map((field) => (
+        <details key={field.id} className={styles.field} open={sortedFields.length <= 3}>
+          <summary className={styles.fieldHead}>
+            <span className={styles.fieldName}>{field.label}</span>
+            <span className={styles.chip}>{KIND_LABEL[field.kind]}</span>
+            {field.isBase ? <span className={styles.chip}>أساس</span> : null}
+            {field.isConstrained ? <span className={styles.chip}>مقيَّد بالأساس</span> : null}
+            <span className={styles.chip}>
+              {formatNumber(effective.values.filter((v) => v.fieldId === field.id).length)} يوماً
+            </span>
+          </summary>
+          <div className={styles.fieldBody}>
+            {draft.dayCount === 0 ? (
+              <p className={styles.hint}>اكتب عدد أيام الخطة أعلاه أولاً.</p>
+            ) : (
+              <div className={styles.scroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>اليوم</th>
+                      {field.kind === "ranged" ? <th>المقدار</th> : null}
+                      {field.kind === "explicit" ? (
+                        <>
+                          <th>من</th>
+                          <th>إلى</th>
+                        </>
+                      ) : null}
+                      {field.kind === "counted" ? <th>القيمة{field.countUnit ? ` (${field.countUnit})` : ""}</th> : null}
+                      <th>التكرار</th>
+                      <th>{track ? `النصّ — ${track.name}` : "النصّ"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {days.map((day) => {
+                      const v = valueAt(draft, field.id, day);
+                      const locked = day <= lockedThrough;
+                      const notes = [...(cellIssues.get(`${day}|${field.id}`) ?? []), ...(cellIssues.get(`${day}|`) ?? [])];
+                      const num = (key: "amount" | "from" | "to" | "value") => (
+                        <Input
+                          className={styles.num}
+                          numeric
+                          disabled={locked}
+                          aria-label={`${field.label}، اليوم ${day}`}
+                          value={v?.[key] ?? ""}
+                          onChange={(e) => setCell(day, field.id, { [key]: parseCount(e.target.value) })}
+                        />
+                      );
+                      return (
+                        <tr key={day} className={notes.length > 0 ? styles.rowBad : undefined}>
+                          <td>
+                            {formatNumber(day)}
+                            {locked ? <span className={styles.locked}>مقفل</span> : null}
+                          </td>
+                          {field.kind === "ranged" ? <td>{num("amount")}</td> : null}
+                          {field.kind === "explicit" ? (
+                            <>
+                              <td>{num("from")}</td>
+                              <td>{num("to")}</td>
+                            </>
+                          ) : null}
+                          {field.kind === "counted" ? <td>{num("value")}</td> : null}
+                          <td>
+                            <Input
+                              className={styles.num}
+                              numeric
+                              disabled={locked || !v}
+                              aria-label={`تكرار ${field.label}، اليوم ${day}`}
+                              value={v?.repetition ?? ""}
+                              onChange={(e) => setCell(day, field.id, { repetition: parseCount(e.target.value) })}
+                            />
+                          </td>
+                          <td className={styles.text}>
+                            {track ? fieldLines(effective, field, track, material, day).join(" + ") : ""}
+                            {notes.map((note) => (
+                              <div key={note} className={styles.cellError}>
+                                {note}
+                              </div>
+                            ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </Field>
-        ) : null}
+          </div>
+        </details>
+      ))}
 
-        <FormActions>
-          <Button type="submit" pending={dayPending}>
-            أضِف اليوم
+      <Versions programId={programId} planId={plan.id} versions={versions} dirty={dirty} />
+    </>
+  );
+}
+
+function DayRange({
+  dayCount,
+  from,
+  to,
+  setFrom,
+  setTo,
+}: {
+  dayCount: number;
+  from: number;
+  to: number;
+  setFrom: (n: number) => void;
+  setTo: (n: number) => void;
+}) {
+  return (
+    <>
+      <label className={styles.label}>
+        من اليوم
+        <Input className={styles.num} numeric type="number" min={1} max={dayCount} value={from} onChange={(e) => setFrom(Number(e.target.value) || 1)} />
+      </label>
+      <label className={styles.label}>
+        إلى اليوم
+        <Input className={styles.num} numeric type="number" min={1} max={dayCount} value={to} onChange={(e) => setTo(Number(e.target.value) || 1)} />
+      </label>
+    </>
+  );
+}
+
+function TemplateTool({
+  templates,
+  dayCount,
+  onApply,
+}: {
+  templates: TemplateOption[];
+  dayCount: number;
+  onApply: (t: TemplateOption, multiplier: number, from: number, to: number) => void;
+}) {
+  const [id, setId] = useState(templates[0]?.id ?? "");
+  const [multiplier, setMultiplier] = useState(1);
+  const [from, setFrom] = useState(1);
+  const [to, setTo] = useState(dayCount || 1);
+  const template = templates.find((t) => t.id === id);
+  return (
+    <div className={styles.tool}>
+      <h2 className={styles.toolTitle}>تعبئة من شكل يوم</h2>
+      <p className={styles.hint}>مقدار كل حقل = مقداره في الشكل × المضاعف. ولا تُعبّأ النطاقات الصريحة.</p>
+      {templates.length === 0 ? (
+        <p className={styles.hint}>لا أشكال أيام — عرّفها في تبويب المادة.</p>
+      ) : (
+        <div className={styles.row}>
+          <label className={styles.label}>
+            الشكل
+            <Select className={styles.select} value={id} onChange={(e) => setId(e.target.value)}>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className={styles.label}>
+            المضاعف
+            <Input className={styles.num} numeric type="number" min={0.25} step={0.25} value={multiplier} onChange={(e) => setMultiplier(Number(e.target.value) || 1)} />
+          </label>
+          <DayRange dayCount={dayCount} from={from} to={to} setFrom={setFrom} setTo={setTo} />
+          <Button disabled={!template || dayCount === 0} onClick={() => template && onApply(template, multiplier, from, to)}>
+            عبّئ
           </Button>
-          {!isEmpty ? (
-            <Button
-              type="button"
-              variant="danger"
-              pending={busy}
-              onClick={() =>
-                startTransition(async () => reportAction(await clearPlanDays(planId, programId)))
-              }
-            >
-              امسح كل الأيام
-            </Button>
-          ) : null}
-        </FormActions>
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {dayState.error ? <p style={ERR}>{dayState.error}</p> : null}
-        {dayState.notice ? <p style={OK}>{dayState.notice}</p> : null}
-      </ActionForm>
-
-      {/* ══ الاختبار: تعريفاً فقط، وللمسابقة وحدها `[BR-KIND-01]` ══ */}
-      {allowsExams ? (
-      <>
-      <h2 style={H2}>الاختبارات</h2>
-      <p style={NOTE}>
-        عرّف الاختبار هنا، ثم أضف له يوماً في الخطة. واختبارٌ لمسار محدَّد يتقدّم على اختبار
-        لكل المسارات.
-      </p>
-
-      <DataTable
-        columns={examColumns}
-        rows={exams}
-        rowKey={(e) => e.id}
-        total={exams.length}
-        page={1}
-        empty={{ title: "لا اختبارات معرَّفة", body: "عرّف اختباراً من النموذج أدناه." }}
-      />
-
-      <ActionForm action={examAction} state={examState} style={{ ...PANEL, marginBlockStart: "var(--space-6)" }}>
-        <input type="hidden" name="programId" value={programId} />
-        <input type="hidden" name="planId" value={planId} />
-
-        <Field id="examName" label="اسم الاختبار" required error={examState.fieldErrors?.name}>
-          <Input id="examName" name="name" required />
-        </Field>
-
-        <Field id="examType" label="النوع" required>
-          <Select
-            id="examType"
-            name="examType"
-            value={examType}
-            onChange={(e) => setExamType(e.target.value as typeof examType)}
-          >
-            <option value="remote">عن بعد</option>
-            <option value="oral">شفهي حضوري</option>
-          </Select>
-        </Field>
-
-        <Field id="stage" label="المرحلة" required error={examState.fieldErrors?.stage}
-               hint={examType === "oral" ? "الشفهي نهائي دائماً." : undefined}>
-          <Select id="stage" name="stage" defaultValue={examType === "oral" ? "final" : "interim"}
-                  key={examType}>
-            {examType === "oral" ? null : <option value="interim">مرحلي</option>}
-            <option value="final">نهائي</option>
-          </Select>
-        </Field>
-
-        <Field id="examTrack" label="المسار" hint="اتركه فارغاً ليسري على كل المسارات.">
-          <Select id="examTrack" name="trackId" defaultValue="">
-            <option value="">كل المسارات</option>
-            {tracks.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+function FieldTool({
+  fields,
+  dayCount,
+  onApply,
+}: {
+  fields: PlanField[];
+  dayCount: number;
+  onApply: (f: PlanField, quantity: number, from: number, to: number) => void;
+}) {
+  const fillable = fields.filter((f) => f.kind !== "explicit");
+  const [id, setId] = useState(fillable[0]?.id ?? "");
+  const [quantity, setQuantity] = useState(1);
+  const [from, setFrom] = useState(1);
+  const [to, setTo] = useState(dayCount || 1);
+  const field = fillable.find((f) => f.id === id);
+  return (
+    <div className={styles.tool}>
+      <h2 className={styles.toolTitle}>تعبئة حقل</h2>
+      <p className={styles.hint}>كميةٌ واحدة لأيامٍ متتالية، ثم عدّل الأيام المختلفة في الجدول.</p>
+      <div className={styles.row}>
+        <label className={styles.label}>
+          الحقل
+          <Select className={styles.select} value={id} onChange={(e) => setId(e.target.value)}>
+            {fillable.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
               </option>
             ))}
           </Select>
-        </Field>
+        </label>
+        <label className={styles.label}>
+          الكمية في اليوم
+          <Input className={styles.num} numeric type="number" min={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value) || 1)} />
+        </label>
+        <DayRange dayCount={dayCount} from={from} to={to} setFrom={setFrom} setTo={setTo} />
+        <Button disabled={!field || dayCount === 0} onClick={() => field && onApply(field, quantity, from, to)}>
+          عبّئ
+        </Button>
+      </div>
+    </div>
+  );
+}
 
-        <Field id="passPercentage" label="نسبة الاجتياز"
-               error={examState.fieldErrors?.passPercentage}>
-          <Input id="passPercentage" name="passPercentage" type="number" min={0} max={100}
-                 defaultValue={EXAM_DEFAULTS.passPercentage} numeric />
-        </Field>
+function RepetitionTool({
+  fields,
+  dayCount,
+  onApply,
+}: {
+  fields: PlanField[];
+  dayCount: number;
+  onApply: (f: PlanField, count: number | undefined, from: number, to: number) => void;
+}) {
+  const [id, setId] = useState(fields[0]?.id ?? "");
+  const [count, setCount] = useState("");
+  const [from, setFrom] = useState(1);
+  const [to, setTo] = useState(dayCount || 1);
+  const field = fields.find((f) => f.id === id);
+  return (
+    <div className={styles.tool}>
+      <h2 className={styles.toolTitle}>التكرار</h2>
+      <p className={styles.hint}>يُكتب على الأيام التي للحقل فيها قيمة. والفارغ يمحوه — فلا عدّاد.</p>
+      <div className={styles.row}>
+        <label className={styles.label}>
+          الحقل
+          <Select className={styles.select} value={id} onChange={(e) => setId(e.target.value)}>
+            {fields.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.label}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <label className={styles.label}>
+          المرات
+          <Input className={styles.num} numeric type="number" min={1} value={count} onChange={(e) => setCount(e.target.value)} />
+        </label>
+        <DayRange dayCount={dayCount} from={from} to={to} setFrom={setFrom} setTo={setTo} />
+        <Button
+          disabled={!field || dayCount === 0}
+          onClick={() => field && onApply(field, count === "" ? undefined : Math.max(1, Number(count)), from, to)}
+        >
+          اكتب
+        </Button>
+      </div>
+    </div>
+  );
+}
 
-        <Field id="questionCount" label="عدد الأسئلة" required
-               error={examState.fieldErrors?.questionCount}>
-          <Input id="questionCount" name="questionCount" type="number" min={1}
-                 defaultValue={EXAM_DEFAULTS.questionCount} numeric />
-        </Field>
-
-        {examType === "remote" ? (
-          <>
-            <Field id="secondsPerQuestion" label="زمن السؤال بالثواني" required
-                   error={examState.fieldErrors?.secondsPerQuestion}>
-              <Input id="secondsPerQuestion" name="secondsPerQuestion" type="number" min={1}
-                     defaultValue={EXAM_DEFAULTS.secondsPerQuestion} numeric />
-            </Field>
-            <Field id="maxSkips" label="حدّ تغيير السؤال" error={examState.fieldErrors?.maxSkips}>
-              <Input id="maxSkips" name="maxSkips" type="number" min={0}
-                     defaultValue={EXAM_DEFAULTS.maxSkips} numeric />
-            </Field>
-          </>
-        ) : (
-          <>
-            <Field id="judgeCount" label="عدد المحكمين" required
-                   error={examState.fieldErrors?.judgeCount}>
-              <Input id="judgeCount" name="judgeCount" type="number" min={1}
-                     defaultValue={EXAM_DEFAULTS.judgeCount} numeric />
-            </Field>
-            <Field id="awardPercentage" label="نسبة استحقاق الجوائز"
-                   error={examState.fieldErrors?.awardPercentage}>
-              <Input id="awardPercentage" name="awardPercentage" type="number" min={0} max={100}
-                     defaultValue={EXAM_DEFAULTS.awardPercentage} numeric />
-            </Field>
-          </>
-        )}
-
-        <FormActions>
-          <Button type="submit" pending={examPending}>
-            عرّف الاختبار
-          </Button>
-        </FormActions>
-
-        {examState.error ? <p style={ERR}>{examState.error}</p> : null}
-        {examState.notice ? <p style={OK}>{examState.notice}</p> : null}
-      </ActionForm>
-      </>
-      ) : null}
-    </>
+function Versions({
+  programId,
+  planId,
+  versions,
+  dirty,
+}: {
+  programId: string;
+  planId: string;
+  versions: VersionRow[];
+  dirty: boolean;
+}) {
+  const router = useRouter();
+  const [busy, startTransition] = useTransition();
+  return (
+    <section className={styles.tool} aria-label="النسخ">
+      <h2 className={styles.toolTitle}>النسخ</h2>
+      <p className={styles.hint}>كل حفظٍ نسخة. والرجوع إلى نسخة حفظٌ جديد بقيمها، ويُرفض إن غيّر يوماً مقفلاً.</p>
+      {versions.length === 0 ? (
+        <p className={styles.hint}>لا نسخ بعد.</p>
+      ) : (
+        <ul className={styles.versions}>
+          {versions.map((v) => (
+            <li key={v.id}>
+              <span>
+                النسخة {formatNumber(v.number)} · {formatDateTime(v.at)} · {v.note}
+              </span>
+              <Button
+                disabled={busy || dirty}
+                title={dirty ? "احفظ تعديلاتك أو تخلَّ عنها أولاً" : undefined}
+                onClick={() =>
+                  startTransition(async () => {
+                    reportAction(await restorePlanVersion(programId, planId, v.id));
+                    router.refresh();
+                  })
+                }
+              >
+                رجوع
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

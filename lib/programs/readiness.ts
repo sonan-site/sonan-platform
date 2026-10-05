@@ -5,7 +5,7 @@
  * إلا بتفقّد ستّ شاشات واحدة واحدة. وهذا يجمعها في قائمة واحدة: ما اكتمل،
  * وما يحجب الإطلاق، وأين يُصلَح كلٌّ منها.
  *
- * ومنها **الخطوة التالية** (`nextStep`): المعالج يعرض واحدة لا ثمانياً، فمن
+ * ومنها **الخطوة التالية** (`nextStep`): المعالج يعرض واحدة لا سبعاً، فمن
  * فتح برنامجه يعرف ما يفعله الآن لا ما ينقصه كلّه (`adr/0029`).
  */
 
@@ -15,10 +15,8 @@ export type ReadinessInput = {
   tracksWithParts: number;
   contentUnits: number;
   taskFields: number;
-  /** أشكال أيام فيها واجب واحد على الأقل. */
-  templatesWithFields: number;
-  /** مسارات لها خطة بأيام. */
-  tracksWithPlanDays: number;
+  /** مسارات لخطتها الفعلية أيامٌ وقيم — الافتراضية أو المخصّصة (`adr/0038`). */
+  tracksWithPlan: number;
   publicBlocks: number;
   published: boolean;
 };
@@ -64,17 +62,10 @@ export function readiness(input: ReadinessInput): ReadinessItem[] {
       fix: "content",
     },
     {
-      key: "templates",
-      label: "شكل يوم بواجباته",
-      consequence: "شكل اليوم يجمع الواجبات ومقاديرها، وبلا مقادير لا يُحسب نطاق.",
-      done: input.templatesWithFields > 0,
-      fix: "content",
-    },
-    {
       key: "plans",
       label: "خطة لكل مسار",
       consequence: "بلا خطة لا يبدأ المشارك، مهما اكتمل ما قبلها.",
-      done: input.tracks > 0 && input.tracksWithPlanDays === input.tracks,
+      done: input.tracks > 0 && input.tracksWithPlan === input.tracks,
       fix: "plans",
     },
     {
@@ -123,8 +114,7 @@ const STEP_TITLE: Record<string, { title: string; cta: string }> = {
   content: { title: "أدخِل المادة المرقَّمة", cta: "افتح المادة" },
   parts: { title: "حدّد نصيب كل مسار من المادة", cta: "افتح المادة" },
   fields: { title: "سمِّ واجبات اليوم", cta: "افتح المادة" },
-  templates: { title: "اجمع الواجبات في شكل يوم", cta: "افتح المادة" },
-  plans: { title: "ابنِ خطة لكل مسار", cta: "افتح الخطط" },
+  plans: { title: "ابنِ خطة البرنامج — أو خطةً لكل مسار", cta: "افتح الخطط" },
   page: { title: "ابنِ الصفحة المعلنة", cta: "افتح الصفحة المعلنة" },
   published: { title: "انشر البرنامج", cta: "افتح النظرة العامة" },
 };
@@ -133,7 +123,7 @@ const STEP_TITLE: Record<string, { title: string; cta: string }> = {
  * الخطوة الواحدة التالية، أو `null` إن اكتمل كل شيء.
  *
  * **الترتيب هو ترتيب البناء لا ترتيب العرض**: لا نصيب قبل مادة، ولا خطة قبل
- * شكل يوم. و`readiness` مرتّبة بهذا الترتيب أصلاً، فأول ناقصٍ فيها هو التالي.
+ * حقولها. و`readiness` مرتّبة بهذا الترتيب أصلاً، فأول ناقصٍ فيها هو التالي.
  */
 export function nextStep(items: ReadinessItem[]): NextStep | null {
   const pending = items.find((i) => !i.done);

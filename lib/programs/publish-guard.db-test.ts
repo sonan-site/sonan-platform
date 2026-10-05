@@ -12,7 +12,6 @@ let db: Client;
 let sectionId: string;
 let programId: string;
 let trackId: string;
-let templateId: string;
 let fieldId: string;
 let planId: string;
 
@@ -46,10 +45,8 @@ beforeAll(async () => {
 afterAll(async () => {
   if (programId) {
     await db.query(`delete from public.page_blocks where program_id = $1`, [programId]);
-    await db.query(`delete from public.plan_days where plan_id = $1`, [planId]);
+    await db.query(`delete from public.plan_values where plan_id = $1`, [planId]);
     await db.query(`delete from public.plans where id = $1`, [planId]);
-    await db.query(`delete from public.day_template_fields where day_template_id = $1`, [templateId]);
-    await db.query(`delete from public.day_templates where id = $1`, [templateId]);
     await db.query(`delete from public.task_fields where program_id = $1`, [programId]);
     await db.query(`delete from public.track_content_ranges where track_id = $1`, [trackId]);
     await db.query(`delete from public.content_units where program_id = $1`, [programId]);
@@ -78,31 +75,24 @@ describe("حارس النشر", () => {
     );
 
     await expect(publish()).rejects.toThrow(/نصيب كل مسار من المادة/);
-    await expect(publish()).rejects.toThrow(/واجبات اليوم/);
+    await expect(publish()).rejects.toThrow(/حقول الخطة/);
   });
 
-  it("والخطة بلا أيام لا تُعَدّ خطة", async () => {
+  it("والخطة بلا قيم لا تُعَدّ خطة", async () => {
     await db.query(
       `insert into public.track_content_ranges (track_id, from_sequence, to_sequence, sort_order)
        values ($1, 1, 10, 0)`,
       [trackId],
     );
     fieldId = (await db.query<{ id: string }>(
-      `insert into public.task_fields (program_id, label, kind, sort_order) values ($1, 'حفظ', 'ranged', 0) returning id`,
+      `insert into public.task_fields (program_id, label, kind, sort_order, is_base)
+       values ($1, 'حفظ', 'ranged', 0, true) returning id`,
       [programId],
     )).rows[0]!.id;
-    templateId = (await db.query<{ id: string }>(
-      `insert into public.day_templates (program_id, name) values ($1, 'يوم') returning id`,
-      [programId],
-    )).rows[0]!.id;
-    await db.query(
-      `insert into public.day_template_fields (day_template_id, task_field_id, base_amount, sort_order)
-       values ($1, $2, 2, 0)`,
-      [templateId, fieldId],
-    );
+    // الافتراضية للبرنامج كله — يرثها المسار (adr/0038).
     planId = (await db.query<{ id: string }>(
-      `insert into public.plans (track_id, name) values ($1, 'خطة النشر') returning id`,
-      [trackId],
+      `insert into public.plans (program_id, name, day_count) values ($1, 'خطة النشر', 5) returning id`,
+      [programId],
     )).rows[0]!.id;
 
     await expect(publish()).rejects.toThrow(/خطة لكل مسار/);
@@ -110,9 +100,9 @@ describe("حارس النشر", () => {
 
   it("وتبقى الصفحة المعلنة آخر ما يُشترط", async () => {
     await db.query(
-      `insert into public.plan_days (plan_id, day_number, day_type, day_template_id)
-       select $1, g, 'normal', $2 from generate_series(1, 5) as g`,
-      [planId, templateId],
+      `insert into public.plan_values (plan_id, day_number, task_field_id, amount)
+       select $1, g, $2, 2 from generate_series(1, 5) as g`,
+      [planId, fieldId],
     );
     await expect(publish()).rejects.toThrow(/الصفحة المعلنة/);
   });

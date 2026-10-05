@@ -16,7 +16,6 @@ let closedProgram: string;
 let readyTrack: string;
 let planlessTrack: string;
 let archivedTrack: string;
-let templateId: string;
 let fieldId: string;
 let planId: string;
 let ownerOpen: string;
@@ -126,27 +125,18 @@ beforeAll(async () => {
       [openProgram],
     )
   ).rows[0]!.id;
-  templateId = (
-    await db.query<{ id: string }>(
-      `insert into public.day_templates (program_id, name) values ($1, 'يوم') returning id`,
-      [openProgram],
-    )
-  ).rows[0]!.id;
-  await db.query(
-    `insert into public.day_template_fields (day_template_id, task_field_id, base_amount, sort_order)
-     values ($1, $2, 2, 0)`,
-    [templateId, fieldId],
-  );
+  // خطةٌ مخصّصة للمسار الجاهز وحده، بلا افتراضية — فالمسار المُضاف بعده بلا خطة.
   planId = (
     await db.query<{ id: string }>(
-      `insert into public.plans (track_id, name) values ($1, 'خطة اللوحة') returning id`,
-      [readyTrack],
+      `insert into public.plans (program_id, track_id, name, day_count)
+       values ($1, $2, 'خطة اللوحة', 5) returning id`,
+      [openProgram, readyTrack],
     )
   ).rows[0]!.id;
   await db.query(
-    `insert into public.plan_days (plan_id, day_number, day_type, day_template_id)
-     select $1, g, 'normal', $2 from generate_series(1, 5) as g`,
-    [planId, templateId],
+    `insert into public.plan_values (plan_id, day_number, task_field_id, amount)
+     select $1, g, $2, 2 from generate_series(1, 5) as g`,
+    [planId, fieldId],
   );
   await db.query(
     `insert into public.page_blocks (program_id, block_type, sort_order, content)
@@ -238,19 +228,17 @@ afterAll(async () => {
       `delete from public.track_change_requests where participant_id = any($1::uuid[])`,
       [[ownerOpen, ownerClosed, otherParticipant].filter(Boolean)],
     );
-    await db.query(`delete from public.achievements where participant_id = any($1::uuid[])`, [
-      [ownerOpen, ownerClosed, otherParticipant].filter(Boolean),
-    ]);
+    for (const table of ["field_marks", "day_completions", "commitment_archive"]) {
+      await db.query(`delete from public.${table} where participant_id = any($1::uuid[])`, [
+        [ownerOpen, ownerClosed, otherParticipant].filter(Boolean),
+      ]);
+    }
     await db.query(`delete from public.participants where program_id = any($1::uuid[])`, [
       [openProgram, closedProgram].filter(Boolean),
     ]);
     await db.query(`delete from public.page_blocks where program_id = $1`, [openProgram]);
-    await db.query(`delete from public.plan_days where plan_id = $1`, [planId]);
+    await db.query(`delete from public.plan_values where plan_id = $1`, [planId]);
     await db.query(`delete from public.plans where id = $1`, [planId]);
-    await db.query(`delete from public.day_template_fields where day_template_id = $1`, [
-      templateId,
-    ]);
-    await db.query(`delete from public.day_templates where id = $1`, [templateId]);
     await db.query(`delete from public.task_fields where program_id = $1`, [openProgram]);
     await db.query(`delete from public.track_content_ranges where track_id = $1`, [readyTrack]);
     await db.query(`delete from public.content_units where program_id = $1`, [openProgram]);
@@ -331,64 +319,57 @@ describe("واجبات صاحب الحساب", () => {
     expect(closed?.program_status).toBe("closed");
   });
 
-  it("**واليوم الجاري أول يوم عملٍ لم يُرسَل**، ومعه اقتراح النقل", async () => {
+  it("**يومه من خطة مساره الفعلية**، ومعه اقتراح النقل", async () => {
     const { rows } = await asUser(OWNER, () =>
       db.query<{
         participant_id: string;
-        work_days: number;
-        current_day: number | null;
+        day_count: number;
+        done_days: number;
         proposed_track: string | null;
-      }>(
-        `select participant_id, work_days, current_day, proposed_track from public.fn_my_duties()`,
-      ),
+      }>(`select participant_id, day_count, done_days, proposed_track from public.fn_my_duties()`),
     );
     const open = rows.find((r) => r.participant_id === ownerOpen);
-    expect(open?.work_days).toBe(5);
-    expect(open?.current_day).toBe(1);
+    expect(open?.day_count).toBe(5);
+    expect(open?.done_days).toBe(0);
     expect(open?.proposed_track).toBe("مسار بلا خطة");
   });
 
-  it("ومن لا مسار له لا أيام عمل له، فلا يوم جارٍ", async () => {
+  it("ومن لا مسار له لا خطة له", async () => {
     const { rows } = await asUser(OWNER, () =>
-      db.query<{ participant_id: string; work_days: number; current_day: number | null }>(
-        `select participant_id, work_days, current_day from public.fn_my_duties()`,
+      db.query<{ participant_id: string; day_count: number; done_days: number }>(
+        `select participant_id, day_count, done_days from public.fn_my_duties()`,
       ),
     );
     const closed = rows.find((r) => r.participant_id === ownerClosed);
-    expect(closed?.work_days).toBe(0);
-    expect(closed?.current_day).toBeNull();
+    expect(closed?.day_count).toBe(0);
+    expect(closed?.done_days).toBe(0);
   });
 
-  it("**والإرسال يُقدّم اليوم الجاري** ويُسجَّل آخر إرسال", async () => {
-    const dayOne = (
-      await db.query<{ id: string }>(
-        `select id from public.plan_days where plan_id = $1 and day_number = 1`,
-        [planId],
-      )
-    ).rows[0]!.id;
+  it("**وإتمام يومٍ يُقدّمه** ويُسجَّل آخر رصد — والنسبة نسبة شاشة الرحلة", async () => {
     await db.query(
-      `insert into public.achievements (participant_id, plan_day_id, task_field_id, is_done)
-       values ($1, $2, $3, true)`,
-      [ownerOpen, dayOne, fieldId],
+      `insert into public.field_marks (participant_id, plan_id, track_id, day_number, task_field_id, marked_at)
+       values ($1, $2, $3, 1, $4, now())`,
+      [ownerOpen, planId, readyTrack, fieldId],
+    );
+    await db.query(
+      `insert into public.day_completions (participant_id, plan_id, track_id, day_number, completed_at)
+       values ($1, $2, $3, 1, now())`,
+      [ownerOpen, planId, readyTrack],
     );
 
     const { rows } = await asUser(OWNER, () =>
       db.query<{
         participant_id: string;
-        current_day: number | null;
-        submitted_days: number;
-        complete_days: number;
-        last_submitted_at: string | null;
-      }>(
-        `select participant_id, current_day, submitted_days, complete_days, last_submitted_at
-           from public.fn_my_duties()`,
-      ),
+        done_days: number;
+        progress_pct: string;
+        last_marked_at: string | null;
+      }>(`select participant_id, done_days, progress_pct, last_marked_at from public.fn_my_duties()`),
     );
     const open = rows.find((r) => r.participant_id === ownerOpen);
-    expect(open?.current_day).toBe(2);
-    expect(open?.submitted_days).toBe(1);
-    expect(open?.complete_days).toBe(1);
-    expect(open?.last_submitted_at).not.toBeNull();
+    expect(open?.done_days).toBe(1);
+    // بلا حقلٍ أساس تُقاس بالأيام: يومٌ من خمسة.
+    expect(Number(open?.progress_pct)).toBe(20);
+    expect(open?.last_marked_at).not.toBeNull();
   });
 });
 

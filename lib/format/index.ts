@@ -116,6 +116,23 @@ export function toDateInput(value: string | Date): string {
   return parts;
 }
 
+/** صيغة `HH:MM` بتوقيت الرياض — لاتينية، تُقارَن بوقت نهاية الرصد كما تُخزَّن. */
+export function toTimeInput(value: string | Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIMEZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(toDate(value));
+}
+
+/** وقتٌ مخزَّن `HH:MM` للعرض: «٩:٣٠ م». */
+export function formatClock(value: string): string {
+  const [h = 0, m = 0] = value.split(":").map(Number);
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${formatNumber(hour)}:${formatNumber(Math.floor(m / 10))}${formatNumber(m % 10)} ${h < 12 ? "ص" : "م"}`;
+}
+
 /** فرق زمني مقروء: «قبل ٣ أيام» · «بعد ساعتين». */
 export function formatRelative(value: string | Date, from: Date = now()): string {
   const diffMs = toDate(value).getTime() - from.getTime();

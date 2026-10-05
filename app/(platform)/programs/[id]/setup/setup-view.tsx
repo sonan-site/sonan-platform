@@ -32,7 +32,7 @@ export function SetupView({
         <EmptyState
           kind="no-data"
           title="أضِف مساراً أولاً"
-          body="الإعداد السريع يبني خطة لكل مسار — وبلا مسار لا شيء يُبنى عليه."
+          body="الإعداد السريع يبني خطة البرنامج ويرثها كل مسار — وبلا مسار لا شيء يُبنى عليه."
         />
       ) : (
         <ActionForm action={action} state={state}>
@@ -115,9 +115,9 @@ export function SetupView({
           <Step
             n={3}
             title="الخطة"
-            why="عدد الأيام وإيقاع الراحة. والخطة بلا تاريخ — كل مشارك يبدأ من يومه الأول أياً كان انضمامه."
+            why="عدد أيام الخطة. والخطة أيامٌ مرقّمة بلا تواريخ، وأيام الراحة يضبطها تبويب التقويم."
             done={false}
-            state={<span>تُبنى خطة مستقلّة لكل مسار، وتُحرَّر بعدها يوماً يوماً.</span>}
+            state={<span>تُبنى خطة واحدة للبرنامج يرثها كل مسار، وتُحرَّر بعدها يوماً يوماً أو تُخصَّص لمسار.</span>}
           >
             <Field
               id="dayCount"
@@ -133,23 +133,6 @@ export function SetupView({
                 max={366}
                 defaultValue={30}
                 required
-                numeric
-              />
-            </Field>
-
-            <Field
-              id="restEvery"
-              label="راحة كل كم يوم"
-              hint="صفر = بلا راحة. والراحة بالترتيب لا بيوم الأسبوع."
-              error={state.fieldErrors?.restEvery}
-            >
-              <Input
-                id="restEvery"
-                name="restEvery"
-                type="number"
-                min={0}
-                max={366}
-                defaultValue={7}
                 numeric
               />
             </Field>

@@ -69,10 +69,21 @@ export function birthYears(): number[] {
   return Array.from({ length: 101 }, (_, i) => current - i);
 }
 
-/** الشهر المفتوح عند فتح التقويم: شهر القيمة، وإلا فسنةٌ معقولة لميلاد بالغ. */
-export function initialMonth(value: string): YearMonth {
+/** سنوات موعدٍ قريب — بداية برنامج أو يوم توقّف: سنة مضت وثلاث قادمة. */
+export function eventYears(): number[] {
+  const current = Number(toDateInput(now()).slice(0, 4));
+  return Array.from({ length: 5 }, (_, i) => current - 1 + i);
+}
+
+/**
+ * الشهر المفتوح عند فتح التقويم: شهر القيمة، وإلا فسنةٌ معقولة لميلاد بالغ —
+ * أو الشهر الجاري لموعدٍ قريب.
+ */
+export function initialMonth(value: string, kind: "birth" | "event" = "birth"): YearMonth {
   const parsed = parseDateInput(value);
   if (parsed) return { year: parsed.year, month: parsed.month };
-  const current = Number(toDateInput(now()).slice(0, 4));
+  const today = toDateInput(now());
+  const current = Number(today.slice(0, 4));
+  if (kind === "event") return { year: current, month: Number(today.slice(5, 7)) };
   return { year: current - 20, month: 1 };
 }

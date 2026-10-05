@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
+import { followsPlan } from "@/lib/participants/journey";
 import { authorizeRequest } from "@/lib/permissions/server";
 import {
   ParticipantsView,
@@ -37,7 +38,7 @@ export default async function ParticipantsPage({
   ).ok;
 
   const db = await createClient();
-  // المشاركون صفّاً لكل واحد، بأسمائهم وعدّ أيامهم، محسوبين في القاعدة (الهجرة ٠٢٩).
+  // المشاركون صفّاً لكل واحد، بأسمائهم وأيامهم وموعدهم وتعثّرهم، محسوبين في القاعدة (الهجرة ٠٦٧).
   // كانت الشاشة تجلب إنجاز البرنامج كله فتبلغ سقف الألف صفّ بعد ثمانين مشاركاً.
   const [programResult, participantsResult, tracksResult, requestsResult, plansResult, rangesResult] =
     await Promise.all([
@@ -59,10 +60,14 @@ export default async function ParticipantsPage({
       .order("created_at", { ascending: false })
       .limit(200),
     canReadPrograms
-      ? db.from("plans").select("track_id").is("deleted_at", null)
+      ? db.from("plans").select("track_id, day_count").eq("program_id", id).is("deleted_at", null)
       : Promise.resolve({ data: null }),
     canReadPrograms
-      ? db.from("track_content_ranges").select("track_id").is("deleted_at", null)
+      ? db
+          .from("track_content_ranges")
+          .select("track_id, tracks!inner(program_id)")
+          .eq("tracks.program_id", id)
+          .is("deleted_at", null)
       : Promise.resolve({ data: null }),
   ]);
 
@@ -73,7 +78,10 @@ export default async function ParticipantsPage({
 
   const allTracks = tracksResult.data ?? [];
   const trackName = new Map(allTracks.map((t) => [t.id, t.name]));
-  const withPlan = plansResult.data ? new Set(plansResult.data.map((r) => r.track_id)) : null;
+  // الخطة الافتراضية (بلا مسار) تكفي كل مسار، والمخصّصة لمسارها (adr/0038) — وخطةٌ بلا أيام لا تُعَدّ.
+  const livePlans = (plansResult.data ?? []).filter((r) => r.day_count > 0);
+  const hasDefaultPlan = livePlans.some((r) => r.track_id === null);
+  const withPlan = plansResult.data ? new Set(livePlans.map((r) => r.track_id)) : null;
   const withContent = rangesResult.data ? new Set(rangesResult.data.map((r) => r.track_id)) : null;
 
   const participants: ParticipantRow[] = (participantsResult.data ?? []).map((p) => ({
@@ -84,16 +92,18 @@ export default async function ParticipantsPage({
     status: p.status,
     joinedAt: p.joined_at,
     baseline: p.baseline_percentage === null ? null : Number(p.baseline_percentage),
-    submittedDays: p.submitted_days,
-    completeDays: p.complete_days,
-    workDays: p.work_days,
-    priorSubmittedDays: p.prior_submitted_days,
-    priorCompleteDays: p.prior_complete_days,
+    dayCount: p.day_count,
+    doneDays: p.done_days,
+    dueDays: p.due_days,
+    stumbledDays: p.stumbled_days,
+    compensatedDays: p.compensated_days,
+    priorDoneDays: p.prior_done_days,
+    followsPlan: followsPlan(p.status),
   }));
 
   const nameByParticipant = new Map(participants.map((p) => [p.id, p.name]));
 
-  const recordDays = new Map(participants.map((p) => [p.id, p.submittedDays + p.priorSubmittedDays]));
+  const recordDays = new Map(participants.map((p) => [p.id, p.doneDays + p.priorDoneDays]));
   const approved = (requestsResult.data ?? []).filter((r) => r.status === "approved");
 
   const requests: ChangeRow[] = (requestsResult.data ?? [])
@@ -111,7 +121,7 @@ export default async function ParticipantsPage({
       returning: approved.some(
         (a) => a.participant_id === r.participant_id && a.from_track_id === r.to_track_id,
       ),
-      targetHasPlan: withPlan ? withPlan.has(r.to_track_id) : null,
+      targetHasPlan: withPlan ? hasDefaultPlan || withPlan.has(r.to_track_id) : null,
       targetHasContent: withContent ? withContent.has(r.to_track_id) : null,
     }));
 

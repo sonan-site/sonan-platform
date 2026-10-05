@@ -1,0 +1,212 @@
+/* رحلة المشارك — الرصد والعدّاد والأرشيف (adr/0036 · 0037 · 0041). للجوال أولاً. */
+
+.shell {
+  max-inline-size: 34rem;
+}
+
+.back {
+  font-size: var(--text-sm);
+}
+
+.ok {
+  color: var(--color-success);
+}
+
+.warn {
+  color: var(--color-warning);
+}
+
+.muted {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.note {
+  margin-block-end: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin-block-end: var(--space-4);
+  color: var(--color-danger);
+}
+
+.cardError {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.joined,
+.done,
+.banner,
+.alert {
+  margin-block-end: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.joined,
+.done {
+  color: var(--color-success);
+  background: var(--color-success-surface);
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.done p {
+  margin: 0;
+}
+
+.banner {
+  color: var(--color-info);
+  background: var(--color-info-surface);
+}
+
+.alert {
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
+/* ══ الإحصاءات ══ */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+}
+
+.stats div {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.stats dt {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.stats dd {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+/* ══ اليوم وواجباته ══ */
+
+.dayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.task {
+  margin-block-end: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.taskDone {
+  border-color: var(--color-success);
+}
+
+.taskHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+.tag {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface-sunken);
+}
+
+.line {
+  margin-block-end: var(--space-2);
+}
+
+.line p {
+  margin: 0;
+}
+
+/* العدّاد: زرّان كبيران للإبهام، والعدد بينهما. */
+.counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block: var(--space-3);
+}
+
+.counter button {
+  min-inline-size: 3rem;
+  min-block-size: 3rem;
+  justify-content: center;
+}
+
+.counter output {
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.counter output strong {
+  font-size: var(--text-lg);
+}
+
+.taskFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.taskFoot > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ══ الأرشيف ══ */
+
+.archive {
+  margin-block-start: var(--space-6);
+}
+
+.archive summary {
+  cursor: pointer;
+  font-weight: var(--weight-bold);
+}
+
+.archive ul {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archive li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}

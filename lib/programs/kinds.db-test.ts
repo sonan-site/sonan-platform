@@ -113,42 +113,6 @@ describe("الاختبار للمسابقة وحدها", () => {
     );
     expect(rowCount).toBe(1);
   });
-
-  it("**ويوم الاختبار مُغلَق تعدّياً** — بلا قيد ثانٍ عليه", async () => {
-    // القيد على `exams` وحده. ويوم الاختبار يوجب `exam_id` غير فارغ، والحارس
-    // يوجب أن يكون من برنامج الخطة — فبلا اختبار لا يقوم اليوم. **يُختبَر لا يُفترَض.**
-    const id = await makeProgram("kind-weekly-day", "weekly_followup");
-    const track = await db.query<{ id: string }>(
-      `insert into public.tracks (program_id, name) values ($1, 'م') returning id`,
-      [id],
-    );
-    const plan = await db.query<{ id: string }>(
-      `insert into public.plans (track_id, name) values ($1, 'خطة') returning id`,
-      [track.rows[0]!.id],
-    );
-    // أي اختبار من برنامج آخر يُرفض بحارس المراجع، وبرنامجه لا يقبل اختباراً.
-    const foreign = await db.query<{ id: string }>(
-      `select id from public.exams limit 1`,
-    );
-    if (foreign.rowCount) {
-      await expect(
-        db.query(
-          `insert into public.plan_days (plan_id, day_number, day_type, exam_id)
-           values ($1, 1, 'exam', $2)`,
-          [plan.rows[0]!.id, foreign.rows[0]!.id],
-        ),
-      ).rejects.toThrow();
-    }
-    await expect(
-      db.query(
-        `insert into public.plan_days (plan_id, day_number, day_type) values ($1, 1, 'exam')`,
-        [plan.rows[0]!.id],
-      ),
-    ).rejects.toThrow(/chk_plan_days_type_consistency/i);
-
-    await db.query(`delete from public.plans where id = $1`, [plan.rows[0]!.id]);
-    await db.query(`delete from public.tracks where id = $1`, [track.rows[0]!.id]);
-  });
 });
 
 describe("النمط يُختار مرّة", () => {

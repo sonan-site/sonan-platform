@@ -1,0 +1,275 @@
+/* الخطط ومحرّرها — adr/0036 · 0037 · 0038 */
+
+.ok {
+  color: var(--color-success);
+}
+
+.warn {
+  color: var(--color-warning);
+}
+
+.bad {
+  color: var(--color-danger);
+}
+
+.open {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-brand);
+  color: var(--color-text-on-brand);
+  text-decoration: none;
+  font-weight: var(--weight-bold);
+}
+
+.issues {
+  margin: var(--space-3) 0 0;
+  padding-inline-start: var(--space-5);
+  font-size: var(--text-sm);
+}
+
+/* ══ المحرّر ══ */
+
+.bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.barInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-subtle);
+  font-size: var(--text-sm);
+}
+
+.chipWarn {
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+}
+
+.chipBad {
+  background: var(--color-danger-surface, var(--color-warning-surface));
+  color: var(--color-danger);
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.tool {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.toolTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+
+.field {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-block-end: var(--space-3);
+}
+
+.fieldHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+}
+
+.fieldHead::-webkit-details-marker {
+  display: none;
+}
+
+.fieldName {
+  font-weight: var(--weight-bold);
+}
+
+.fieldBody {
+  border-block-start: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--space-1) var(--space-2);
+  text-align: start;
+  border-block-end: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--color-accent-subtle);
+  font-weight: var(--weight-bold);
+}
+
+.table td.text {
+  white-space: normal;
+  color: var(--color-text-subtle);
+  min-inline-size: 14rem;
+}
+
+.rowBad td {
+  background: var(--color-warning-surface);
+}
+
+.cellError {
+  color: var(--color-danger);
+  font-size: var(--text-xs);
+  white-space: normal;
+}
+
+.num {
+  inline-size: 4.5rem;
+  text-align: center;
+}
+
+.locked {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  margin-inline-start: var(--space-1);
+}
+
+.preview {
+  background: var(--color-brand);
+  color: var(--color-text-on-brand);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-block-end: var(--space-4);
+}
+
+.previewHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-end: var(--space-2);
+}
+
+.previewTask {
+  padding-block: var(--space-2);
+  border-block-start: 1px solid var(--color-brand-divider);
+}
+
+.previewTask:first-of-type {
+  border-block-start: 0;
+}
+
+.previewName {
+  font-weight: var(--weight-bold);
+}
+
+.versions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.versions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block: var(--space-2);
+  border-block-end: 1px dashed var(--color-border);
+}
+
+.select {
+  min-inline-size: 10rem;
+}
+
+/* ══ الاستيراد — adr/0042 ══ */
+
+.importTool {
+  grid-column: 1 / -1;
+}
+
+.mapping {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: var(--space-2);
+}
+
+.importResult {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--color-border);
+}

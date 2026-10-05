@@ -28,6 +28,7 @@ export function ProgramTabs({
     { href: base, label: "نظرة عامة", show: true },
     { href: `${base}/tracks`, label: "المسارات", show: true },
     { href: `${base}/content`, label: "المادة", show: canWrite },
+    { href: `${base}/calendar`, label: "التقويم", show: canWrite },
     { href: `${base}/plans`, label: "الخطط", show: canWrite },
     { href: `${base}/page`, label: "الصفحة المعلنة", show: canWrite },
     { href: `${base}/faq`, label: "الأسئلة الشائعة", show: canWrite },

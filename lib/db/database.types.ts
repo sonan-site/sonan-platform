@@ -14,79 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      achievements: {
-        Row: {
-          amount: number | null
-          created_at: string
-          deleted_at: string | null
-          id: string
-          is_done: boolean
-          ordinal_end: number | null
-          ordinal_start: number | null
-          participant_id: string
-          plan_day_id: string
-          range_end: number | null
-          range_start: number | null
-          submitted_at: string
-          task_field_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string
-          deleted_at?: string | null
-          id?: string
-          is_done?: boolean
-          ordinal_end?: number | null
-          ordinal_start?: number | null
-          participant_id: string
-          plan_day_id: string
-          range_end?: number | null
-          range_start?: number | null
-          submitted_at?: string
-          task_field_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string
-          deleted_at?: string | null
-          id?: string
-          is_done?: boolean
-          ordinal_end?: number | null
-          ordinal_start?: number | null
-          participant_id?: string
-          plan_day_id?: string
-          range_end?: number | null
-          range_start?: number | null
-          submitted_at?: string
-          task_field_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "achievements_participant_id_fkey"
-            columns: ["participant_id"]
-            isOneToOne: false
-            referencedRelation: "participants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "achievements_plan_day_id_fkey"
-            columns: ["plan_day_id"]
-            isOneToOne: false
-            referencedRelation: "plan_days"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "achievements_task_field_id_fkey"
-            columns: ["task_field_id"]
-            isOneToOne: false
-            referencedRelation: "task_fields"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       admission_answers: {
         Row: {
           answer: string
@@ -267,13 +194,129 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_exceptions: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          off_date: string
+          program_id: string
+          track_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          off_date: string
+          program_id: string
+          track_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          off_date?: string
+          program_id?: string
+          track_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_exceptions_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_calendar_exceptions_track"
+            columns: ["track_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
+        ]
+      }
+      commitment_archive: {
+        Row: {
+          calendar_date: string
+          compensated_at: string | null
+          completed_days: number[]
+          created_at: string
+          deadline: string
+          deleted_at: string | null
+          id: string
+          participant_id: string
+          plan_day: number
+          plan_id: string
+          status: Database["public"]["Enums"]["commitment_status"]
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_date: string
+          compensated_at?: string | null
+          completed_days?: number[]
+          created_at?: string
+          deadline: string
+          deleted_at?: string | null
+          id?: string
+          participant_id: string
+          plan_day: number
+          plan_id: string
+          status: Database["public"]["Enums"]["commitment_status"]
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_date?: string
+          compensated_at?: string | null
+          completed_days?: number[]
+          created_at?: string
+          deadline?: string
+          deleted_at?: string | null
+          id?: string
+          participant_id?: string
+          plan_day?: number
+          plan_id?: string
+          status?: Database["public"]["Enums"]["commitment_status"]
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commitment_archive_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitment_archive_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commitment_archive_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_units: {
         Row: {
           created_at: string
           deleted_at: string | null
           id: string
-          label: string
+          label: string | null
           program_id: string
+          section_id: string | null
           sequence: number
           updated_at: string
         }
@@ -281,8 +324,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
-          label: string
+          label?: string | null
           program_id: string
+          section_id?: string | null
           sequence: number
           updated_at?: string
         }
@@ -290,8 +334,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
-          label?: string
+          label?: string | null
           program_id?: string
+          section_id?: string | null
           sequence?: number
           updated_at?: string
         }
@@ -301,6 +346,132 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_content_units_section"
+            columns: ["section_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "material_sections"
+            referencedColumns: ["id", "program_id"]
+          },
+        ]
+      }
+      day_completions: {
+        Row: {
+          completed_at: string
+          created_at: string
+          day_number: number
+          deleted_at: string | null
+          id: string
+          participant_id: string
+          plan_id: string
+          track_id: string
+          undone_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at: string
+          created_at?: string
+          day_number: number
+          deleted_at?: string | null
+          id?: string
+          participant_id: string
+          plan_id: string
+          track_id: string
+          undone_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          day_number?: number
+          deleted_at?: string | null
+          id?: string
+          participant_id?: string
+          plan_id?: string
+          track_id?: string
+          undone_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_completions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_completions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_completions_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      day_openings: {
+        Row: {
+          created_at: string
+          day_number: number
+          deleted_at: string | null
+          id: string
+          opened_at: string
+          participant_id: string
+          plan_id: string
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          deleted_at?: string | null
+          id?: string
+          opened_at: string
+          participant_id: string
+          plan_id: string
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          deleted_at?: string | null
+          id?: string
+          opened_at?: string
+          participant_id?: string
+          plan_id?: string
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_openings_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_openings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_openings_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
             referencedColumns: ["id"]
           },
         ]
@@ -388,6 +559,54 @@ export type Database = {
           },
         ]
       }
+      deadline_history: {
+        Row: {
+          created_at: string
+          deadline: string
+          deleted_at: string | null
+          effective_from: string
+          id: string
+          program_id: string
+          track_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deadline: string
+          deleted_at?: string | null
+          effective_from: string
+          id?: string
+          program_id: string
+          track_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string
+          deleted_at?: string | null
+          effective_from?: string
+          id?: string
+          program_id?: string
+          track_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deadline_history_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_deadline_history_track"
+            columns: ["track_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           award_percentage: number | null
@@ -457,6 +676,145 @@ export type Database = {
           },
         ]
       }
+      field_counts: {
+        Row: {
+          count: number
+          created_at: string
+          day_number: number
+          deleted_at: string | null
+          id: string
+          participant_id: string
+          plan_id: string
+          task_field_id: string
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          day_number: number
+          deleted_at?: string | null
+          id?: string
+          participant_id: string
+          plan_id: string
+          task_field_id: string
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          day_number?: number
+          deleted_at?: string | null
+          id?: string
+          participant_id?: string
+          plan_id?: string
+          task_field_id?: string
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_counts_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_counts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_counts_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_counts_task_field_id_fkey"
+            columns: ["task_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      field_marks: {
+        Row: {
+          created_at: string
+          day_number: number
+          deleted_at: string | null
+          id: string
+          marked_at: string
+          participant_id: string
+          plan_id: string
+          task_field_id: string
+          track_id: string
+          undone_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          deleted_at?: string | null
+          id?: string
+          marked_at: string
+          participant_id: string
+          plan_id: string
+          task_field_id: string
+          track_id: string
+          undone_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          deleted_at?: string | null
+          id?: string
+          marked_at?: string
+          participant_id?: string
+          plan_id?: string
+          task_field_id?: string
+          track_id?: string
+          undone_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_marks_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_marks_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_marks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_marks_task_field_id_fkey"
+            columns: ["task_field_id"]
+            isOneToOne: false
+            referencedRelation: "task_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_entries: {
         Row: {
           answer: string
@@ -497,6 +855,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "help_entries_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_sections: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          program_id: string
+          sort_order: number
+          unit_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          program_id: string
+          sort_order: number
+          unit_count: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          program_id?: string
+          sort_order?: number
+          unit_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_sections_program_id_fkey"
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
@@ -623,6 +1022,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           joined_at: string
+          judge_from: string
           program_id: string
           status: Database["public"]["Enums"]["participant_status"]
           track_id: string | null
@@ -635,6 +1035,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           joined_at?: string
+          judge_from?: string
           program_id: string
           status?: Database["public"]["Enums"]["participant_status"]
           track_id?: string | null
@@ -647,6 +1048,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           joined_at?: string
+          judge_from?: string
           program_id?: string
           status?: Database["public"]["Enums"]["participant_status"]
           track_id?: string | null
@@ -670,60 +1072,141 @@ export type Database = {
           },
         ]
       }
-      plan_days: {
+      plan_import_mappings: {
         Row: {
-          amount_multiplier: number
           created_at: string
-          day_number: number
-          day_template_id: string | null
-          day_type: Database["public"]["Enums"]["day_type"]
           deleted_at: string | null
-          exam_id: string | null
           id: string
-          plan_id: string
+          mapping: Json
+          name: string
+          program_id: string
           updated_at: string
         }
         Insert: {
-          amount_multiplier?: number
           created_at?: string
-          day_number: number
-          day_template_id?: string | null
-          day_type: Database["public"]["Enums"]["day_type"]
           deleted_at?: string | null
-          exam_id?: string | null
           id?: string
-          plan_id: string
+          mapping: Json
+          name: string
+          program_id: string
           updated_at?: string
         }
         Update: {
-          amount_multiplier?: number
           created_at?: string
-          day_number?: number
-          day_template_id?: string | null
-          day_type?: Database["public"]["Enums"]["day_type"]
           deleted_at?: string | null
-          exam_id?: string | null
           id?: string
-          plan_id?: string
+          mapping?: Json
+          name?: string
+          program_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "plan_days_day_template_id_fkey"
-            columns: ["day_template_id"]
+            foreignKeyName: "plan_import_mappings_program_id_fkey"
+            columns: ["program_id"]
             isOneToOne: false
-            referencedRelation: "day_templates"
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_values: {
+        Row: {
+          amount: number | null
+          created_at: string
+          day_number: number
+          deleted_at: string | null
+          from_sequence: number | null
+          id: string
+          plan_id: string
+          repetition: number | null
+          task_field_id: string
+          to_sequence: number | null
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          day_number: number
+          deleted_at?: string | null
+          from_sequence?: number | null
+          id?: string
+          plan_id: string
+          repetition?: number | null
+          task_field_id: string
+          to_sequence?: number | null
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          day_number?: number
+          deleted_at?: string | null
+          from_sequence?: number | null
+          id?: string
+          plan_id?: string
+          repetition?: number | null
+          task_field_id?: string
+          to_sequence?: number | null
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_values_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "plan_days_exam_id_fkey"
-            columns: ["exam_id"]
+            foreignKeyName: "plan_values_task_field_id_fkey"
+            columns: ["task_field_id"]
             isOneToOne: false
-            referencedRelation: "exams"
+            referencedRelation: "task_fields"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      plan_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          note: string
+          plan_id: string
+          snapshot: Json
+          updated_at: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          note: string
+          plan_id: string
+          snapshot: Json
+          updated_at?: string
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          note?: string
+          plan_id?: string
+          snapshot?: Json
+          updated_at?: string
+          version_number?: number
+        }
+        Relationships: [
           {
-            foreignKeyName: "plan_days_plan_id_fkey"
+            foreignKeyName: "plan_versions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
@@ -734,34 +1217,47 @@ export type Database = {
       plans: {
         Row: {
           created_at: string
+          day_count: number
           deleted_at: string | null
           id: string
           name: string
-          track_id: string
+          program_id: string
+          track_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          day_count?: number
           deleted_at?: string | null
           id?: string
           name: string
-          track_id: string
+          program_id: string
+          track_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          day_count?: number
           deleted_at?: string | null
           id?: string
           name?: string
-          track_id?: string
+          program_id?: string
+          track_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "plans_track_id_fkey"
-            columns: ["track_id"]
+            foreignKeyName: "fk_plans_track_program"
+            columns: ["track_id", "program_id"]
             isOneToOne: false
             referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
+          {
+            foreignKeyName: "plans_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
             referencedColumns: ["id"]
           },
         ]
@@ -833,62 +1329,98 @@ export type Database = {
         Row: {
           award_percentage: number | null
           capacity: number | null
+          compensation_enabled: boolean
           contact: string
           created_at: string
+          credit_enabled: boolean
+          daily_limit: number
           deleted_at: string | null
           id: string
           kind: Database["public"]["Enums"]["program_kind"]
           name: string
           participant_label: string
           passing_percentage: number | null
+          progress_measure: Database["public"]["Enums"]["progress_measure"]
           registration_closes_at: string | null
           registration_opens_at: string | null
           section_id: string
+          section_label: string | null
           slug: string
           sort_order: number
+          start_date: string | null
           status: Database["public"]["Enums"]["program_status"]
           summary: string
+          unit_few: string | null
+          unit_many: string | null
+          unit_one: string | null
+          unit_singular: string | null
+          unit_two: string | null
           updated_at: string
+          work_days: number[]
         }
         Insert: {
           award_percentage?: number | null
           capacity?: number | null
+          compensation_enabled?: boolean
           contact?: string
           created_at?: string
+          credit_enabled?: boolean
+          daily_limit?: number
           deleted_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["program_kind"]
           name: string
           participant_label?: string
           passing_percentage?: number | null
+          progress_measure?: Database["public"]["Enums"]["progress_measure"]
           registration_closes_at?: string | null
           registration_opens_at?: string | null
           section_id: string
+          section_label?: string | null
           slug: string
           sort_order?: number
+          start_date?: string | null
           status?: Database["public"]["Enums"]["program_status"]
           summary?: string
+          unit_few?: string | null
+          unit_many?: string | null
+          unit_one?: string | null
+          unit_singular?: string | null
+          unit_two?: string | null
           updated_at?: string
+          work_days?: number[]
         }
         Update: {
           award_percentage?: number | null
           capacity?: number | null
+          compensation_enabled?: boolean
           contact?: string
           created_at?: string
+          credit_enabled?: boolean
+          daily_limit?: number
           deleted_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["program_kind"]
           name?: string
           participant_label?: string
           passing_percentage?: number | null
+          progress_measure?: Database["public"]["Enums"]["progress_measure"]
           registration_closes_at?: string | null
           registration_opens_at?: string | null
           section_id?: string
+          section_label?: string | null
           slug?: string
           sort_order?: number
+          start_date?: string | null
           status?: Database["public"]["Enums"]["program_status"]
           summary?: string
+          unit_few?: string | null
+          unit_many?: string | null
+          unit_one?: string | null
+          unit_singular?: string | null
+          unit_two?: string | null
           updated_at?: string
+          work_days?: number[]
         }
         Relationships: [
           {
@@ -1065,9 +1597,15 @@ export type Database = {
       }
       task_fields: {
         Row: {
+          count_unit: string | null
           created_at: string
+          default_repetition: number | null
           deleted_at: string | null
           id: string
+          is_base: boolean
+          is_constrained: boolean
+          is_material_linked: boolean
+          is_required: boolean
           kind: Database["public"]["Enums"]["field_kind"]
           label: string
           program_id: string
@@ -1075,9 +1613,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          count_unit?: string | null
           created_at?: string
+          default_repetition?: number | null
           deleted_at?: string | null
           id?: string
+          is_base?: boolean
+          is_constrained?: boolean
+          is_material_linked?: boolean
+          is_required?: boolean
           kind: Database["public"]["Enums"]["field_kind"]
           label: string
           program_id: string
@@ -1085,9 +1629,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          count_unit?: string | null
           created_at?: string
+          default_repetition?: number | null
           deleted_at?: string | null
           id?: string
+          is_base?: boolean
+          is_constrained?: boolean
+          is_material_linked?: boolean
+          is_required?: boolean
           kind?: Database["public"]["Enums"]["field_kind"]
           label?: string
           program_id?: string
@@ -1221,36 +1771,60 @@ export type Database = {
       tracks: {
         Row: {
           capacity: number | null
+          compensation_enabled: boolean | null
           created_at: string
+          credit_enabled: boolean | null
+          daily_limit: number | null
           deleted_at: string | null
           description: string
+          exceptions_overridden: boolean
           id: string
           name: string
           program_id: string
+          progress_measure: Database["public"]["Enums"]["progress_measure"] | null
           sort_order: number
+          start_date: string | null
+          start_date_overridden: boolean
           updated_at: string
+          work_days: number[] | null
         }
         Insert: {
           capacity?: number | null
+          compensation_enabled?: boolean | null
           created_at?: string
+          credit_enabled?: boolean | null
+          daily_limit?: number | null
           deleted_at?: string | null
           description?: string
+          exceptions_overridden?: boolean
           id?: string
           name: string
           program_id: string
+          progress_measure?: Database["public"]["Enums"]["progress_measure"] | null
           sort_order?: number
+          start_date?: string | null
+          start_date_overridden?: boolean
           updated_at?: string
+          work_days?: number[] | null
         }
         Update: {
           capacity?: number | null
+          compensation_enabled?: boolean | null
           created_at?: string
+          credit_enabled?: boolean | null
+          daily_limit?: number | null
           deleted_at?: string | null
           description?: string
+          exceptions_overridden?: boolean
           id?: string
           name?: string
           program_id?: string
+          progress_measure?: Database["public"]["Enums"]["progress_measure"] | null
           sort_order?: number
+          start_date?: string | null
+          start_date_overridden?: boolean
           updated_at?: string
+          work_days?: number[] | null
         }
         Relationships: [
           {
@@ -1312,6 +1886,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_ar_digits: {
+        Args: { p_value: string }
+        Returns: string
+      }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_attention_items: {
         Args: never
@@ -1336,6 +1914,23 @@ export type Database = {
         Returns: boolean
       }
       fn_close_my_account: { Args: never; Returns: undefined }
+      fn_count_repetition: {
+        Args: {
+          p_day: number
+          p_delta: number
+          p_field_id: string
+          p_participant_id: string
+        }
+        Returns: number
+      }
+      fn_create_plan: {
+        Args: { p_copy?: boolean; p_program_id: string; p_track_id: string }
+        Returns: string
+      }
+      fn_customize_engine_setting: {
+        Args: { p_key: string; p_track_id: string }
+        Returns: undefined
+      }
       fn_dashboard_counts: {
         Args: never
         Returns: {
@@ -1345,8 +1940,32 @@ export type Database = {
           role_holders: number
         }[]
       }
+      fn_day_tasks: {
+        Args: { p_day?: number; p_participant_id: string }
+        Returns: {
+          amount: number | null
+          count: number
+          count_unit: string | null
+          day_number: number
+          is_material_linked: boolean
+          is_required: boolean
+          kind: Database["public"]["Enums"]["field_kind"]
+          label: string
+          marked_at: string | null
+          ord_from: number | null
+          ord_to: number | null
+          repetition: number | null
+          sort_order: number
+          task_field_id: string
+          value: number | null
+        }[]
+      }
       fn_day_template_program_id: {
         Args: { p_template_id: string }
+        Returns: string
+      }
+      fn_deadline_at: {
+        Args: { p_date: string; p_program_id: string; p_track_id: string }
         Returns: string
       }
       fn_decide_track_change: {
@@ -1364,6 +1983,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      fn_engine_settings: {
+        Args: { p_program_id: string; p_track_id?: string }
+        Returns: {
+          compensation_enabled: boolean
+          credit_enabled: boolean
+          daily_limit: number
+          exceptions: string[]
+          progress_measure: Database["public"]["Enums"]["progress_measure"]
+          start_date: string
+          work_days: number[]
+        }[]
+      }
       fn_follows_plan: {
         Args: { p_status: Database["public"]["Enums"]["participant_status"] }
         Returns: boolean
@@ -1376,36 +2007,44 @@ export type Database = {
         Args: { p_bucket: string; p_max: number; p_seconds: number }
         Returns: boolean
       }
+      fn_inherit_engine_setting: {
+        Args: { p_key: string; p_track_id: string }
+        Returns: undefined
+      }
       fn_is_active: { Args: never; Returns: boolean }
-      fn_journey_days: {
+      fn_is_program_day: {
+        Args: { p_date: string; p_program_id: string; p_track_id: string }
+        Returns: boolean
+      }
+      fn_journey_state: {
         Args: { p_participant_id: string }
-        Returns: {
-          day_number: number
-          day_type: Database["public"]["Enums"]["day_type"]
-          done_count: number
-          has_work: boolean
-          id: string
-          submitted: boolean
-          task_count: number
-        }[]
+        Returns: Json
+      }
+      fn_local_now: {
+        Args: { p_at?: string }
+        Returns: string
+      }
+      fn_mark_field: {
+        Args: { p_day: number; p_field_id: string; p_participant_id: string }
+        Returns: Json
       }
       fn_my_duties: {
         Args: never
         Returns: {
-          complete_days: number
           contact: string
-          current_day: number
+          day_count: number
+          done_days: number
+          due_days: number
           follows_plan: boolean
-          last_submitted_at: string
+          last_marked_at: string
           participant_id: string
           program_id: string
           program_name: string
           program_status: Database["public"]["Enums"]["program_status"]
+          progress_pct: number
           proposed_track: string
           status: Database["public"]["Enums"]["participant_status"]
-          submitted_days: number
           track_name: string
-          work_days: number
         }[]
       }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }
@@ -1416,6 +2055,10 @@ export type Database = {
           scope_program_id: string
         }[]
       }
+      fn_open_next_day: {
+        Args: { p_participant_id: string }
+        Returns: Json
+      }
       fn_participant_plan_id: {
         Args: { p_participant_id: string }
         Returns: string
@@ -1423,11 +2066,10 @@ export type Database = {
       fn_participant_record: {
         Args: { p_participant_id: string }
         Returns: {
-          complete_days: number
-          first_submitted_at: string
+          done_days: number
+          first_completed_at: string
           is_current: boolean
-          last_submitted_at: string
-          submitted_days: number
+          last_completed_at: string
           track_id: string
           track_name: string
         }[]
@@ -1443,40 +2085,29 @@ export type Database = {
           invited_at: string
         }[]
       }
-      fn_plan_day_tasks: {
-        Args: { p_participant_id: string; p_plan_day_id: string }
+      fn_plan_issues: {
+        Args: { p_plan_id: string }
         Returns: {
-          amount: number
-          is_done: boolean
-          kind: Database["public"]["Enums"]["field_kind"]
-          label: string
-          ordinal_end: number
-          ordinal_start: number
-          range_end: number
-          range_start: number
-          sort_order: number
-          submitted: boolean
-          task_field_id: string
+          day_number: number | null
+          message: string
+          severity: string
+          task_field_id: string | null
+          track_id: string | null
         }[]
       }
-      fn_plan_insert_day: {
-        Args: {
-          p_amount_multiplier?: number
-          p_at_number: number
-          p_day_template_id?: string
-          p_day_type: Database["public"]["Enums"]["day_type"]
-          p_exam_id?: string
-          p_plan_id: string
-        }
-        Returns: string
-      }
-      fn_plan_max_days: { Args: never; Returns: number }
-      fn_plan_move_day: {
-        Args: { p_plan_day_id: string; p_to_number: number }
+      fn_plan_locked_through: {
+        Args: { p_plan_id: string }
         Returns: number
       }
       fn_plan_program_id: { Args: { p_plan_id: string }; Returns: string }
-      fn_plan_remove_day: { Args: { p_plan_day_id: string }; Returns: number }
+      fn_plan_snapshot: {
+        Args: { p_plan_id: string }
+        Returns: Json
+      }
+      fn_plan_tracks: {
+        Args: { p_plan_id: string }
+        Returns: string[]
+      }
       fn_profile_is_complete: {
         Args: { p: Database["public"]["Tables"]["profiles"]["Row"] }
         Returns: boolean
@@ -1486,17 +2117,18 @@ export type Database = {
         Args: { p_limit?: number; p_offset?: number; p_program_id: string }
         Returns: {
           baseline_percentage: number
-          complete_days: number
+          compensated_days: number
+          day_count: number
+          done_days: number
+          due_days: number
           full_name: string
           id: string
           joined_at: string
-          prior_complete_days: number
-          prior_submitted_days: number
+          prior_done_days: number
           status: Database["public"]["Enums"]["participant_status"]
-          submitted_days: number
+          stumbled_days: number
           total: number
           track_id: string
-          work_days: number
         }[]
       }
       fn_program_readiness: {
@@ -1508,10 +2140,9 @@ export type Database = {
           public_blocks: number
           published: boolean
           task_fields: number
-          templates_with_fields: number
           tracks: number
           tracks_with_parts: number
-          tracks_with_plan_days: number
+          tracks_with_plan: number
         }[]
       }
       fn_programs_publish_state: {
@@ -1526,6 +2157,17 @@ export type Database = {
           slug: string
           sort_order: number
           status: Database["public"]["Enums"]["program_status"]
+        }[]
+      }
+      fn_progress_at: {
+        Args: { p_at: string; p_participant_id: string }
+        Returns: {
+          day_count: number
+          done_days: number
+          percent: number
+          reach_sequence: number
+          share_size: number
+          units: number
         }[]
       }
       fn_public_tracks: {
@@ -1546,7 +2188,6 @@ export type Database = {
           p_fields: Json
           p_lines: string[]
           p_program_id: string
-          p_rest_every: number
         }
         Returns: Json
       }
@@ -1560,9 +2201,39 @@ export type Database = {
         Returns: string
       }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
+      fn_remove_custom_plan: {
+        Args: { p_plan_id: string }
+        Returns: undefined
+      }
+      fn_restore_plan_version: {
+        Args: { p_version_id: string }
+        Returns: number
+      }
       fn_role_is_system: { Args: { p_role_id: string }; Returns: boolean }
-      fn_submit_day: {
-        Args: { p_done_fields: string[]; p_plan_day_id: string }
+      fn_save_plan: {
+        Args: {
+          p_base_version?: number
+          p_note?: string
+          p_payload: Json
+          p_plan_id: string
+        }
+        Returns: number
+      }
+      fn_set_engine_setting: {
+        Args: {
+          p_key: string
+          p_program_id: string
+          p_track_id: string
+          p_value: Json
+        }
+        Returns: undefined
+      }
+      fn_set_material_sections: {
+        Args: { p_expected?: string[]; p_program_id: string; p_sections: Json }
+        Returns: undefined
+      }
+      fn_set_unit_labels: {
+        Args: { p_labels: string[]; p_program_id: string; p_start: number }
         Returns: number
       }
       fn_track_ordinal_of: {
@@ -1577,6 +2248,10 @@ export type Database = {
           to_sequence: number
         }[]
       }
+      fn_track_plan: {
+        Args: { p_track_id: string }
+        Returns: string
+      }
       fn_track_program_id: { Args: { p_track_id: string }; Returns: string }
       fn_track_unit_at: {
         Args: { p_ordinal: number; p_track_id: string }
@@ -1590,6 +2265,10 @@ export type Database = {
           plans: number
           track_id: string
         }[]
+      }
+      fn_undo_mark: {
+        Args: { p_day: number; p_field_id: string; p_participant_id: string }
+        Returns: Json
       }
       fn_withdraw_participation: {
         Args: { p_participant_id: string }
@@ -1623,10 +2302,10 @@ export type Database = {
         | "terms"
         | "cta"
       change_direction: "up" | "down"
-      day_type: "normal" | "rest" | "exam"
+      commitment_status: "completed" | "exempt" | "stumbled"
       exam_stage: "interim" | "final"
       exam_type: "remote" | "oral"
-      field_kind: "ranged" | "counted"
+      field_kind: "ranged" | "counted" | "explicit"
       gender: "male" | "female"
       notification_status: "pending" | "sent" | "failed" | "read"
       participant_status:
@@ -1638,6 +2317,7 @@ export type Database = {
         | "not_passed"
       program_kind: "competition" | "weekly_followup" | "remote_memorization"
       program_status: "draft" | "published" | "closed"
+      progress_measure: "units" | "days"
       publish_status: "draft" | "published"
       request_status: "pending" | "approved" | "rejected"
     }
@@ -1784,10 +2464,10 @@ export const Constants = {
         "cta",
       ],
       change_direction: ["up", "down"],
-      day_type: ["normal", "rest", "exam"],
+      commitment_status: ["completed", "exempt", "stumbled"],
       exam_stage: ["interim", "final"],
       exam_type: ["remote", "oral"],
-      field_kind: ["ranged", "counted"],
+      field_kind: ["ranged", "counted", "explicit"],
       gender: ["male", "female"],
       notification_status: ["pending", "sent", "failed", "read"],
       participant_status: [
@@ -1800,6 +2480,7 @@ export const Constants = {
       ],
       program_kind: ["competition", "weekly_followup", "remote_memorization"],
       program_status: ["draft", "published", "closed"],
+      progress_measure: ["units", "days"],
       publish_status: ["draft", "published"],
       request_status: ["pending", "approved", "rejected"],
     },

@@ -4,8 +4,7 @@ import { reportAction } from "@/components/shared/action-notice";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { InlineNumber, InlineText } from "@/components/shared/inline-edit";
 import { useActionState, useState, useTransition } from "react";
-import { DataTable, type Column } from "@/components/shared/data-table";
-import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
+import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
 import {
   Card,
   Cards,
@@ -20,49 +19,51 @@ import {
 } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
+import type { PlanField } from "@/lib/plans/engine";
+import type { Material } from "@/lib/programs/material";
 import {
-  addContentUnits,
   addDayTemplate,
-  addTaskField,
   addTemplateField,
   addTrackRange,
   moveTemplateField,
-  removeContentUnit,
   removeDayTemplate,
-  removeTaskField,
   removeTemplateField,
   removeTrackRange,
   renameDayTemplate,
-  renameTaskField,
-  setTaskFieldKind,
   setTemplateFieldAmount,
-  updateContentUnitLabel,
 } from "./actions";
 import styles from "./content.module.css";
+import { FieldsStep } from "./fields-step";
+import { MaterialStep, type UnitRow } from "./material-step";
 
-export type UnitRow = { id: string; sequence: number; label: string };
-export type FieldRow = { id: string; label: string; kind: "ranged" | "counted" };
+export type { UnitRow };
+/** حقول الخطة بخصائصها (`adr/0037`) — كتالوج البرنامج. */
+export type FieldRow = PlanField;
 export type TrackRow = {
   id: string;
   name: string;
   unitCount: number;
-  parts: { id: string; from: number; to: number }[];
+  /** `text` بالباب ورقمه فيه — فارغ في مادة بلا أبواب. */
+  parts: { id: string; from: number; to: number; text: string }[];
 };
 export type TemplateRow = {
   id: string;
   name: string;
-  fields: { fieldId: string; label: string; kind: "ranged" | "counted"; amount: number }[];
+  fields: { fieldId: string; label: string; kind: PlanField["kind"]; amount: number }[];
 };
-export type PreviewPart = { from: number; to: number; fromLabel: string; toLabel: string };
+/** `text` نصّ المقطع بالباب ورقمه — وإن فرغ عُرضت الأرقام ونصوص الوحدات. */
+export type PreviewPart = { from: number; to: number; fromLabel: string; toLabel: string; text: string };
 export type PreviewTask = {
   label: string;
-  kind: "ranged" | "counted";
+  kind: PlanField["kind"];
   amount: number;
   parts: PreviewPart[];
 };
 
 export function ContentView({
   programId,
+  material,
+  unsectioned,
   units,
   unitSummary,
   unitPage,
@@ -72,6 +73,8 @@ export function ContentView({
   previews,
 }: {
   programId: string;
+  material: Material;
+  unsectioned: number;
   /** صفحة واحدة من المادة لا كلها — المادة قد تبلغ آلاف الوحدات. */
   units: UnitRow[];
   unitSummary: { count: number; first: number | null; last: number | null };
@@ -81,138 +84,32 @@ export function ContentView({
   templates: TemplateRow[];
   previews: Record<string, PreviewTask[]>;
 }) {
-  const [unitState, unitAction, unitPending] = useActionState(addContentUnits, EMPTY_FORM_STATE);
   const [partState, partAction, partPending] = useActionState(addTrackRange, EMPTY_FORM_STATE);
-  const [fieldState, fieldAction, fieldPending] = useActionState(addTaskField, EMPTY_FORM_STATE);
   const [tplState, tplAction, tplPending] = useActionState(addDayTemplate, EMPTY_FORM_STATE);
   const [tfState, tfAction, tfPending] = useActionState(addTemplateField, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
 
-  const [showUnits, setShowUnits] = useState(false);
   const [track, setTrack] = useState(tracks[0]?.id ?? "");
   const [template, setTemplate] = useState(templates[0]?.id ?? "");
 
-  const nextNumber = (unitSummary.last ?? 0) + 1;
   const hasParts = tracks.some((t) => t.parts.length > 0);
   const ready = unitSummary.count > 0 && hasParts && fields.length > 0 && templates.length > 0;
 
   const previewTasks = previews[`${track}:${template}`] ?? [];
   const shownTrack = tracks.find((t) => t.id === track);
 
-  const unitColumns: Column<UnitRow>[] = [
-    {
-      key: "sequence",
-      header: "الرقم",
-      align: "end",
-      render: (u) => formatNumber(u.sequence),
-    },
-    {
-      key: "label",
-      header: "النصّ",
-      primary: true,
-      render: (u) => (
-        <InlineText
-          label={`نصّ الوحدة ${u.sequence}`}
-          value={u.label}
-          maxInlineSize="28rem"
-          onSave={(next) => updateContentUnitLabel(u.id, programId, next)}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "end",
-      render: (u) => (
-        <ChipButton
-          label={`حذف الوحدة ${u.sequence}`}
-          disabled={busy}
-          onClick={() => startTransition(async () => reportAction(await removeContentUnit(u.id, programId)))}
-        >
-          <Trash2 size={14} aria-hidden />
-        </ChipButton>
-      ),
-    },
-  ];
-
   return (
     <>
       <TabHead title="ما يحفظه المشاركون" lede="أربع خطوات: تُدخل المادة، ثم تحدّد نصيب كل مسار منها، ثم تسمّي واجبات اليوم، ثم تجمعها في شكل يوم. وتحتها معاينة تُريك ما سيراه المشارك." />
 
-      <Step
-        n={1}
-        title="المادة"
-        why="القائمة المرقَّمة لكل ما يمكن حفظه في هذا البرنامج — حديثاً حديثاً أو متناً متناً. الترقيم هو ما يُبنى عليه كل شيء بعده."
-        done={unitSummary.count > 0}
-        state={
-          unitSummary.count === 0 ? (
-            <span>لم تُدخل المادة بعد.</span>
-          ) : (
-            <>
-              <span>
-                {formatNumber(unitSummary.count)} عنصراً · من {formatNumber(unitSummary.first ?? 0)} إلى{" "}
-                {formatNumber(unitSummary.last ?? 0)}
-              </span>
-              <button
-                type="button"
-                className={styles.chipRemove}
-                onClick={() => setShowUnits((v) => !v)}
-              >
-                {showUnits ? "أخفِ القائمة" : "اعرض القائمة"}
-              </button>
-            </>
-          )
-        }
-      >
-        {showUnits && unitSummary.count > 0 ? (
-          <DataTable
-            columns={unitColumns}
-            rows={units}
-            rowKey={(u) => u.id}
-            total={unitSummary.count}
-            page={unitPage}
-            empty={{ title: "لا مادة", body: "أدخلها من النموذج أدناه." }}
-          />
-        ) : null}
-
-        <StepForm title="إضافة" action={unitAction} state={unitState}>
-          <input type="hidden" name="programId" value={programId} />
-
-          <Field
-            id="lines"
-            label="الصق القائمة — سطر لكل عنصر"
-            required
-            hint="مثال: كل سطر أول كلمات الحديث أو اسم المتن."
-            error={unitState.fieldErrors?.lines}
-            span="full"
-          >
-            <Textarea id="lines" name="lines" rows={6} required />
-          </Field>
-
-          <Field
-            id="startAt"
-            label="يبدأ الترقيم من"
-            hint={`التالي المتاح: ${formatNumber(nextNumber)}`}
-            error={unitState.fieldErrors?.startAt}
-          >
-            <Input
-              id="startAt"
-              name="startAt"
-              type="number"
-              min={1}
-              defaultValue={nextNumber}
-              numeric
-            />
-          </Field>
-
-          <FormActions>
-            <Button type="submit" variant="primary" pending={unitPending}>
-              أضِف
-            </Button>
-          </FormActions>
-          <Messages state={unitState} />
-        </StepForm>
-      </Step>
+      <MaterialStep
+        programId={programId}
+        material={material}
+        unsectioned={unsectioned}
+        units={units}
+        unitSummary={unitSummary}
+        unitPage={unitPage}
+      />
 
       {/* ══ ٢ · نصيب كل مسار ══ */}
       <Step
@@ -242,7 +139,10 @@ export function ContentView({
                 <Chips>
                   {t.parts.map((p) => (
                     <Chip key={p.id}>
-                      {formatNumber(p.from)} – {formatNumber(p.to)}
+                      <span>
+                        {formatNumber(p.from)} – {formatNumber(p.to)}
+                        {p.text ? <span className={styles.partText}>{p.text}</span> : null}
+                      </span>
                       <ChipButton
                         label={`حذف الجزء ${p.from} إلى ${p.to}`}
                         disabled={busy}
@@ -315,97 +215,7 @@ export function ContentView({
       </Step>
 
       {/* ══ ٣ · واجبات اليوم ══ */}
-      <Step
-        n={3}
-        title="واجبات اليوم"
-        why="سمِّ ما يفعله المشارك كل يوم. النوع نوعان لا ثالث: واجبٌ يمتدّ في المادة «من… إلى…» فيتقدّم يوماً بعد يوم، وواجبٌ بعدد مستقلّ لا علاقة له بالترقيم."
-        done={fields.length > 0}
-        state={
-          fields.length === 0 ? (
-            <span>لم تُسمَّ واجبات بعد.</span>
-          ) : (
-            <span>{formatNumber(fields.length)} واجباً</span>
-          )
-        }
-      >
-        <Cards>
-          {fields.map((f) => (
-            <Card
-              key={f.id}
-              name={
-                <InlineText
-                  label={`اسم الواجب ${f.label}`}
-                  value={f.label}
-                  maxInlineSize="12rem"
-                  onSave={(next) => renameTaskField(f.id, programId, next)}
-                />
-              }
-              meta={
-                <ChipButton
-                  label={`حذف الواجب ${f.label}`}
-                  disabled={busy}
-                  onClick={() => startTransition(async () => reportAction(await removeTaskField(f.id, programId)))}
-                >
-                  <Trash2 size={14} aria-hidden />
-                </ChipButton>
-              }
-            >
-              <Select
-                aria-label={`نوع الواجب ${f.label}`}
-                key={f.kind}
-                defaultValue={f.kind}
-                disabled={busy}
-                onChange={(e) => {
-                  const kind = e.target.value as FieldRow["kind"];
-                  startTransition(async () => reportAction(await setTaskFieldKind(f.id, programId, kind)));
-                }}
-              >
-                <option value="ranged">يمتدّ في المادة — يبدأ من حيث انتهى أمس</option>
-                <option value="counted">عدد مستقلّ — لا يتقدّم في المادة</option>
-              </Select>
-            </Card>
-          ))}
-        </Cards>
-
-        <StepForm title="إضافة واجب" action={fieldAction} state={fieldState}>
-          <input type="hidden" name="programId" value={programId} />
-
-          <Field
-            id="label"
-            label="الاسم"
-            required
-            hint="كما يراه المشارك: حفظ · مراجعة · تكرار · سرد."
-            error={fieldState.fieldErrors?.label}
-          >
-            <Input id="label" name="label" required />
-          </Field>
-
-          <Field id="kind" label="النوع" required error={fieldState.fieldErrors?.kind}>
-            <Select id="kind" name="kind" defaultValue="ranged">
-              <option value="ranged">يمتدّ في المادة (من… إلى…)</option>
-              <option value="counted">عدد مستقلّ</option>
-            </Select>
-          </Field>
-
-          <Field id="sortOrder2" label="ترتيب العرض" error={fieldState.fieldErrors?.sortOrder}>
-            <Input
-              id="sortOrder2"
-              name="sortOrder"
-              type="number"
-              min={0}
-              defaultValue={fields.length}
-              numeric
-            />
-          </Field>
-
-          <FormActions>
-            <Button type="submit" variant="primary" pending={fieldPending}>
-              أضِف الواجب
-            </Button>
-          </FormActions>
-          <Messages state={fieldState} />
-        </StepForm>
-      </Step>
+      <FieldsStep programId={programId} fields={fields} />
 
       {/* ══ ٤ · شكل اليوم ══ */}
       <Step
@@ -539,7 +349,8 @@ export function ContentView({
                 <option value="" disabled>
                   اختر واجباً
                 </option>
-                {fields.map((f) => (
+                {/* النطاق الصريح لا يُعبّأ من شكل يوم: «من/إلى» لا تُشتقّ من مقدار. */}
+                {fields.filter((f) => f.kind !== "explicit").map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.label}
                   </option>
@@ -627,9 +438,15 @@ export function ContentView({
                     ) : (
                       task.parts.map((p) => (
                         <div key={`${p.from}-${p.to}`}>
-                          من {formatNumber(p.from)}
-                          {p.fromLabel ? ` · ${p.fromLabel}` : null} إلى {formatNumber(p.to)}
-                          {p.toLabel ? ` · ${p.toLabel}` : null}
+                          {p.text ? (
+                            p.text
+                          ) : (
+                            <>
+                              من {formatNumber(p.from)}
+                              {p.fromLabel ? ` · ${p.fromLabel}` : null} إلى {formatNumber(p.to)}
+                              {p.toLabel ? ` · ${p.toLabel}` : null}
+                            </>
+                          )}
                         </div>
                       ))
                     )}
@@ -645,8 +462,6 @@ export function ContentView({
           </div>
         </section>
       ) : null}
-
-      {/* ══ ١ · المادة ══ */}
 
     </>
   );

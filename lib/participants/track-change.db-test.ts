@@ -8,8 +8,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  * والقرار كله في `fn_decide_track_change`، ولا طريق مباشر حولها.
  *
  * التركيبة: مادة ستّون وحدة. المسار «أ» مقطعه [١..٣٠]، و«ب» [٣١..٦٠]، و«ج» سعته
- * واحد ومشغول، و«د» مؤرشَف. لكل من «أ» و«ب» خطة عشرة أيام بحقل حفظ نطاقي (٢).
- * المشارك يُرسل ثلاثة أيام في «أ» ثم يُنقل.
+ * واحد ومشغول، و«د» مؤرشَف. **خطةٌ افتراضية واحدة** يرثها «أ» و«ب»: عشرة أيام
+ * بحقل حفظ تراكمي (٢) — فالمنتقل بينهما يبقى على الخطة نفسها بمسارٍ آخر
+ * (الهجرة ٠٦٦). المشارك أتمّ ثلاثة أيام في «أ» أمس ثم يُنقل.
  *
  * كل فعلٍ بهوية صاحبه وبدور `authenticated` — فالحرّاس والسياسات تعمل كما تعمل
  * على طلبٍ حقيقي، لا كما تعمل لمالك القاعدة.
@@ -21,11 +22,9 @@ let otherSectionId: string;
 let programId: string;
 let otherProgramId: string;
 let roleId: string;
-let templateId: string;
 let fieldHifz: string;
+let planId: string;
 const track: Record<"A" | "B" | "C" | "D", string> = { A: "", B: "", C: "", D: "" };
-const plan: Record<"A" | "B", string> = { A: "", B: "" };
-const dayIds: Record<"A" | "B", string[]> = { A: [], B: [] };
 
 const PLAYER = "00000000-0000-4000-8000-000000000c01";
 const ADMIN = "00000000-0000-4000-8000-000000000c02";
@@ -93,25 +92,43 @@ async function statusOfRequest(requestId: string): Promise<string> {
   return rows[0]!.status;
 }
 
-async function submitDay(uid: string, dayId: string): Promise<number> {
+/**
+ * القبول يكتب لحظة البدء (`judge_from`)، ويومه الأول في المسار الجديد يومُ القبول —
+ * إلا بعد وقت نهاية الرصد فما بعده (الهجرتان ٠٦٦ و٠٦٨). تُرجَع يوماً لئلا يتعلّق
+ * الاختبار بساعة تشغيله — ومشغّلها لا يقبل كتابةً مباشرة، فتُكتب بتعطيله للمعاملة.
+ */
+async function backdate(requestId: string): Promise<void> {
+  await db.query(
+    `update public.track_change_requests set decided_at = decided_at - interval '1 day' where id = $1`,
+    [requestId],
+  );
+  await db.query("begin");
+  await db.query("set local session_replication_role = 'replica'");
+  await db.query(`update public.participants set judge_from = judge_from - interval '1 day' where id = $1`, [
+    participant.PLAYER,
+  ]);
+  await db.query("commit");
+}
+
+type Task = { day_number: number; ord_from: number | null; ord_to: number | null };
+
+async function firstTask(uid: string, participantId: string): Promise<Task | undefined> {
   return asUser(uid, async () => {
-    const { rows } = await db.query<{ v: number }>(`select public.fn_submit_day($1, $2) as v`, [
-      dayId,
-      [fieldHifz],
-    ]);
-    return rows[0]!.v;
+    const { rows } = await db.query<Task>(
+      `select day_number, ord_from, ord_to from public.fn_day_tasks($1)`,
+      [participantId],
+    );
+    return rows[0];
   });
 }
 
-type Task = { ordinal_start: number | null; range_start: number | null };
-
-async function firstTask(uid: string, participantId: string, dayId: string): Promise<Task | undefined> {
+async function mark(uid: string, participantId: string, day: number): Promise<{ done_days: number }> {
   return asUser(uid, async () => {
-    const { rows } = await db.query<Task>(
-      `select ordinal_start, range_start from public.fn_plan_day_tasks($1, $2)`,
-      [participantId, dayId],
+    const { rows } = await db.query<{ s: { done_days: number } }>(
+      `select public.fn_mark_field($1, $2, $3) as s`,
+      [participantId, day, fieldHifz],
     );
-    return rows[0];
+    return rows[0]!.s;
   });
 }
 
@@ -159,34 +176,21 @@ beforeAll(async () => {
   );
 
   fieldHifz = (await db.query<{ id: string }>(
-    `insert into public.task_fields (program_id, label, kind, sort_order) values ($1, 'حفظ', 'ranged', 0) returning id`,
+    `insert into public.task_fields (program_id, label, kind, sort_order, is_base)
+     values ($1, 'حفظ', 'ranged', 0, true) returning id`,
     [programId],
   )).rows[0]!.id;
-  templateId = (await db.query<{ id: string }>(
-    `insert into public.day_templates (program_id, name) values ($1, 'يوم حفظ') returning id`,
+  // الخطة قائمةٌ قبل الالتحاق: الحكم لا يسبق أول حفظٍ لها (الهجرة ٠٦٨).
+  planId = (await db.query<{ id: string }>(
+    `insert into public.plans (program_id, name, day_count, created_at)
+     values ($1, 'الخطة الافتراضية', 10, now() - interval '3 days') returning id`,
     [programId],
   )).rows[0]!.id;
   await db.query(
-    `insert into public.day_template_fields (day_template_id, task_field_id, base_amount, sort_order)
-     values ($1, $2, 2, 0)`,
-    [templateId, fieldHifz],
+    `insert into public.plan_values (plan_id, day_number, task_field_id, amount)
+     select $1, g, $2, 2 from generate_series(1, 10) as g`,
+    [planId, fieldHifz],
   );
-
-  for (const key of ["A", "B"] as const) {
-    plan[key] = (await db.query<{ id: string }>(
-      `insert into public.plans (track_id, name) values ($1, 'خطة ' || $2) returning id`,
-      [track[key], key],
-    )).rows[0]!.id;
-    await db.query(
-      `insert into public.plan_days (plan_id, day_number, day_type, day_template_id)
-       select $1, g, 'normal', $2 from generate_series(1, 10) as g`,
-      [plan[key], templateId],
-    );
-    dayIds[key] = (await db.query<{ id: string }>(
-      `select id from public.plan_days where plan_id = $1 order by day_number`,
-      [plan[key]],
-    )).rows.map((r) => r.id);
-  }
 
   // «د» مؤرشَف بعد بنائه.
   await db.query(`update public.tracks set deleted_at = now() where id = $1`, [track.D]);
@@ -228,26 +232,35 @@ beforeAll(async () => {
   );
   await db.query(`insert into public.user_roles (user_id, role_id) values ($1, $2)`, [ADMIN, roleId]);
 
-  // ثلاثة أيام في «أ» قبل النقل.
-  for (const dayId of dayIds.A.slice(0, 3)) await submitDay(PLAYER, dayId);
+  // ثلاثة أيام في «أ» أُتمّت أمس — قبل النقل.
+  await db.query(
+    `insert into public.field_marks (participant_id, plan_id, track_id, day_number, task_field_id, marked_at)
+     select $1, $2, $3, g, $4, now() - interval '1 day' from generate_series(1, 3) g`,
+    [participant.PLAYER, planId, track.A, fieldHifz],
+  );
+  await db.query(
+    `insert into public.day_completions (participant_id, plan_id, track_id, day_number, completed_at)
+     select $1, $2, $3, g, now() - interval '1 day' from generate_series(1, 3) g`,
+    [participant.PLAYER, planId, track.A],
+  );
 });
 
 afterAll(async () => {
   await db.query(`delete from public.audit_log where actor_id = any($1::uuid[])`, [USERS]);
   if (programId) {
-    await db.query(
-      `delete from public.achievements where participant_id in (select id from public.participants where program_id = $1)`,
-      [programId],
-    );
+    for (const table of ["commitment_archive", "field_marks", "field_counts", "day_openings", "day_completions"]) {
+      await db.query(
+        `delete from public.${table} where participant_id in (select id from public.participants where program_id = $1)`,
+        [programId],
+      );
+    }
     await db.query(
       `delete from public.track_change_requests where participant_id in (select id from public.participants where program_id = $1)`,
       [programId],
     );
     await db.query(`delete from public.participants where program_id = $1`, [programId]);
-    await db.query(`delete from public.plan_days where plan_id = any($1::uuid[])`, [[plan.A, plan.B]]);
-    await db.query(`delete from public.plans where id = any($1::uuid[])`, [[plan.A, plan.B]]);
-    await db.query(`delete from public.day_template_fields where day_template_id = $1`, [templateId]);
-    await db.query(`delete from public.day_templates where id = $1`, [templateId]);
+    await db.query(`delete from public.plan_values where plan_id = $1`, [planId]);
+    await db.query(`delete from public.plans where id = $1`, [planId]);
     await db.query(`delete from public.task_fields where program_id = $1`, [programId]);
     await db.query(`delete from public.track_content_ranges where track_id = any($1::uuid[])`, [
       Object.values(track),
@@ -444,51 +457,42 @@ describe("القبول — المادة من أولها والسجلّ باقٍ"
   });
 
   it("**يومه الأول في «ب» من الرتبة ١ وبوحدات «ب»** — لا يُحمَل تقدّمه في «أ»", async () => {
-    const task = await firstTask(PLAYER, participant.PLAYER, dayIds.B[0]!);
-    expect(task).toMatchObject({ ordinal_start: 1, range_start: 31 });
+    await backdate(request);
+    expect(await firstTask(PLAYER, participant.PLAYER)).toMatchObject({ day_number: 1, ord_from: 1, ord_to: 2 });
+    const { rows } = await db.query<{ unit: number }>(`select public.fn_track_unit_at($1, 1) as unit`, [track.B]);
+    expect(rows[0]!.unit).toBe(31);
   });
 
-  it("وأيام «أ» لم تعد تُرسَل، ويوم «ب» الأول يُرسَل", async () => {
-    await expect(submitDay(PLAYER, dayIds.A[3]!)).rejects.toThrow();
-    expect(await submitDay(PLAYER, dayIds.B[0]!)).toBeGreaterThan(0);
-  });
-
-  it("رحلته تعرض خطة «ب» وحدها", async () => {
-    const { rows } = await asUser(PLAYER, () =>
-      db.query<{ submitted: boolean }>(`select submitted from public.fn_journey_days($1)`, [participant.PLAYER]),
-    );
-    expect(rows).toHaveLength(10);
-    expect(rows.filter((r) => r.submitted)).toHaveLength(1);
+  it("**ويُتمّ يومه الأول في «ب» على الخطة نفسها** — وإتمامه الأول في «أ» لا يصطدم به", async () => {
+    expect((await mark(PLAYER, participant.PLAYER, 1)).done_days).toBe(1);
+    // ويوم «أ» الرابع لا يُرصد: مساره «ب».
+    await expect(mark(PLAYER, participant.PLAYER, 4)).rejects.toThrow();
   });
 
   it("**الإدارة ترى الحالي ومعه ما سبق**", async () => {
     const { rows } = await asUser(ADMIN, () =>
-      db.query<{
-        id: string;
-        submitted_days: number;
-        complete_days: number;
-        prior_submitted_days: number;
-        prior_complete_days: number;
-      }>(`select * from public.fn_program_participants($1)`, [programId]),
+      db.query<{ id: string; done_days: number; day_count: number; prior_done_days: number }>(
+        `select * from public.fn_program_participants($1)`,
+        [programId],
+      ),
     );
     expect(rows.find((r) => r.id === participant.PLAYER)).toMatchObject({
-      submitted_days: 1,
-      complete_days: 1,
-      prior_submitted_days: 3,
-      prior_complete_days: 3,
+      day_count: 10,
+      done_days: 1,
+      prior_done_days: 3,
     });
   });
 
   it("**والمشارك يرى سجلّه في المسارين**، والغريب لا يرى شيئاً", async () => {
     const mine = await asUser(PLAYER, () =>
-      db.query<{ track_id: string; is_current: boolean; submitted_days: number }>(
-        `select track_id, is_current, submitted_days from public.fn_participant_record($1)`,
+      db.query<{ track_id: string; is_current: boolean; done_days: number }>(
+        `select track_id, is_current, done_days from public.fn_participant_record($1)`,
         [participant.PLAYER],
       ),
     );
     expect(mine.rows).toEqual([
-      { track_id: track.A, is_current: false, submitted_days: 3 },
-      { track_id: track.B, is_current: true, submitted_days: 1 },
+      { track_id: track.A, is_current: false, done_days: 3 },
+      { track_id: track.B, is_current: true, done_days: 1 },
     ]);
 
     const stranger = await asUser(STRANGER, () =>
@@ -507,19 +511,19 @@ describe("السجلّ محروس بعد النقل", () => {
     ).rejects.toThrow(/مقاطعه لا تُعدَّل/);
   });
 
-  it("وخطة «أ» لا تُحذف ولا تُنقل", async () => {
+  it("والخطة التي أُتمّت أيامها لا تُحذف ولا تُنقل", async () => {
     await expect(
-      asUser(ADMIN, () => db.query(`update public.plans set deleted_at = now() where id = $1`, [plan.A])),
-    ).rejects.toThrow(/لهذه الخطة سجلّ إنجاز/);
+      asUser(ADMIN, () => db.query(`update public.plans set deleted_at = now() where id = $1`, [planId])),
+    ).rejects.toThrow(/فلا تُحذف/);
     await expect(
-      asUser(ADMIN, () => db.query(`update public.plans set track_id = $1 where id = $2`, [track.C, plan.A])),
-    ).rejects.toThrow(/لهذه الخطة سجلّ إنجاز/);
+      asUser(ADMIN, () => db.query(`update public.plans set track_id = $1 where id = $2`, [track.C, planId])),
+    ).rejects.toThrow(/لا تنتقل الخطة/);
   });
 
   it("**و«أ» لا يُؤرشَف** — برسالة السجلّ لا برسالة المشاركين", async () => {
     await expect(
       asUser(ADMIN, () => db.query(`select public.fn_archive_track($1)`, [track.A])),
-    ).rejects.toThrow(/للمسار سجلّ إنجاز محفوظ/);
+    ).rejects.toThrow(/للمسار سجلّ رصد محفوظ/);
   });
 });
 
@@ -527,13 +531,17 @@ describe("العودة إلى مسارٍ سابق تُكمل", () => {
   it("**أ ← ب ← أ: يعود إلى يومه الرابع ورتبته السابعة** لا إلى أول «أ»", async () => {
     const back = await pendingRequest(participant.PLAYER, track.B, track.A);
     await decide(ADMIN, back, "approved");
+    await backdate(back);
     expect((await stateOf(participant.PLAYER)).track_id).toBe(track.A);
 
-    // ثلاثة أيام × وحدتان = الرتب ١..٦، فالتالية ٧ على الوحدة ٧.
-    expect(await firstTask(PLAYER, participant.PLAYER, dayIds.A[3]!)).toMatchObject({
-      ordinal_start: 7,
-      range_start: 7,
-    });
-    expect(await submitDay(PLAYER, dayIds.A[3]!)).toBeGreaterThan(0);
+    // ثلاثة أيام × وحدتان = الرتب ١..٦، فالتالية ٧.
+    expect(await firstTask(PLAYER, participant.PLAYER)).toMatchObject({ day_number: 4, ord_from: 7, ord_to: 8 });
+    // ويحمل أيامه الثلاثة إلى موعده: لا يبدو متقدّماً بها.
+    const { rows } = await db.query<{ base_done: number }>(
+      `select base_done from public.fn_participant_engine($1)`,
+      [participant.PLAYER],
+    );
+    expect(rows[0]!.base_done).toBe(3);
+    expect((await mark(PLAYER, participant.PLAYER, 4)).done_days).toBe(4);
   });
 });

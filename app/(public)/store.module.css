@@ -1,3 +1,8 @@
+/* عنوان الصفحة — `<h1>` عارٍ يرث leading المتن، وهو رخوٌ على مقاسه (ق-١٦). */
+.pageTitle {
+  line-height: var(--leading-tight);
+}
+
 .lede {
   max-inline-size: 60ch;
   margin-block-end: var(--space-8);
@@ -20,10 +25,20 @@
   border-radius: var(--radius-md);
   text-decoration: none;
   color: inherit;
-  transition: border-color var(--motion-fast) var(--ease-out);
+  /* وميض اللمس الافتراضي يُلغى **لأن بديله مبنيّ أدناه** — لا لأنه مزعج (ق-١٤) */
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out);
 }
 
 .card:hover {
+  border-color: var(--color-accent);
+}
+
+/* البطاقة سطح كبير، فتتقلّص أقلّ من الزرّ (ق-١٤) */
+.card:active {
+  transform: scale(var(--press-scale-large));
   border-color: var(--color-accent);
 }
 
@@ -34,9 +49,11 @@
   gap: var(--space-3);
 }
 
+/* الـ leading يتناسب عكسياً مع المقاس (ق-١٦): العنوان يُشدّ، والمتن يُرخى. */
 .name {
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
 }
 
 .summary {

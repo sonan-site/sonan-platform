@@ -3,6 +3,7 @@ import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { rangeText, withStarts, type Material } from "@/lib/programs/material";
 import {
   ContentView,
   type FieldRow,
@@ -35,12 +36,27 @@ export default async function ContentPage({
   // **صفحةٌ من المادة لا كلها.** واجهة REST تقطع عند ألف صفّ بصمت، والمادة
   // قد تبلغ آلافاً — فكان العدد والنطاق المعروضان يكذبان بعد الألف.
   const from = (page - 1) * DEFAULT_PAGE_SIZE;
-  const [programResult, unitsResult, tracksResult, fieldsResult, templatesResult, firstUnit, lastUnit] =
+  const [
+    programResult,
+    unitsResult,
+    tracksResult,
+    fieldsResult,
+    templatesResult,
+    firstUnit,
+    lastUnit,
+    sectionsResult,
+    unsectionedResult,
+  ] =
     await Promise.all([
-      db.from("programs").select("id, name").eq("id", id).is("deleted_at", null).maybeSingle(),
+      db
+        .from("programs")
+        .select("id, name, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many")
+        .eq("id", id)
+        .is("deleted_at", null)
+        .maybeSingle(),
       db
         .from("content_units")
-        .select("id, sequence, label", { count: "exact" })
+        .select("id, sequence, label, section_id", { count: "exact" })
         .eq("program_id", id)
         .is("deleted_at", null)
         .order("sequence")
@@ -53,7 +69,9 @@ export default async function ContentPage({
         .order("sort_order"),
       db
         .from("task_fields")
-        .select("id, label, kind, sort_order")
+        .select(
+          "id, label, kind, sort_order, is_base, is_constrained, is_material_linked, is_required, count_unit, default_repetition",
+        )
         .eq("program_id", id)
         .is("deleted_at", null)
         .order("sort_order"),
@@ -79,12 +97,41 @@ export default async function ContentPage({
         .order("sequence", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      db
+        .from("material_sections")
+        .select("id, name, unit_count")
+        .eq("program_id", id)
+        .is("deleted_at", null)
+        .order("sort_order")
+        .order("created_at"),
+      db
+        .from("content_units")
+        .select("id", { count: "exact", head: true })
+        .eq("program_id", id)
+        .is("deleted_at", null)
+        .is("section_id", null),
     ]);
 
-  if (programResult.error || unitsResult.error) {
+  if (programResult.error || unitsResult.error || sectionsResult.error) {
     return <ErrorState body="تعذّر جلب المادة." />;
   }
   if (!programResult.data) notFound();
+
+  const program = programResult.data;
+  const material: Material = {
+    forms: {
+      sectionLabel: program.section_label,
+      singular: program.unit_singular,
+      one: program.unit_one,
+      two: program.unit_two,
+      few: program.unit_few,
+      many: program.unit_many,
+    },
+    sections: withStarts(sectionsResult.data ?? []),
+  };
+  const sectioned = material.sections.length > 0;
+  // نصّ النطاق بالباب ورقمه — في المادة المقسّمة وحدها. وبلا أبواب تبقى الأرقام ونصوص الوحدات.
+  const partText = (from: number, to: number) => (sectioned ? rangeText(material, from, to) : "");
 
   const tracks = tracksResult.data ?? [];
   const templates = templatesResult.data ?? [];
@@ -118,7 +165,12 @@ export default async function ContentPage({
   const countByTrack = new Map(countsResult.map((c) => [c.trackId, c.count]));
   const templateFields = templateFieldsResult.data ?? [];
 
-  const units: UnitRow[] = unitsResult.data ?? [];
+  const units: UnitRow[] = (unitsResult.data ?? []).map((u) => ({
+    id: u.id,
+    sequence: u.sequence,
+    label: u.label,
+    sectioned: u.section_id !== null,
+  }));
 
   const trackRows: TrackRow[] = tracks.map((track) => ({
     id: track.id,
@@ -126,13 +178,25 @@ export default async function ContentPage({
     unitCount: countByTrack.get(track.id) ?? 0,
     parts: (rangesResult.data ?? [])
       .filter((r) => r.track_id === track.id)
-      .map((r) => ({ id: r.id, from: r.from_sequence, to: r.to_sequence })),
+      .map((r) => ({
+        id: r.id,
+        from: r.from_sequence,
+        to: r.to_sequence,
+        text: partText(r.from_sequence, r.to_sequence),
+      })),
   }));
 
   const fieldRows: FieldRow[] = fields.map((f) => ({
     id: f.id,
     label: f.label,
     kind: f.kind,
+    isBase: f.is_base,
+    isConstrained: f.is_constrained,
+    isMaterialLinked: f.is_material_linked,
+    isRequired: f.is_required,
+    countUnit: f.count_unit,
+    defaultRepetition: f.default_repetition,
+    sortOrder: f.sort_order,
   }));
 
   const templateRows: TemplateRow[] = templates.map((t) => ({
@@ -165,6 +229,8 @@ export default async function ContentPage({
         const tasks: PreviewTask[] = [];
         for (const field of template.fields) {
           const amount = Math.max(1, Math.round(field.amount));
+          // النطاق الصريح لا مقدار له في شكل اليوم — يُدخل في الخطة وحدها.
+          if (field.kind === "explicit") continue;
           if (field.kind === "counted") {
             tasks.push({ label: field.label, kind: "counted", amount, parts: [] });
             continue;
@@ -183,6 +249,7 @@ export default async function ContentPage({
             to: p.to_sequence,
             fromLabel: "",
             toLabel: "",
+            text: partText(p.from_sequence, p.to_sequence),
           }));
           for (const part of parts) {
             neededSequences.add(part.from);
@@ -196,14 +263,14 @@ export default async function ContentPage({
   );
 
   // النصوص للأرقام التي تعرضها المعاينة وحدها — لا للمادة كلها.
-  if (neededSequences.size > 0) {
+  if (neededSequences.size > 0 && !sectioned) {
     const { data: labelled } = await db
       .from("content_units")
       .select("sequence, label")
       .eq("program_id", id)
       .in("sequence", [...neededSequences])
       .is("deleted_at", null);
-    const unitLabel = new Map((labelled ?? []).map((u) => [u.sequence, u.label]));
+    const unitLabel = new Map((labelled ?? []).map((u) => [u.sequence, u.label ?? ""]));
     for (const tasks of Object.values(previews)) {
       for (const task of tasks) {
         for (const part of task.parts) {
@@ -217,6 +284,8 @@ export default async function ContentPage({
   return (
     <ContentView
       programId={id}
+      material={material}
+      unsectioned={sectioned ? (unsectionedResult.count ?? 0) : 0}
       units={units}
       unitSummary={{
         count: unitsResult.count ?? 0,

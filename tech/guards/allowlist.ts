@@ -41,6 +41,15 @@ export const EXCEPTIONS: ListEntry[] = [
   },
   {
     guard: "guard-structure",
+    rule: "raw-table",
+    path: "app/(platform)/programs/[id]/plans/[planId]/plan-view.tsx",
+    reason:
+      "محرّر الخطة شبكةُ إدخال لا قائمةُ عرض: خانةٌ لكل يوم في كل حقل تُحرَّر معاً ثم تُحفظ دفعةً. " +
+      "والجدول الجامع يقطع الصفوف صفحاتٍ في الرابط، فتختفي أيامٌ عن التحرير وتتنازع جداول الحقول رابطاً واحداً.",
+    until: "حين يدعم DataTable شبكة إدخالٍ بلا صفحات — أو يُبنى مكوّن «شبكة» جامع.",
+  },
+  {
+    guard: "guard-structure",
     rule: "nav-outside-source",
     path: "components/shared/app-layout.tsx",
     reason: "التخطيط الجامع هو الموضع الوحيد الذي يُصيّر عناصر `<nav>`.",

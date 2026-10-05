@@ -1,25 +1,20 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/states";
-import {
-  dutyCompletion,
-  dutyHeadline,
-  dutyOpens,
-  dutyState,
-  type DutyRow,
-} from "@/lib/dashboard/duties";
-import { formatNumber, formatPercent, formatRelative } from "@/lib/format";
+import { dutyHeadline, dutyOpens, dutyPace, dutyState, type DutyRow } from "@/lib/dashboard/duties";
+import { formatPercent, formatRelative } from "@/lib/format";
 import styles from "./dashboard.module.css";
 
 /**
  * لوحة وضع المشارك: **سطر الحسم لكل مشاركة، ورابطٌ واحد**.
  *
- * ولا تُعاد هنا شاشة الرحلة: تلك تعرض اليوم وواجباته ومقاديره وأزراره. وحصّة
+ * ولا تُعاد هنا شاشة الرحلة: تلك تعرض اليوم وواجباته وعدّاده وأزراره. وحصّة
  * اللوحة أين هو الآن، وهل ينتظره شيء — وحالةٌ واحدة تقولها اللوحة ولا تقولها
  * الرحلة: أنّه أتمّ أيام خطته كلها.
  */
 
 function Body({ row }: { row: DutyRow }) {
   const state = dutyState(row);
+  const pace = dutyPace(row);
   return (
     <>
       <span className={styles.dutyProgram}>
@@ -28,13 +23,11 @@ function Body({ row }: { row: DutyRow }) {
       </span>
       <strong className={styles.dutyHeadline}>{dutyHeadline(row)}</strong>
 
-      {row.submittedDays > 0 ? (
+      {state === "working" || state === "finished_plan" ? (
         <span className={styles.dutyMeta}>
-          <span>
-            أرسلتَ {formatNumber(row.submittedDays)} من {formatNumber(row.workDays)}
-          </span>
-          <span>الإتمام {formatPercent(dutyCompletion(row))}</span>
-          {row.lastSubmittedAt ? <span>آخر إرسال {formatRelative(row.lastSubmittedAt)}</span> : null}
+          {pace ? <span>{pace}</span> : null}
+          <span>الإنجاز {formatPercent(row.progressPct / 100, Number.isInteger(row.progressPct) ? 0 : 1)}</span>
+          {row.lastMarkedAt ? <span>آخر رصد {formatRelative(row.lastMarkedAt)}</span> : null}
         </span>
       ) : null}
 

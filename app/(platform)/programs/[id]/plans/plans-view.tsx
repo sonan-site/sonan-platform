@@ -1,134 +1,374 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useState, useTransition } from "react";
+import { reportAction } from "@/components/shared/action-notice";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
-import { ScreenActions } from "@/components/shared/screen-actions";
-import { Messages, TabHead, Step, StepForm } from "@/components/shared/steps";
+import { InlineText } from "@/components/shared/inline-edit";
+import { Modal } from "@/components/shared/modal";
+import { Messages, Muted, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
-import { createPlan } from "./actions";
+import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
+import { createDefaultPlan, createExam, customizeTrackPlan, renameExam, revertTrackPlan } from "./actions";
+import styles from "./plans.module.css";
+
+export type PlanSummary = {
+  id: string;
+  trackId: string | null;
+  name: string;
+  dayCount: number;
+  lockedThrough: number;
+  issues: { trackId: string | null; severity: "error" | "warning"; message: string }[];
+};
 
 export type TrackPlanRow = {
   trackId: string;
   trackName: string;
+  /** خطته المخصّصة — وبلا مخصّصة يرث الافتراضية. */
+  custom: PlanSummary | null;
   planId: string | null;
-  planName: string | null;
   dayCount: number;
+  errors: number;
+  warnings: string[];
 };
 
+export type ExamRow = {
+  id: string;
+  name: string;
+  type: "remote" | "oral";
+  stage: "interim" | "final";
+  trackName: string | null;
+  questionCount: number;
+};
 
 export function PlansView({
   programId,
+  defaultPlan,
   rows,
+  tracks,
+  exams,
 }: {
   programId: string;
+  defaultPlan: PlanSummary | null;
   rows: TrackPlanRow[];
+  tracks: { id: string; name: string }[];
+  /** `null` لنمطٍ بلا اختبارات `[BR-KIND-01]`. */
+  exams: ExamRow[] | null;
 }) {
-  const [state, action, pending] = useActionState(createPlan, EMPTY_FORM_STATE);
+  const router = useRouter();
+  const [busy, startTransition] = useTransition();
+  const [customizing, setCustomizing] = useState<TrackPlanRow | null>(null);
 
-  const withoutPlan = rows.filter((r) => r.planId === null);
-  // لا زرَّ حين لا مسار ينتظر خطة — الأداة المعروضة تعمل (`ق-٢٠`).
-  const canBuild = withoutPlan.length > 0;
-  // ومفتوحةٌ أوّلاً حين لا خطة بعد: الشاشة عملُها الأول بناء الخطط.
-  const [adding, setAdding] = useState(withoutPlan.length === rows.length);
+  const base = `/programs/${programId}/plans`;
+  const defaultErrors = defaultPlan?.issues.filter((i) => i.severity === "error").length ?? 0;
 
   const columns: Column<TrackPlanRow>[] = [
-    { key: "track", header: "المسار", sortable: true, primary: true, render: (r) => r.trackName },
+    { key: "track", header: "المسار", primary: true, render: (r) => r.trackName },
     {
       key: "plan",
-      header: "الخطة",
+      header: "خطته",
       render: (r) =>
-        r.planId ? (
-          <Link href={`/programs/${programId}/plans/${r.planId}`}>{r.planName}</Link>
+        r.custom ? (
+          <Link href={`${base}/${r.custom.id}`}>مخصّصة — {r.custom.name}</Link>
+        ) : defaultPlan ? (
+          <span>يرث الافتراضية</span>
         ) : (
-          <span style={{ color: "var(--color-text-muted)" }}>بلا خطة</span>
+          <Muted>بلا خطة</Muted>
         ),
     },
     {
       key: "days",
-      header: "عدد الأيام",
+      header: "الأيام",
       align: "end",
-      sortable: true,
       render: (r) => (r.planId ? formatNumber(r.dayCount) : "—"),
+    },
+    {
+      key: "state",
+      header: "الحالة",
+      render: (r) =>
+        !r.planId || r.dayCount === 0 ? (
+          <span className={styles.warn}>بلا أيام</span>
+        ) : r.errors > 0 ? (
+          <span className={styles.bad}>{formatNumber(r.errors)} ملاحظات تمنع الحفظ</span>
+        ) : r.warnings.length > 0 ? (
+          <span className={styles.warn} title={r.warnings.join("\n")}>
+            {r.warnings[0]}
+          </span>
+        ) : (
+          <span className={styles.ok}>سليمة</span>
+        ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "end",
+      render: (r) =>
+        r.custom ? (
+          <Button
+            disabled={busy || r.custom.lockedThrough > 0}
+            title={r.custom.lockedThrough > 0 ? "أتمّ مشاركون أياماً منها" : undefined}
+            onClick={() =>
+              startTransition(async () => reportAction(await revertTrackPlan(programId, r.custom!.id)))
+            }
+          >
+            الرجوع للافتراضية
+          </Button>
+        ) : (
+          <Button disabled={busy} onClick={() => setCustomizing(r)}>
+            خطة مخصّصة
+          </Button>
+        ),
     },
   ];
 
   return (
     <>
-      {canBuild ? (
-        <ScreenActions>
-          <Button variant="primary" aria-expanded={adding} onClick={() => setAdding(!adding)}>
-            <Plus size={16} aria-hidden />
-            أنشئ خطة
-          </Button>
-        </ScreenActions>
-      ) : null}
-
-      <TabHead title="خطط المسارات" lede="الخطة قائمة أيام مرتّبة لكل مسار. لا تاريخ فيها — كل مشارك يبدأ من يومه الأول أياً كان تاريخ انضمامه. وللمسار خطة واحدة." />
-
-      <DataTable
-        columns={columns}
-        rows={rows}
-        rowKey={(r) => r.trackId}
-        total={rows.length}
-        page={1}
-        empty={{
-          title: "لا مسارات في هذا البرنامج",
-          body: "أضِف مساراً من صفحة البرنامج، ثم ابنِ خطته هنا.",
-        }}
+      <TabHead
+        title="الخطط"
+        lede="الخطة أيامٌ مرقّمة بلا تواريخ، في كل يوم قيمةٌ لكل حقل. للبرنامج خطة افتراضية يرثها كل مسار، ولأي مسار خطة مخصّصة تحلّ محلّها فيه."
       />
 
-      {canBuild && adding ? (
       <Step
         n={1}
-        title="خطة جديدة"
-        why="لكل مسار خطته، لأن نصيبه من المادة يختلف. وتبقى قابلة للتعديل بعد بنائها."
-        done={withoutPlan.length === 0 && rows.length > 0}
+        title="الخطة الافتراضية"
+        why="تُبنى مرة ويرثها كل مسار. وتُفحص على نصيب كل مسار يستعملها — فإن اختلفت أحجام الأنصبة احتاج المسار خطة مخصّصة."
+        done={Boolean(defaultPlan && defaultPlan.dayCount > 0 && defaultErrors === 0)}
         state={
-          rows.length === 0 ? (
-            <span>لا مسارات في هذا البرنامج بعد.</span>
-          ) : withoutPlan.length === 0 ? (
-            <span>كل مسار له خطة.</span>
+          !defaultPlan ? (
+            <span>لم تُنشأ بعد.</span>
           ) : (
-            <span>{formatNumber(withoutPlan.length)} مساراً بلا خطة</span>
+            <span>
+              {formatNumber(defaultPlan.dayCount)} يوماً
+              {defaultPlan.lockedThrough > 0 ? ` · المقفل ١–${formatNumber(defaultPlan.lockedThrough)}` : ""}
+              {defaultErrors > 0 ? ` · ${formatNumber(defaultErrors)} ملاحظات تمنع الحفظ` : ""}
+            </span>
           )
         }
       >
-        {withoutPlan.length === 0 ? null : (
-        <StepForm title="أنشئ خطة" action={action} state={state}>
-          <input type="hidden" name="programId" value={programId} />
-
-          <Field id="trackId" label="المسار" required error={state.fieldErrors?.trackId}>
-            <Select id="trackId" name="trackId" required defaultValue="">
-              <option value="" disabled>
-                اختر مساراً
-              </option>
-              {withoutPlan.map((r) => (
-                <option key={r.trackId} value={r.trackId}>
-                  {r.trackName}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field id="name" label="اسم الخطة" required error={state.fieldErrors?.name}>
-            <Input id="name" name="name" required defaultValue="الخطة الأساسية" />
-          </Field>
-
+        {defaultPlan ? (
           <FormActions>
-            <Button type="submit" pending={pending}>
-              إنشاء
+            <Link className={styles.open} href={`${base}/${defaultPlan.id}`}>
+              افتح الخطة الافتراضية
+            </Link>
+          </FormActions>
+        ) : (
+          <FormActions>
+            <Button
+              variant="primary"
+              pending={busy}
+              onClick={() =>
+                startTransition(async () => {
+                  const result = await createDefaultPlan(programId);
+                  reportAction(result);
+                  if (result.planId) router.push(`${base}/${result.planId}`);
+                })
+              }
+            >
+              أنشئ الخطة الافتراضية
             </Button>
           </FormActions>
-
-          <Messages state={state} />
-        </StepForm>
         )}
+        {defaultPlan && defaultPlan.issues.length > 0 ? (
+          <ul className={styles.issues}>
+            {defaultPlan.issues.slice(0, 6).map((issue, i) => (
+              <li key={i} className={issue.severity === "error" ? styles.bad : styles.warn}>
+                {issue.message}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </Step>
-      ) : null}
+
+      <Step
+        n={2}
+        title="خطة كل مسار"
+        why="المسار يرث الافتراضية ما لم تُخصَّص له خطة. والخطة الفعلية لمسارٍ أتمّ أحد مشاركيه يوماً منها لا تتغيّر."
+        done={rows.length > 0 && rows.every((r) => r.planId && r.dayCount > 0 && r.errors === 0)}
+        state={
+          rows.length === 0 ? (
+            <span>لا مسارات بعد — أضِفها من تبويب المسارات.</span>
+          ) : (
+            <span>
+              {formatNumber(rows.filter((r) => r.custom).length)} مخصّصة من {formatNumber(rows.length)} مسارات
+            </span>
+          )
+        }
+      >
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.trackId}
+          total={rows.length}
+          page={1}
+          empty={{ title: "لا مسارات", body: "أضِف مسارات البرنامج أولاً." }}
+        />
+      </Step>
+
+      {exams ? <ExamsSection programId={programId} exams={exams} tracks={tracks} /> : null}
+
+      <Modal open={customizing !== null} title="خطة مخصّصة" onClose={() => setCustomizing(null)}>
+        <p>
+          تحلّ خطةٌ مخصّصة محلّ الافتراضية في «{customizing?.trackName}» وحده. ابدأها بنسخ الافتراضية ثم
+          عدّل ما يختلف، أو ابدأها فارغة.
+        </p>
+        <FormActions>
+          <Button
+            variant="primary"
+            pending={busy}
+            disabled={!defaultPlan}
+            onClick={() => {
+              const target = customizing;
+              if (!target) return;
+              setCustomizing(null);
+              startTransition(async () => {
+                const result = await customizeTrackPlan(programId, target.trackId, true);
+                reportAction(result);
+                if (result.planId) router.push(`${base}/${result.planId}`);
+              });
+            }}
+          >
+            انسخ الافتراضية
+          </Button>
+          <Button
+            onClick={() => {
+              const target = customizing;
+              if (!target) return;
+              setCustomizing(null);
+              startTransition(async () => {
+                const result = await customizeTrackPlan(programId, target.trackId, false);
+                reportAction(result);
+                if (result.planId) router.push(`${base}/${result.planId}`);
+              });
+            }}
+          >
+            ابدأ فارغة
+          </Button>
+        </FormActions>
+      </Modal>
     </>
+  );
+}
+
+const EXAM_TYPE = { remote: "عن بعد", oral: "شفهي حضوري" } as const;
+const EXAM_STAGE = { interim: "مرحلي", final: "نهائي" } as const;
+
+/**
+ * الاختبارات تعريفاً — خارج الخطة (`adr/0040`). لا تشغل يوم خطة، ووحدتها في
+ * المرحلة الثانية تقرأ نسبة الإنجاز من المحرّك. وللمسابقة وحدها `[BR-KIND-01]`.
+ */
+function ExamsSection({
+  programId,
+  exams,
+  tracks,
+}: {
+  programId: string;
+  exams: ExamRow[];
+  tracks: { id: string; name: string }[];
+}) {
+  const [state, action, pending] = useActionState(createExam, EMPTY_FORM_STATE);
+  const [examType, setExamType] = useState<"remote" | "oral">("remote");
+
+  const columns: Column<ExamRow>[] = [
+    {
+      key: "name",
+      header: "الاختبار",
+      primary: true,
+      render: (e) => (
+        <InlineText label={`اسم ${e.name}`} value={e.name} onSave={(next) => renameExam(e.id, next, programId)} />
+      ),
+    },
+    { key: "type", header: "النوع", render: (e) => EXAM_TYPE[e.type] },
+    { key: "stage", header: "المرحلة", render: (e) => EXAM_STAGE[e.stage] },
+    { key: "track", header: "المسار", render: (e) => e.trackName ?? "كل المسارات" },
+    { key: "count", header: "الأسئلة", align: "end", render: (e) => formatNumber(e.questionCount) },
+  ];
+
+  return (
+    <Step
+      n={3}
+      title="الاختبارات"
+      why="تعريف الاختبار باسمه ونوعه وأسئلته. والاختبار لا يشغل يوماً في الخطة: يقرأ نسبة إنجاز المشارك متى طلبها."
+      done={exams.length > 0}
+      state={<span>{exams.length === 0 ? "لا اختبارات معرَّفة." : `${formatNumber(exams.length)} اختبارات`}</span>}
+    >
+      {exams.length > 0 ? (
+        <DataTable
+          columns={columns}
+          rows={exams}
+          rowKey={(e) => e.id}
+          total={exams.length}
+          page={1}
+          empty={{ title: "لا اختبارات", body: "" }}
+        />
+      ) : null}
+
+      <StepForm title="تعريف اختبار" action={action} state={state}>
+        <input type="hidden" name="programId" value={programId} />
+        <Field id="examName" label="اسم الاختبار" required error={state.fieldErrors?.name}>
+          <Input id="examName" name="name" required />
+        </Field>
+        <Field id="examType" label="النوع" required>
+          <Select
+            id="examType"
+            name="examType"
+            value={examType}
+            onChange={(e) => setExamType(e.target.value as "remote" | "oral")}
+          >
+            <option value="remote">عن بعد</option>
+            <option value="oral">شفهي حضوري</option>
+          </Select>
+        </Field>
+        <Field id="stage" label="المرحلة" required error={state.fieldErrors?.stage}>
+          <Select id="stage" name="stage" key={examType} defaultValue={examType === "oral" ? "final" : "interim"}>
+            {examType === "oral" ? null : <option value="interim">مرحلي</option>}
+            <option value="final">نهائي</option>
+          </Select>
+        </Field>
+        <Field id="examTrack" label="المسار" hint="فارغ = كل المسارات.">
+          <Select id="examTrack" name="trackId" defaultValue="">
+            <option value="">كل المسارات</option>
+            {tracks.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field id="passPercentage" label="نسبة الاجتياز" error={state.fieldErrors?.passPercentage}>
+          <Input id="passPercentage" name="passPercentage" type="number" min={0} max={100} defaultValue={EXAM_DEFAULTS.passPercentage} numeric />
+        </Field>
+        <Field id="questionCount" label="عدد الأسئلة" required error={state.fieldErrors?.questionCount}>
+          <Input id="questionCount" name="questionCount" type="number" min={1} defaultValue={EXAM_DEFAULTS.questionCount} numeric />
+        </Field>
+        {examType === "remote" ? (
+          <>
+            <Field id="secondsPerQuestion" label="زمن السؤال بالثواني" required error={state.fieldErrors?.secondsPerQuestion}>
+              <Input id="secondsPerQuestion" name="secondsPerQuestion" type="number" min={1} defaultValue={EXAM_DEFAULTS.secondsPerQuestion} numeric />
+            </Field>
+            <Field id="maxSkips" label="حدّ تغيير السؤال" error={state.fieldErrors?.maxSkips}>
+              <Input id="maxSkips" name="maxSkips" type="number" min={0} defaultValue={EXAM_DEFAULTS.maxSkips} numeric />
+            </Field>
+          </>
+        ) : (
+          <>
+            <Field id="judgeCount" label="عدد المحكمين" required error={state.fieldErrors?.judgeCount}>
+              <Input id="judgeCount" name="judgeCount" type="number" min={1} defaultValue={EXAM_DEFAULTS.judgeCount} numeric />
+            </Field>
+            <Field id="awardPercentage" label="نسبة استحقاق الجوائز" error={state.fieldErrors?.awardPercentage}>
+              <Input id="awardPercentage" name="awardPercentage" type="number" min={0} max={100} defaultValue={EXAM_DEFAULTS.awardPercentage} numeric />
+            </Field>
+          </>
+        )}
+        <FormActions>
+          <Button type="submit" pending={pending}>
+            عرّف الاختبار
+          </Button>
+        </FormActions>
+        <Messages state={state} />
+      </StepForm>
+    </Step>
   );
 }

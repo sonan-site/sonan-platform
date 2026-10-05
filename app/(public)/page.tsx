@@ -46,7 +46,7 @@ export default async function StorePage() {
 
   return (
     <>
-      <h1>البرامج المتاحة</h1>
+      <h1 className={styles.pageTitle}>البرامج المتاحة</h1>
       <p className={styles.lede}>
         برامج جمعية سنن التعليمية. اختر برنامجاً لتعرف تفاصيله وشروط الالتحاق به.
       </p>
@@ -55,7 +55,7 @@ export default async function StorePage() {
         <EmptyState
           kind="no-data"
           title="لا برامج معلنة الآن"
-          body="لا برامج مفتوحة الآن. تابع إعلانات الجمعية."
+          body="لا برامج مفتوحة الآن. تابع إعلانات الجمعية، وحسابك يبقى جاهزاً لأول برنامج يُفتح."
         />
       ) : (
         <div className={styles.grid}>

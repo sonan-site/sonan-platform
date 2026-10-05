@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "@/lib/validation/z";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
-import { MAX_PLAN_DAYS } from "@/lib/plans/build";
+import { MAX_DAYS } from "@/lib/plans/engine";
 
 /**
  * الإعداد السريع.
@@ -20,11 +20,11 @@ const schema = z.object({
     .string()
     .transform((v) => v.split("\n").map((l) => l.trim()).filter((l) => l.length > 0))
     .refine((l) => l.length > 0, "الصق المادة — سطر لكل عنصر"),
-  dayCount: z.coerce.number().int().min(1, "مدّة الخطة يوم فأكثر").max(MAX_PLAN_DAYS),
-  restEvery: z.coerce.number().int().min(0).max(MAX_PLAN_DAYS).default(0),
-  memorizeAmount: z.coerce.number().positive("المقدار عدد موجب"),
-  reviewAmount: z.coerce.number().min(0),
-  repeatAmount: z.coerce.number().min(0),
+  dayCount: z.coerce.number().int().min(1, "مدّة الخطة يوم فأكثر").max(MAX_DAYS),
+  // الحفظ والمراجعة تمتدّان في المادة وحدةً وحدة، فمقدارهما عددٌ صحيح.
+  memorizeAmount: z.coerce.number().int("المقدار عدد صحيح").positive("المقدار عدد موجب").max(1000, "المقدار ١٠٠٠ فأقل"),
+  reviewAmount: z.coerce.number().int("المقدار عدد صحيح").min(0).max(1000, "المقدار ١٠٠٠ فأقل"),
+  repeatAmount: z.coerce.number().min(0).max(1000, "العدد ١٠٠٠ فأقل"),
 });
 
 export async function quickSetup(_prev: FormState, form: FormData): Promise<FormState> {
@@ -32,7 +32,6 @@ export async function quickSetup(_prev: FormState, form: FormData): Promise<Form
     programId: form.get("programId"),
     lines: form.get("lines") ?? "",
     dayCount: form.get("dayCount"),
-    restEvery: form.get("restEvery") || 0,
     memorizeAmount: form.get("memorizeAmount"),
     reviewAmount: form.get("reviewAmount") || 0,
     repeatAmount: form.get("repeatAmount") || 0,
@@ -57,7 +56,6 @@ export async function quickSetup(_prev: FormState, form: FormData): Promise<Form
     p_lines: parsed.data.lines,
     p_fields: fields,
     p_day_count: parsed.data.dayCount,
-    p_rest_every: parsed.data.restEvery,
   });
 
   if (error) {
@@ -68,7 +66,7 @@ export async function quickSetup(_prev: FormState, form: FormData): Promise<Form
     if (/لا مسارات/.test(error.message)) {
       return { error: "أضِف مساراً واحداً على الأقل من صفحة البرنامج أولاً." };
     }
-    if (/المادة مطلوبة|مدّة الخطة|واجب واحد/.test(error.message)) {
+    if (/المادة مطلوبة|مدّة الخطة|حقلٌ واحد|مقدار «/.test(error.message)) {
       return { error: error.message };
     }
     return { error: "تعذّر الإعداد. لم يُكتب شيء." };
