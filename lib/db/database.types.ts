@@ -729,17 +729,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "field_counts_track_id_fkey"
-            columns: ["track_id"]
-            isOneToOne: false
-            referencedRelation: "tracks"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "field_counts_task_field_id_fkey"
             columns: ["task_field_id"]
             isOneToOne: false
             referencedRelation: "task_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_counts_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
             referencedColumns: ["id"]
           },
         ]
@@ -800,17 +800,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "field_marks_track_id_fkey"
-            columns: ["track_id"]
-            isOneToOne: false
-            referencedRelation: "tracks"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "field_marks_task_field_id_fkey"
             columns: ["task_field_id"]
             isOneToOne: false
             referencedRelation: "task_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "field_marks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
             referencedColumns: ["id"]
           },
         ]
@@ -1781,7 +1781,9 @@ export type Database = {
           id: string
           name: string
           program_id: string
-          progress_measure: Database["public"]["Enums"]["progress_measure"] | null
+          progress_measure:
+            | Database["public"]["Enums"]["progress_measure"]
+            | null
           sort_order: number
           start_date: string | null
           start_date_overridden: boolean
@@ -1800,7 +1802,9 @@ export type Database = {
           id?: string
           name: string
           program_id: string
-          progress_measure?: Database["public"]["Enums"]["progress_measure"] | null
+          progress_measure?:
+            | Database["public"]["Enums"]["progress_measure"]
+            | null
           sort_order?: number
           start_date?: string | null
           start_date_overridden?: boolean
@@ -1819,7 +1823,9 @@ export type Database = {
           id?: string
           name?: string
           program_id?: string
-          progress_measure?: Database["public"]["Enums"]["progress_measure"] | null
+          progress_measure?:
+            | Database["public"]["Enums"]["progress_measure"]
+            | null
           sort_order?: number
           start_date?: string | null
           start_date_overridden?: boolean
@@ -1886,10 +1892,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      fn_ar_digits: {
-        Args: { p_value: string }
-        Returns: string
-      }
+      fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_attention_items: {
         Args: never
@@ -1914,8 +1917,28 @@ export type Database = {
         Returns: boolean
       }
       fn_close_my_account: { Args: never; Returns: undefined }
+      fn_complete_day_at: {
+        Args: {
+          p_at: string
+          p_day: number
+          p_participant_id: string
+          p_plan_id: string
+          p_track_id: string
+        }
+        Returns: boolean
+      }
       fn_count_repetition: {
         Args: {
+          p_day: number
+          p_delta: number
+          p_field_id: string
+          p_participant_id: string
+        }
+        Returns: number
+      }
+      fn_count_repetition_at: {
+        Args: {
+          p_at: string
           p_day: number
           p_delta: number
           p_field_id: string
@@ -1931,6 +1954,10 @@ export type Database = {
         Args: { p_key: string; p_track_id: string }
         Returns: undefined
       }
+      fn_cut_at: {
+        Args: { p_date: string; p_program_id: string; p_track_id: string }
+        Returns: string
+      }
       fn_dashboard_counts: {
         Args: never
         Returns: {
@@ -1943,21 +1970,21 @@ export type Database = {
       fn_day_tasks: {
         Args: { p_day?: number; p_participant_id: string }
         Returns: {
-          amount: number | null
+          amount: number
           count: number
-          count_unit: string | null
+          count_unit: string
           day_number: number
           is_material_linked: boolean
           is_required: boolean
           kind: Database["public"]["Enums"]["field_kind"]
           label: string
-          marked_at: string | null
-          ord_from: number | null
-          ord_to: number | null
-          repetition: number | null
+          marked_at: string
+          ord_from: number
+          ord_to: number
+          repetition: number
           sort_order: number
           task_field_id: string
-          value: number | null
+          value: number
         }[]
       }
       fn_day_template_program_id: {
@@ -1982,6 +2009,44 @@ export type Database = {
           purge_after: string
           user_id: string
         }[]
+      }
+      fn_done_days_at: {
+        Args: {
+          p_at: string
+          p_participant_id: string
+          p_plan_id: string
+          p_track_id: string
+        }
+        Returns: number
+      }
+      fn_due_days_at: {
+        Args: {
+          p_at: string
+          p_base: number
+          p_day_count: number
+          p_program_id: string
+          p_start: string
+          p_track_id: string
+        }
+        Returns: number
+      }
+      fn_engine_access: {
+        Args: { p_participant_id: string; p_write: boolean }
+        Returns: undefined
+      }
+      fn_engine_lock: { Args: { p_participant_id: string }; Returns: undefined }
+      fn_engine_require_day: {
+        Args: {
+          p_at: string
+          p_day: number
+          p_done_ok: boolean
+          p_participant_id: string
+        }
+        Returns: Json
+      }
+      fn_engine_scope_check: {
+        Args: { p_program_id: string; p_track_id: string }
+        Returns: undefined
       }
       fn_engine_settings: {
         Args: { p_program_id: string; p_track_id?: string }
@@ -2016,16 +2081,23 @@ export type Database = {
         Args: { p_date: string; p_program_id: string; p_track_id: string }
         Returns: boolean
       }
-      fn_journey_state: {
-        Args: { p_participant_id: string }
+      fn_journey_state: { Args: { p_participant_id: string }; Returns: Json }
+      fn_journey_state_at: {
+        Args: { p_at: string; p_participant_id: string }
         Returns: Json
       }
-      fn_local_now: {
-        Args: { p_at?: string }
-        Returns: string
-      }
+      fn_local_now: { Args: { p_at?: string }; Returns: string }
       fn_mark_field: {
         Args: { p_day: number; p_field_id: string; p_participant_id: string }
+        Returns: Json
+      }
+      fn_mark_field_at: {
+        Args: {
+          p_at: string
+          p_day: number
+          p_field_id: string
+          p_participant_id: string
+        }
         Returns: Json
       }
       fn_my_duties: {
@@ -2055,13 +2127,14 @@ export type Database = {
           scope_program_id: string
         }[]
       }
-      fn_open_next_day: {
-        Args: { p_participant_id: string }
+      fn_open_next_day: { Args: { p_participant_id: string }; Returns: Json }
+      fn_open_next_day_at: {
+        Args: { p_at: string; p_participant_id: string }
         Returns: Json
       }
-      fn_participant_plan_id: {
+      fn_participant_engine: {
         Args: { p_participant_id: string }
-        Returns: string
+        Returns: Record<string, unknown>
       }
       fn_participant_record: {
         Args: { p_participant_id: string }
@@ -2074,10 +2147,6 @@ export type Database = {
           track_name: string
         }[]
       }
-      fn_participant_track_id: {
-        Args: { p_participant_id: string }
-        Returns: string
-      }
       fn_pending_invites: {
         Args: never
         Returns: {
@@ -2088,29 +2157,29 @@ export type Database = {
       fn_plan_issues: {
         Args: { p_plan_id: string }
         Returns: {
-          day_number: number | null
+          day_number: number
           message: string
           severity: string
-          task_field_id: string | null
-          track_id: string | null
+          task_field_id: string
+          track_id: string
         }[]
       }
-      fn_plan_locked_through: {
-        Args: { p_plan_id: string }
-        Returns: number
-      }
+      fn_plan_locked_through: { Args: { p_plan_id: string }; Returns: number }
       fn_plan_program_id: { Args: { p_plan_id: string }; Returns: string }
-      fn_plan_snapshot: {
-        Args: { p_plan_id: string }
-        Returns: Json
-      }
-      fn_plan_tracks: {
-        Args: { p_plan_id: string }
-        Returns: string[]
-      }
+      fn_plan_snapshot: { Args: { p_plan_id: string }; Returns: Json }
+      fn_plan_tracks: { Args: { p_plan_id: string }; Returns: string[] }
       fn_profile_is_complete: {
         Args: { p: Database["public"]["Tables"]["profiles"]["Row"] }
         Returns: boolean
+      }
+      fn_program_days_through: {
+        Args: {
+          p_date: string
+          p_program_id: string
+          p_start: string
+          p_track_id: string
+        }
+        Returns: number
       }
       fn_program_missing: { Args: { p_program_id: string }; Returns: string[] }
       fn_program_participants: {
@@ -2201,10 +2270,7 @@ export type Database = {
         Returns: string
       }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
-      fn_remove_custom_plan: {
-        Args: { p_plan_id: string }
-        Returns: undefined
-      }
+      fn_remove_custom_plan: { Args: { p_plan_id: string }; Returns: undefined }
       fn_restore_plan_version: {
         Args: { p_version_id: string }
         Returns: number
@@ -2236,6 +2302,15 @@ export type Database = {
         Args: { p_labels: string[]; p_program_id: string; p_start: number }
         Returns: number
       }
+      fn_settle_commitment_at: {
+        Args: { p_participant_id: string; p_until: string }
+        Returns: number
+      }
+      fn_settle_scope: {
+        Args: { p_program_id: string; p_track_id: string }
+        Returns: number
+      }
+      fn_track_has_plan: { Args: { p_track_id: string }; Returns: boolean }
       fn_track_ordinal_of: {
         Args: { p_sequence: number; p_track_id: string }
         Returns: number
@@ -2248,10 +2323,7 @@ export type Database = {
           to_sequence: number
         }[]
       }
-      fn_track_plan: {
-        Args: { p_track_id: string }
-        Returns: string
-      }
+      fn_track_plan: { Args: { p_track_id: string }; Returns: string }
       fn_track_program_id: { Args: { p_track_id: string }; Returns: string }
       fn_track_unit_at: {
         Args: { p_ordinal: number; p_track_id: string }
@@ -2268,6 +2340,15 @@ export type Database = {
       }
       fn_undo_mark: {
         Args: { p_day: number; p_field_id: string; p_participant_id: string }
+        Returns: Json
+      }
+      fn_undo_mark_at: {
+        Args: {
+          p_at: string
+          p_day: number
+          p_field_id: string
+          p_participant_id: string
+        }
         Returns: Json
       }
       fn_withdraw_participation: {
