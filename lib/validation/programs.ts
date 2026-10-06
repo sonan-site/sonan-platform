@@ -1,5 +1,6 @@
 import { z } from "@/lib/validation/z";
 import { kindIsScored, PROGRAM_KIND_CODES } from "@/lib/programs/kinds";
+import { riyadhDayEnd, riyadhDayStart } from "@/lib/format";
 
 /** مخططات البرامج والأقسام والمسارات — الخادم هو الحجّة. */
 
@@ -22,6 +23,16 @@ const optionalDate = z
   .nullable()
   .refine((v) => v === null || !Number.isNaN(Date.parse(v)), "تاريخ غير صالح");
 
+/**
+ * نافذة التسجيل تُدخَل أياماً: الفتح أول يومه والإغلاق آخر يومه، بتوقيت الرياض.
+ * والقيمة التي تحمل وقتاً تمرّ كما هي.
+ */
+const DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const windowEdge = (edge: "start" | "end") =>
+  optionalDate.transform((v) =>
+    v === null || !DAY_ONLY.test(v) ? v : edge === "start" ? riyadhDayStart(v) : riyadhDayEnd(v),
+  );
+
 export const programSchema = z
   .object({
     sectionId: z.uuid("اختر قسماً"),
@@ -38,8 +49,8 @@ export const programSchema = z
       .transform((v) => (v === "" ? null : Number(v)))
       .nullable()
       .refine((v) => v === null || (Number.isInteger(v) && v > 0), "السعة عدد صحيح موجب"),
-    registrationOpensAt: optionalDate,
-    registrationClosesAt: optionalDate,
+    registrationOpensAt: windowEdge("start"),
+    registrationClosesAt: windowEdge("end"),
     // العتبتان تُقبلان فارغتين هنا، والنمط يحسم إلزامهما أدناه.
     passingPercentage: z.coerce.number().min(0).max(100).nullable().default(null),
     awardPercentage: z.coerce.number().min(0).max(100).nullable().default(null),

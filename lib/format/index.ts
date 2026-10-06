@@ -116,6 +116,22 @@ export function toDateInput(value: string | Date): string {
   return parts;
 }
 
+/** الرياض بلا توقيت صيفي، فالإزاحة ثابتة طوال السنة. */
+const RIYADH_OFFSET = "+03:00";
+
+/**
+ * حدّا يومٍ `YYYY-MM-DD` بتوقيت الرياض — لنافذةٍ تُدخَل أياماً وتُخزَّن
+ * `timestamptz`. فالتاريخ المجرّد يقرؤه Postgres منتصف ليل UTC، أي الثالثة
+ * فجراً بالرياض: يُغلق يومُ الإغلاق قبل أن يبدأ، ويُفتح يومُ الفتح متأخراً.
+ */
+export function riyadhDayStart(day: string): string {
+  return `${day}T00:00:00${RIYADH_OFFSET}`;
+}
+
+export function riyadhDayEnd(day: string): string {
+  return `${day}T23:59:59.999${RIYADH_OFFSET}`;
+}
+
 /** صيغة `HH:MM` بتوقيت الرياض — لاتينية، تُقارَن بوقت نهاية الرصد كما تُخزَّن. */
 export function toTimeInput(value: string | Date): string {
   return new Intl.DateTimeFormat("en-GB", {

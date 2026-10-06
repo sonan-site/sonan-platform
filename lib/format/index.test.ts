@@ -8,6 +8,8 @@ import {
   formatNumber,
   formatPercent,
   formatRelative,
+  riyadhDayEnd,
+  riyadhDayStart,
   toDateInput,
   toLatinDigits,
 } from "./index";
@@ -57,6 +59,14 @@ describe("التاريخ", () => {
     expect(toDateInput(new Date("2026-09-02T00:00:00Z"))).toBe("2026-09-02");
     // التاسعة مساءً UTC = منتصف ليل الرياض التالي — اليوم التالي
     expect(toDateInput(new Date("2026-09-02T21:30:00Z"))).toBe("2026-09-03");
+  });
+
+  it("**حدّا اليوم بتوقيت الرياض** — لا منتصف ليل UTC", () => {
+    expect(new Date(riyadhDayStart("2026-10-17")).toISOString()).toBe("2026-10-16T21:00:00.000Z");
+    expect(new Date(riyadhDayEnd("2026-10-17")).toISOString()).toBe("2026-10-17T20:59:59.999Z");
+    // واليومان يعودان يومهما في صيغة الإدخال — فلا ينزلق تاريخ النموذج عند فتحه
+    expect(toDateInput(riyadhDayStart("2026-10-17"))).toBe("2026-10-17");
+    expect(toDateInput(riyadhDayEnd("2026-10-17"))).toBe("2026-10-17");
   });
 
   it("الفرق الزمني مقروء بالعربية", () => {
