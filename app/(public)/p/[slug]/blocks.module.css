@@ -311,6 +311,20 @@
   font-weight: var(--weight-bold);
 }
 
+.stageNow {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+}
+
+.stage[data-status="done"] {
+  opacity: 0.7;
+}
+
 .stageDates {
   font-size: var(--text-sm);
   color: var(--color-brand);

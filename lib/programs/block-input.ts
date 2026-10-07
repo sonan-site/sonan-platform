@@ -58,6 +58,7 @@ export function blockInput(type: BlockType, form: FormData): Raw {
     case "timeline":
       return {
         heading: str(form, "heading"),
+        source: str(form, "source") === "schedule" ? "schedule" : "manual",
         stages: rows(BLOCK_ROWS.timeline, (i) => ({
           title: str(form, `stage-${i}-title`),
           dates: str(form, `stage-${i}-dates`),
@@ -75,6 +76,7 @@ export function blockInput(type: BlockType, form: FormData): Raw {
     case "prizes":
       return {
         heading: str(form, "heading"),
+        trackId: str(form, "trackId"),
         places: rows(BLOCK_ROWS.prizes, (i) => ({
           label: str(form, `place-${i}-label`),
           value: str(form, `place-${i}-value`),

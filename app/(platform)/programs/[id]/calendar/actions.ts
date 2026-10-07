@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "@/lib/validation/z";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
+import { nowIso } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { ENGINE_KEYS, type EngineKey } from "@/lib/programs/engine-settings";
 import type { Json } from "@/lib/db/database.types";
+import { scheduleEntrySchema } from "@/lib/validation/programs";
 
 /**
  * التقويم وقواعد التقدّم (`adr/0038`) — إعداد برنامج، فصلاحيته `programs.write`.
@@ -205,4 +207,61 @@ export async function inheritEngineSetting(
   if (error) return { error: settingMessage(error, "تعذّر الإرجاع.") };
   calendarPath(programId);
   return { notice: "رجع الإعداد إلى الموروث من البرنامج." };
+}
+
+// ══ مواعيد البرنامج (`adr/0044`) ══
+// جدولٌ بسياساته لا إعداد محرّك: ما يُكتب هنا يُعرض ولا يُحكم به على يوم.
+
+export async function addScheduleEntry(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = scheduleEntrySchema.safeParse({
+    programId: form.get("programId"),
+    title: form.get("title") ?? "",
+    startsOn: form.get("startsOn") ?? "",
+    endsOn: form.get("endsOn") ?? "",
+    note: form.get("note") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+  const { programId, title, startsOn, endsOn, note } = parsed.data;
+
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { error } = await db
+    .from("program_schedule")
+    .insert({ program_id: programId, title, starts_on: startsOn, ends_on: endsOn, note });
+  if (error) return { error: "تعذّر إضافة الموعد." };
+
+  await db.rpc("fn_write_audit", {
+    p_action: "schedule_entry_added",
+    p_entity_table: "program_schedule",
+    p_after: { program_id: programId, title, starts_on: startsOn, ends_on: endsOn },
+  });
+  calendarPath(programId);
+  return { notice: "أُضيف الموعد." };
+}
+
+export async function removeScheduleEntry(programId: string, entryId: string): Promise<FormState> {
+  const parsed = z.object({ programId: z.uuid(), entryId: z.uuid() }).safeParse({ programId, entryId });
+  if (!parsed.success) return { error: "موعد غير معروف." };
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("program_schedule")
+    .update({ deleted_at: nowIso() })
+    .eq("id", entryId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("title")
+    .maybeSingle();
+  if (error || !data) return { error: "تعذّر حذف الموعد." };
+
+  await db.rpc("fn_write_audit", {
+    p_action: "schedule_entry_removed",
+    p_entity_table: "program_schedule",
+    p_entity_id: entryId,
+    p_before: { program_id: programId, title: data.title },
+  });
+  calendarPath(programId);
+  return { notice: "حُذف الموعد." };
 }

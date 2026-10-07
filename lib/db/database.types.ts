@@ -1325,6 +1325,50 @@ export type Database = {
         }
         Relationships: []
       }
+      program_schedule: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          ends_on: string | null
+          id: string
+          note: string
+          program_id: string
+          starts_on: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          ends_on?: string | null
+          id?: string
+          note?: string
+          program_id: string
+          starts_on: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          ends_on?: string | null
+          id?: string
+          note?: string
+          program_id?: string
+          starts_on?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_schedule_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       programs: {
         Row: {
           award_percentage: number | null
@@ -2072,6 +2116,7 @@ export type Database = {
         Args: { p_bucket: string; p_max: number; p_seconds: number }
         Returns: boolean
       }
+      fn_home_featured: { Args: never; Returns: string }
       fn_inherit_engine_setting: {
         Args: { p_key: string; p_track_id: string }
         Returns: undefined

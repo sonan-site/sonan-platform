@@ -189,7 +189,7 @@ export function PageBuilder({
             </Select>
           </Field>
 
-          <BlockFields scope="add" type={type} values={{}} state={blockState} />
+          <BlockFields scope="add" type={type} values={{}} state={blockState} tracks={tracks} />
 
           <FormActions>
             <Button type="submit" variant="primary" pending={blockPending}>
@@ -216,6 +216,7 @@ export function PageBuilder({
               type={editing.type}
               values={editing.content}
               state={editShown}
+              tracks={tracks}
             />
 
             {editShown.error ? <p style={ERR}>{editShown.error}</p> : null}

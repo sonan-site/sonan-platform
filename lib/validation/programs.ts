@@ -96,3 +96,21 @@ export const trackSchema = z.object({
   // ولا `sortOrder` هنا: الترتيب يُحسب عند الإنشاء ويُغيَّر بالسهمين، ولا يُكتب
   // رقماً بيد — وهي الخانة التي أنتجت مساريْن برقمٍ واحد.
 });
+
+/** موعدٌ في مواعيد البرنامج (`adr/0044`) — يومٌ أو مدى أيام، بصيغة الإدخال. */
+const day = z.string().trim().regex(DAY_ONLY, "اختر اليوم من التقويم");
+
+export const scheduleEntrySchema = z
+  .object({
+    programId: z.uuid(),
+    title: z.string().trim().min(2, "عنوان الموعد مطلوب").max(60, "العنوان لا يزيد عن ٦٠ حرفاً"),
+    startsOn: day,
+    endsOn: z
+      .union([day, z.literal("")])
+      .transform((v) => (v === "" ? null : v)),
+    note: z.string().trim().max(160, "الملاحظة لا تزيد عن ١٦٠ حرفاً").default(""),
+  })
+  .refine((v) => v.endsOn === null || v.endsOn >= v.startsOn, {
+    message: "النهاية لا تسبق البداية",
+    path: ["endsOn"],
+  });

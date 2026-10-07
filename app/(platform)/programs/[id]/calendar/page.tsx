@@ -4,7 +4,9 @@ import { createClient } from "@/lib/db/server";
 import { now, toDateInput } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import type { EngineValues, TrackOverrides } from "@/lib/programs/engine-settings";
+import { composeSchedule } from "@/lib/programs/schedule";
 import { CalendarView, type TrackSettings } from "./calendar-view";
+import { ScheduleSection } from "./schedule-section";
 
 /**
  * التقويم وقواعد التقدّم (`adr/0038`): على البرنامج، ومخصّصةً لأي مسار.
@@ -28,10 +30,12 @@ export default async function CalendarPage({
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [programResult, tracksResult, exceptionsResult, deadlinesResult] = await Promise.all([
+  const [programResult, tracksResult, exceptionsResult, deadlinesResult, scheduleResult] = await Promise.all([
     db
       .from("programs")
-      .select("id, start_date, work_days, daily_limit, credit_enabled, compensation_enabled, progress_measure")
+      .select(
+        "id, start_date, work_days, daily_limit, credit_enabled, compensation_enabled, progress_measure, registration_opens_at, registration_closes_at",
+      )
       .eq("id", id)
       .is("deleted_at", null)
       .maybeSingle(),
@@ -50,9 +54,21 @@ export default async function CalendarPage({
       .eq("program_id", id)
       .is("deleted_at", null)
       .order("effective_from"),
+    db
+      .from("program_schedule")
+      .select("id, title, starts_on, ends_on, note")
+      .eq("program_id", id)
+      .is("deleted_at", null)
+      .order("starts_on"),
   ]);
 
-  if (programResult.error || tracksResult.error || exceptionsResult.error || deadlinesResult.error) {
+  if (
+    programResult.error ||
+    tracksResult.error ||
+    exceptionsResult.error ||
+    deadlinesResult.error ||
+    scheduleResult.error
+  ) {
     return <ErrorState body="تعذّر جلب الإعدادات." />;
   }
   if (!programResult.data) notFound();
@@ -110,13 +126,23 @@ export default async function CalendarPage({
 
   const current = tracks.find((t) => t.id === scope) ?? null;
 
+  const today = toDateInput(now());
+  // المواعيد للبرنامج كله — لا تُخصَّص لمسار، فتُعرض في نطاق البرنامج وحده.
+  const schedule = composeSchedule(
+    (scheduleResult.data ?? []).map((r) => ({
+      id: r.id,
+      title: r.title,
+      startsOn: r.starts_on,
+      endsOn: r.ends_on,
+      note: r.note,
+    })),
+    { opensAt: p.registration_opens_at, closesAt: p.registration_closes_at },
+  );
+
   return (
-    <CalendarView
-      programId={id}
-      today={toDateInput(now())}
-      program={program}
-      tracks={tracks}
-      current={current}
-    />
+    <>
+      <CalendarView programId={id} today={today} program={program} tracks={tracks} current={current} />
+      {current ? null : <ScheduleSection programId={id} today={today} entries={schedule} />}
+    </>
   );
 }

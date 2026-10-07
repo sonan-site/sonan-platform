@@ -2,10 +2,9 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/format";
 import { parseBlockContent, type BlockType } from "@/lib/programs/blocks";
 import { groupFaq } from "@/lib/programs/faq";
-import {
-  REGISTRATION_LABEL,
-  type RegistrationState,
-} from "@/lib/programs/registration";
+import type { BlockData, PageBlock } from "@/lib/programs/public-page-server";
+import { scheduleRangeLabel, scheduleStatus } from "@/lib/programs/schedule";
+import { REGISTRATION_LABEL } from "@/lib/programs/registration";
 import { Countdown } from "./countdown";
 import styles from "./blocks.module.css";
 
@@ -16,33 +15,7 @@ import styles from "./blocks.module.css";
  * للناس، وسقوطها كلها لأجل حقل ناقص في عنصر واحد ثمنٌ لا يوازي الخطأ.
  */
 
-export type PageBlock = {
-  id: string;
-  type: BlockType;
-  content: unknown;
-};
-
-export type BlockData = {
-  slug: string;
-  programName: string;
-  programSummary: string;
-  participantLabel: string;
-  registration: RegistrationState;
-  tracks: {
-    id: string;
-    name: string;
-    description: string;
-    capacity: number | null;
-    /** المأخوذ من مقاعد المسار — يُشتقّ منه المتبقي، ولا يُعرَض العدد نفسه. */
-    taken: number;
-    /** عدد وحدات المادة في نصيب المسار. */
-    units: number;
-  }[];
-  /** موعد إغلاق التسجيل — للعدّاد. فارغ = بلا موعد. */
-  closesAt: string | null;
-  faq: { id: string; question: string; answer: string; category: string }[];
-  attachments: Map<string, string>;
-};
+export type { BlockData, PageBlock } from "@/lib/programs/public-page-server";
 
 export function BlockList({ blocks, data }: { blocks: PageBlock[]; data: BlockData }) {
   return (
@@ -176,15 +149,29 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
     }
 
     case "timeline": {
-      const stages = Array.isArray(c["stages"]) ? (c["stages"] as Record<string, string>[]) : [];
+      // من مواعيد البرنامج: التاريخ حقيقيٌّ بالتقويمين، والجاري يُعلَّم (`adr/0044`).
+      const stages =
+        c["source"] === "schedule"
+          ? data.schedule.map((e) => ({
+              title: e.title,
+              dates: scheduleRangeLabel(e),
+              note: e.note,
+              status: scheduleStatus(e, data.today),
+            }))
+          : Array.isArray(c["stages"])
+            ? (c["stages"] as Record<string, string>[])
+            : [];
       if (stages.length === 0) return null;
       return (
         <>
           <h2 className={styles.heading}>{String(c["heading"])}</h2>
           <ol className={styles.timeline}>
             {stages.map((stage, i) => (
-              <li key={i} className={styles.stage}>
-                <span className={styles.stageTitle}>{stage["title"]}</span>
+              <li key={i} className={styles.stage} data-status={stage["status"]}>
+                <span className={styles.stageTitle}>
+                  {stage["title"]}
+                  {stage["status"] === "now" ? <span className={styles.stageNow}>جارٍ الآن</span> : null}
+                </span>
                 {stage["dates"] ? <span className={styles.stageDates}>{stage["dates"]}</span> : null}
                 {stage["note"] ? <span className={styles.stageNote}>{stage["note"]}</span> : null}
               </li>

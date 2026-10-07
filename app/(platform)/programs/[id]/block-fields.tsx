@@ -1,6 +1,6 @@
 "use client";
 
-import { Field, Input, Textarea } from "@/components/shared/form";
+import { Field, Input, Select, Textarea } from "@/components/shared/form";
 import styles from "@/components/shared/form.module.css";
 import type { FormState } from "@/lib/auth/form-state";
 import { BLOCK_ROWS, type BlockType } from "@/lib/programs/blocks";
@@ -42,12 +42,15 @@ export function BlockFields({
   type,
   values,
   state,
+  tracks = [],
 }: {
   /** «إضافة» أو «تعديل» — النموذجان مُركَّبان معاً، فالمعرّف بالنوع وحده يتكرّر. */
   scope: string;
   type: BlockType;
   values: Record<string, unknown>;
   state: FormState;
+  /** مسارات البرنامج — لربط الجوائز بمسارها. */
+  tracks?: { id: string; name: string }[];
 }) {
   const id = (name: string) => `${scope}-${type}-${name}`;
   const err = (name: string) => state.fieldErrors?.[name];
@@ -180,6 +183,17 @@ export function BlockFields({
       return (
         <>
           {heading()}
+          <Field
+            id={id("source")}
+            label="المصدر"
+            hint="مواعيد البرنامج تُعرض بتواريخها الحقيقية هجرياً وميلادياً، وتُدار من تبويب التقويم"
+            span="full"
+          >
+            <Select id={id("source")} name="source" defaultValue={text(values["source"]) || "manual"}>
+              <option value="manual">مراحل تُكتب هنا</option>
+              <option value="schedule">مواعيد البرنامج</option>
+            </Select>
+          </Field>
           {Array.from({ length: BLOCK_ROWS.timeline }, (_, i) => (
             <Field
               key={i}
@@ -241,6 +255,16 @@ export function BlockFields({
       return (
         <>
           {heading()}
+          <Field id={id("trackId")} label="المسار" hint="جوائز مسارٍ بعينه، أو عامة للبرنامج">
+            <Select id={id("trackId")} name="trackId" defaultValue={text(values["trackId"])}>
+              <option value="">عامة</option>
+              {tracks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
           {Array.from({ length: BLOCK_ROWS.prizes }, (_, i) => (
             <Field key={i} id={id(`place-${i}`)} label={`المركز ${formatNumber(i + 1)}`}>
               <span className={styles.inline}>

@@ -133,8 +133,12 @@ const statsContent = z.object({
     .default([]),
 });
 
+/** مصدر المراحل: نصٌّ يُكتب هنا، أو مواعيد البرنامج بتواريخها الحقيقية (`adr/0044`). */
+export const TIMELINE_SOURCES = ["manual", "schedule"] as const;
+
 const timelineContent = z.object({
   heading: text().default("المراحل"),
+  source: z.enum(TIMELINE_SOURCES).default("manual"),
   stages: z
     .array(
       z.object({
@@ -150,6 +154,8 @@ const timelineContent = z.object({
 
 const prizesContent = z.object({
   heading: text().default("الجوائز"),
+  /** جوائزُ مسارٍ بعينه — فارغ = جوائز عامة. تُقرأ في واجهة الحملة تحت بطاقة مساره (`adr/0045`). */
+  trackId: z.union([z.uuid(), z.literal("")]).default(""),
   places: z
     .array(z.object({ label: text(40), value: text(24) }))
     .max(BLOCK_ROWS.prizes)

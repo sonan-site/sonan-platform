@@ -2,9 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
-import { isBlockType } from "@/lib/programs/blocks";
-import { registrationStates } from "@/lib/programs/registration-server";
-import { BlockList, type BlockData, type PageBlock } from "./blocks";
+import { loadPublicProgram } from "@/lib/programs/public-page-server";
+import { BlockList } from "./blocks";
 import styles from "./blocks.module.css";
 
 /**
@@ -27,64 +26,15 @@ export default async function ProgramLandingPage({
   const { registered } = await searchParams;
   const db = await createClient();
 
-  const { data: program, error } = await db
-    .from("programs")
-    .select(
-      "id, name, summary, status, capacity, participant_label, registration_opens_at, registration_closes_at",
-    )
-    .eq("slug", slug)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) return <ErrorState body="تعذّر جلب الصفحة. أعد المحاولة." />;
-  if (!program) notFound();
-
-  const [blocksResult, tracksResult, faqResult] = await Promise.all([
-    db
-      .from("page_blocks")
-      .select("id, block_type, content")
-      .eq("program_id", program.id)
-      .is("deleted_at", null)
-      .order("sort_order")
-      // الفاصل نفسه الذي يرتّب به `moveBlock` — وإلا اختلف الفهرس عند التساوي.
-      .order("created_at"),
-    // المقاعد المتبقية وعدد الوحدات محسوبان في القاعدة — نداءٌ واحد لا نداء
-    // لكل مسار، وعدّ المشاركين محجوبٌ عن الزائر بسياسته (الهجرة ٠٥٣).
-    db.rpc("fn_public_tracks", { p_program_id: program.id }),
-    db
-      .from("help_entries")
-      .select("id, question, answer, category")
-      .eq("program_id", program.id)
-      .eq("status", "published")
-      .is("deleted_at", null)
-      .order("sort_order")
-      .order("created_at"),
-  ]);
-
-  const blocks: PageBlock[] = (blocksResult.data ?? [])
-    .filter((b) => isBlockType(b.block_type))
-    .map((b) => ({ id: b.id, type: b.block_type, content: b.content }));
-
-  const data: BlockData = {
-    slug,
-    programName: program.name,
-    programSummary: program.summary,
-    participantLabel: program.participant_label,
-    // [BR-CAP-01]
-    registration: (await registrationStates(db, [program.id])).get(program.id) ?? "closed",
-    tracks: (tracksResult.data ?? []).map((t) => ({
-      id: t.id,
-      name: t.name,
-      description: t.description ?? "",
-      capacity: t.capacity,
-      taken: t.taken,
-      units: t.units,
-    })),
-    closesAt: program.registration_closes_at,
-    faq: faqResult.data ?? [],
-    // المرفقات تُوصَل عند بناء رفع الصور. حتى ذلك الحين عنصر الصورة يُتخطّى.
-    attachments: new Map<string, string>(),
-  };
+  let loaded;
+  try {
+    loaded = await loadPublicProgram(db, slug);
+  } catch {
+    return <ErrorState body="تعذّر جلب الصفحة. أعد المحاولة." />;
+  }
+  if (!loaded) notFound();
+  const { blocks, data } = loaded;
+  const program = { name: loaded.name, summary: loaded.summary };
 
   if (blocks.length === 0) {
     return (
