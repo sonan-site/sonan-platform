@@ -338,3 +338,97 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ══ واجهة الحملة — مؤقتة (adr/0045) ══
+   مخالفةٌ معلنة لـ ui-ux.md §١٠: خطٌّ وألوانٌ خاصة، **محصورة في [data-campaign]**
+   فلا يتسرّب منها شيء إلى شاشات المنصة. وتُحذف بانقضاء القرار.
+   الخط: The Year of Handicrafts — مجاني من وزارة الثقافة، مستضاف محلياً. */
+
+@font-face {
+  font-family: "Handicrafts";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/handicrafts-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Handicrafts";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/handicrafts-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Handicrafts";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/handicrafts-700.woff2") format("woff2");
+}
+
+[data-campaign] {
+  --c-font: "Handicrafts", Tahoma, Arial, sans-serif;
+
+  /* الحبر والفيروزي والذهبي */
+  --c-ink-deep: #041d27;
+  --c-ink: #072c3a;
+  --c-cyan: #35ece2;
+  --c-cyan-soft: #8fe9ea;
+  --c-gold: #f4d59b;
+  --c-gold-light: #fbe4b6;
+  --c-gold-dark: #e3b56d;
+  --c-on-gold: #2a1d07;
+  --c-white: #ffffff;
+  --c-text: #e3f1f4;
+  --c-muted: #9fc2cb;
+  --c-danger: #ff9a8a;
+
+  /* الشفافيات */
+  --c-line: rgba(143, 233, 234, 0.18);
+  --c-line-soft: rgba(143, 233, 234, 0.1);
+  --c-line-field: rgba(143, 233, 234, 0.22);
+  --c-line-strong: rgba(143, 233, 234, 0.4);
+  --c-glass: rgba(255, 255, 255, 0.055);
+  --c-track-fill: rgba(255, 255, 255, 0.08);
+  --c-sunken: rgba(4, 29, 39, 0.5);
+  --c-cyan-wash: rgba(143, 233, 234, 0.12);
+  --c-gold-wash: rgba(244, 213, 155, 0.12);
+  --c-gold-line: rgba(244, 213, 155, 0.5);
+  --c-dot: rgba(143, 233, 234, 0.5);
+
+  /* التدرّجات والظلال */
+  --c-bg:
+    radial-gradient(1100px 700px at 50% 12%, rgba(26, 120, 150, 0.55), transparent 70%),
+    radial-gradient(900px 600px at 15% 60%, rgba(12, 78, 102, 0.6), transparent 70%),
+    radial-gradient(900px 700px at 85% 85%, rgba(12, 78, 102, 0.5), transparent 70%),
+    linear-gradient(180deg, #072c3a 0%, #041d27 100%);
+  --c-header-bg: linear-gradient(180deg, rgba(4, 29, 39, 0.92), rgba(4, 29, 39, 0.7));
+  --c-footer-bg: rgba(4, 29, 39, 0.55);
+  --c-gold-fill: linear-gradient(180deg, #fbe4b6, #f4d59b 45%, #e3b56d);
+  --c-gold-glow: 0 6px 24px rgba(244, 213, 155, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --c-now-glow: 0 0 0 6px rgba(244, 213, 155, 0.12), 0 0 24px rgba(244, 213, 155, 0.4);
+  --c-title-glow: 0 0 28px rgba(53, 236, 226, 0.45), 0 0 70px rgba(53, 236, 226, 0.18);
+  --c-pill-fill: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(143, 233, 234, 0.12), rgba(255, 255, 255, 0.04));
+  --c-track-fill-grad: linear-gradient(180deg, rgba(143, 233, 234, 0.1), rgba(255, 255, 255, 0.03) 60%);
+  --c-track-on-grad: linear-gradient(180deg, rgba(244, 213, 155, 0.16), rgba(255, 255, 255, 0.03) 65%);
+  --c-card-grad: linear-gradient(180deg, rgba(21, 109, 138, 0.28), rgba(4, 29, 39, 0.55));
+  --c-card-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+  --c-halaqat-grad: radial-gradient(600px 200px at 90% 0%, rgba(53, 236, 226, 0.12), transparent 70%);
+
+  /* المقاسات — سلّم الحملة فوق سلّم المنصة */
+  --c-wrap: 1180px;
+  --c-header-offset: 84px;
+  --c-radius-lg: 22px;
+  --c-radius-md: 14px;
+  --c-radius-sm: 10px;
+  --c-fs-title: clamp(2.6rem, 7.6vw, 6.8rem);
+  --c-fs-pill: clamp(1.15rem, 2.6vw, 1.8rem);
+  --c-fs-h2: clamp(1.9rem, 4vw, 2.7rem);
+  --c-fs-fact: clamp(1.55rem, 3.4vw, 2.4rem);
+  --c-fs-count: 2.7rem;
+  --c-fs-clock: 1.5rem;
+  --c-fs-lede: 1.08rem;
+  --c-fs-small: 0.72rem;
+}

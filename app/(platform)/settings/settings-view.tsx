@@ -1,14 +1,28 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
+import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { Messages, Muted, PageHead, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { MAX_SLIDES, type Slide } from "@/lib/settings/showcase";
-import { saveShowcase } from "./actions";
+import { saveHomeFeatured, saveShowcase } from "./actions";
 
-export function SettingsView({ slides, canWrite }: { slides: Slide[]; canWrite: boolean }) {
+type ProgramOption = { slug: string; name: string; published: boolean };
+
+export function SettingsView({
+  slides,
+  canWrite,
+  featuredSlug,
+  programs,
+}: {
+  slides: Slide[];
+  canWrite: boolean;
+  featuredSlug: string | null;
+  programs: ProgramOption[];
+}) {
   const [state, action, pending] = useActionState(saveShowcase, EMPTY_FORM_STATE);
+  const [homeState, homeAction, homePending] = useActionState(saveHomeFeatured, EMPTY_FORM_STATE);
+  const featured = programs.find((p) => p.slug === featuredSlug) ?? null;
 
   return (
     <>
@@ -17,6 +31,38 @@ export function SettingsView({ slides, canWrite }: { slides: Slide[]; canWrite: 
         title="الإعدادات"
         lede="ما يراه الزائر قبل أن يدخل."
       />
+
+      {canWrite ? (
+        <StepForm title="واجهة الحملة في الصفحة الرئيسية" action={homeAction} state={homeState}>
+          <Muted>
+            تعرض الصفحة الرئيسية واجهة برنامجٍ واحد بدل قائمة البرامج، حتى تُعيدها هنا. وتظهر متى كان
+            البرنامج منشوراً.
+          </Muted>
+          <Field id="slug" label="البرنامج" error={homeState.fieldErrors?.["slug"]}>
+            <Select id="slug" name="slug" defaultValue={featuredSlug ?? ""}>
+              <option value="">لا حملة — قائمة البرامج</option>
+              {programs.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.published ? p.name : `${p.name} — مسوّدة`}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {featured && !featured.published ? (
+            <Muted>«{featured.name}» مسوّدة: تبقى الصفحة الرئيسية قائمةَ البرامج حتى يُنشر.</Muted>
+          ) : null}
+          <Messages state={homeState} />
+          <FormActions>
+            <Button type="submit" variant="primary" pending={homePending}>
+              احفظ الواجهة
+            </Button>
+          </FormActions>
+        </StepForm>
+      ) : (
+        <Muted>
+          الصفحة الرئيسية: {featured ? `واجهة «${featured.name}»` : "قائمة البرامج"}.
+        </Muted>
+      )}
 
       {canWrite ? (
         <StepForm title="شرائح واجهة الدخول" action={action} state={state}>

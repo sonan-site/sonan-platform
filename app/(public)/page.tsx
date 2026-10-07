@@ -4,6 +4,10 @@ import { createClient } from "@/lib/db/server";
 import { formatNumber } from "@/lib/format";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { registrationStates } from "@/lib/programs/registration-server";
+import { getSession } from "@/lib/auth/session";
+import { loadPublicProgram } from "@/lib/programs/public-page-server";
+import { getHomeFeatured } from "@/lib/settings/home-featured-server";
+import { CampaignLanding } from "./components/campaign/campaign-landing";
 import styles from "./store.module.css";
 
 /**
@@ -26,6 +30,18 @@ const TAG_CLASS: Record<RegistrationState, string> = {
 
 export default async function StorePage() {
   const db = await createClient();
+
+  // واجهة الحملة (`adr/0045`): مفتاحٌ على برنامجٍ منشور يحلّ محلّ المتجر.
+  // وأي تعذّر في تحميلها يعود إلى المتجر — الصفحة الرئيسية لا تسقط لأجل حملة.
+  const featured = await getHomeFeatured();
+  if (featured) {
+    const program = await loadPublicProgram(db, featured).catch(() => null);
+    if (program) {
+      const session = await getSession();
+      return <CampaignLanding program={program} signedIn={session.status === "active"} />;
+    }
+  }
+
   const { data, error } = await db
     .from("programs")
     .select(

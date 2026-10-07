@@ -1,7 +1,9 @@
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { getSession } from "@/lib/auth/session";
+import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import styles from "./layout.module.css";
 
 /**
@@ -10,6 +12,11 @@ import styles from "./layout.module.css";
  * فلا شريط جانبي ولا تنقّل داخلي لمن لم يسجّل. مستثنى في allowlist بحجّته.
  */
 export default async function PublicLayout({ children }: { children: ReactNode }) {
+  // واجهة الحملة (`adr/0045`) تحمل رأسها وتذييلها، فلا يُلفّ بهما مرّتين.
+  const path = (await headers()).get("x-pathname") ?? "";
+  if (path.startsWith("/p/") && path.endsWith("/campaign")) return <>{children}</>;
+  if (path === "/" && (await getHomeFeatured())) return <>{children}</>;
+
   // الرأس يعرف من دخل: كان يعرض «تسجيل الدخول» لمن هو داخلٌ أصلاً بلا طريق إلى لوحته.
   const session = await getSession();
   const signedIn = session.status === "active";

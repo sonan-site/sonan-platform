@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { HOME_FEATURED_KEY, homeFeaturedSchema } from "@/lib/settings/home-featured";
 import { SHOWCASE_KEY, showcaseInput, showcaseSchema } from "@/lib/settings/showcase";
 
 /** شرائح واجهة الدخول — تحقّق ← صلاحية ← حفظ ← تدقيق. */
@@ -43,4 +44,38 @@ export async function saveShowcase(_prev: FormState, form: FormData): Promise<Fo
 
   revalidatePath("/settings");
   return { notice: "حُفظت الشرائح. تظهر في شاشة الدخول الآن." };
+}
+
+/** واجهة الحملة (`adr/0045`) — تحقّق ← صلاحية ← حفظ ← تدقيق. */
+export async function saveHomeFeatured(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = homeFeaturedSchema.safeParse({ slug: form.get("slug") ?? "" });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const authz = await authorizeRequest({ permission: "settings.write" });
+  if (!authz.ok) return { error: authz.message };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("settings")
+    .update({ value: parsed.data })
+    .eq("key", HOME_FEATURED_KEY)
+    .is("scope_program_id", null)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: "تعذّر حفظ الواجهة. أعد المحاولة." };
+
+  await db.rpc("fn_write_audit", {
+    p_action: "home_featured_updated",
+    p_entity_table: "settings",
+    p_entity_id: data[0]?.id,
+    p_after: parsed.data,
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+  return {
+    notice: parsed.data.slug
+      ? "حُفظت. تظهر واجهة الحملة في الصفحة الرئيسية متى كان البرنامج منشوراً."
+      : "حُفظت. الصفحة الرئيسية تعرض البرامج كما كانت.",
+  };
 }

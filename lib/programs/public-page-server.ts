@@ -40,6 +40,10 @@ export type BlockData = {
   tracks: PublicTrack[];
   /** موعد إغلاق التسجيل — للعدّاد. فارغ = بلا موعد. */
   closesAt: string | null;
+  /** موعد فتحه — لعدّاد «يُفتح التسجيل» قبل أن يُفتح. */
+  opensAt: string | null;
+  /** اسم الوحدة بعد العدد («حديثاً») — من تعريف المادة، لا مكتوبٌ في العارض. */
+  unitLabel: string;
   /** مواعيد البرنامج مرتّبةً، والتسجيل المشتقّ بينها (`adr/0044`). */
   schedule: ScheduleEntry[];
   /** «اليوم» بالرياض `YYYY-MM-DD` — لحالة كل موعد. */
@@ -62,7 +66,9 @@ type Db = Awaited<ReturnType<typeof createClient>>;
 export async function loadPublicProgram(db: Db, slug: string): Promise<PublicProgram | null> {
   const { data: program, error } = await db
     .from("programs")
-    .select("id, name, summary, participant_label, registration_opens_at, registration_closes_at")
+    .select(
+      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_singular, unit_many",
+    )
     .eq("slug", slug)
     .is("deleted_at", null)
     .maybeSingle();
@@ -124,6 +130,8 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
         units: t.units,
       })),
       closesAt: program.registration_closes_at,
+      opensAt: program.registration_opens_at,
+      unitLabel: program.unit_singular ?? program.unit_many ?? "",
       schedule: composeSchedule(
         (scheduleResult.data ?? []).map((r) => ({
           id: r.id,
