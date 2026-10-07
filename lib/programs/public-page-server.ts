@@ -67,7 +67,7 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
   const { data: program, error } = await db
     .from("programs")
     .select(
-      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_singular, unit_many",
+      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_many",
     )
     .eq("slug", slug)
     .is("deleted_at", null)
@@ -131,7 +131,7 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
       })),
       closesAt: program.registration_closes_at,
       opensAt: program.registration_opens_at,
-      unitLabel: program.unit_singular ?? program.unit_many ?? "",
+      unitLabel: program.unit_many ?? "",
       schedule: composeSchedule(
         (scheduleResult.data ?? []).map((r) => ({
           id: r.id,
