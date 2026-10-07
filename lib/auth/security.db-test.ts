@@ -423,9 +423,11 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
     // `fn_auth_showcase` تُرجع شرائح شاشة الدخول وحدها، لا جدول الإعدادات (الهجرة ٠٣٨).
     // `fn_public_tracks` تُرجع مسارات **المنشور** وحده، و**المأخوذ من مقاعده**
     //   لا أسماء من أخذها — والصفحة المعلنة تعرض المتبقي (الهجرة ٠٥٣).
+    // `fn_home_featured` تُرجع رابط برنامج الحملة **المنشور** وحده، لا الإعدادات (الهجرة ٠٦٩).
     expect(rows.map((r) => r.name)).toEqual([
       "fn_auth_showcase",
       "fn_has_permission",
+      "fn_home_featured",
       "fn_public_tracks",
       "fn_registration_state",
       "fn_track_unit_count",
