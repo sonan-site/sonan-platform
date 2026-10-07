@@ -202,6 +202,8 @@
   line-height: 1.3;
   white-space: nowrap;
   text-shadow: var(--c-title-glow);
+  /* النون الأخيرة الممدودة — شكلٌ بديل في الخطّ نفسه، لا كشيدة مضافة */
+  font-feature-settings: "ss01" 1;
 }
 
 .pill {
