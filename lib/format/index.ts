@@ -1,7 +1,8 @@
 /**
  * منفذ التنسيق الوحيد — التاريخ والوقت والأرقام.
  *
- * `platform.md §١١.١`: «الأرقام هندية-عربية **عرضاً** ولاتينية **إدخالاً وتخزيناً**».
+ * الأرقام **لاتينية عرضاً وإدخالاً وتخزيناً** (`adr/0046`) — تُبطل في هذه المنصة
+ * قاعدة `ui-ux.md` §١١.١ التي كانت تعرضها هندية-عربية.
  * و`guard-style` يمنع `new Date()` خارج هذه الوحدة: مصدر وقت واحد يعني أن
  * تثبيت الوقت في الاختبار ممكن، وأن المنطقة الزمنية تُضبط في موضع واحد.
  */
@@ -27,17 +28,17 @@ export function toDate(value: string | Date): Date {
 
 // ── الأرقام ──
 
-const arabicDigits = new Intl.NumberFormat(LOCALE, { numberingSystem: "arab" });
+const displayDigits = new Intl.NumberFormat(LOCALE, { numberingSystem: "latn" });
 
-/** رقم للعرض: هندي-عربي (٠١٢٣). لا يُستخدم في حقل إدخال ولا في قيمة تُخزَّن. */
+/** رقم للعرض بالأرقام اللاتينية (0123) — `adr/0046`. */
 export function formatNumber(value: number): string {
-  return arabicDigits.format(value);
+  return displayDigits.format(value);
 }
 
 /** نسبة مئوية للعرض. تُقرَّب لأقرب صحيح ما لم يُطلب غير ذلك. */
 export function formatPercent(value: number, fractionDigits = 0): string {
   return new Intl.NumberFormat(LOCALE, {
-    numberingSystem: "arab",
+    numberingSystem: "latn",
     style: "percent",
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
@@ -55,7 +56,7 @@ export function toLatinDigits(value: number | string): string {
 
 const gregorian = new Intl.DateTimeFormat(LOCALE, {
   timeZone: TIMEZONE,
-  numberingSystem: "arab",
+  numberingSystem: "latn",
   calendar: "gregory",
   year: "numeric",
   month: "long",
@@ -64,7 +65,7 @@ const gregorian = new Intl.DateTimeFormat(LOCALE, {
 
 const hijri = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
   timeZone: TIMEZONE,
-  numberingSystem: "arab",
+  numberingSystem: "latn",
   year: "numeric",
   month: "long",
   day: "numeric",
@@ -72,7 +73,7 @@ const hijri = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
 
 const timeOnly = new Intl.DateTimeFormat(LOCALE, {
   timeZone: TIMEZONE,
-  numberingSystem: "arab",
+  numberingSystem: "latn",
   hour: "2-digit",
   minute: "2-digit",
 });
@@ -152,7 +153,7 @@ export function formatClock(value: string): string {
 /** فرق زمني مقروء: «قبل ٣ أيام» · «بعد ساعتين». */
 export function formatRelative(value: string | Date, from: Date = now()): string {
   const diffMs = toDate(value).getTime() - from.getTime();
-  const rtf = new Intl.RelativeTimeFormat(LOCALE, { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat(`${LOCALE}-u-nu-latn`, { numeric: "auto" });
 
   const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ["year", 365 * 24 * 60 * 60 * 1000],

@@ -11,8 +11,8 @@ export const SHOWCASE_KEY = "auth.showcase";
 export const MAX_SLIDES = 5;
 
 export const slideSchema = z.object({
-  title: z.string().trim().min(2, "العنوان حرفان فأكثر").max(60, "العنوان لا يزيد عن ٦٠ حرفاً"),
-  body: z.string().trim().max(200, "النصّ لا يزيد عن ٢٠٠ حرف"),
+  title: z.string().trim().min(2, "العنوان حرفان فأكثر").max(60, "العنوان لا يزيد عن 60 حرفاً"),
+  body: z.string().trim().max(200, "النصّ لا يزيد عن 200 حرف"),
 });
 
 export const showcaseSchema = z.object({

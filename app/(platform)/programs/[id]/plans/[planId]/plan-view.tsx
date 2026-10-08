@@ -242,7 +242,7 @@ export function PlanEditor({
               aria-label="عدد أيام الخطة"
             />
           </label>
-          {lockedThrough > 0 ? <span className={styles.chip}>المقفل ١–{formatNumber(lockedThrough)}</span> : null}
+          {lockedThrough > 0 ? <span className={styles.chip}>المقفل 1–{formatNumber(lockedThrough)}</span> : null}
           {errors.length > 0 ? (
             <span className={`${styles.chip} ${styles.chipBad}`}>{formatNumber(errors.length)} ملاحظات تمنع الحفظ</span>
           ) : warnings.length > 0 ? (

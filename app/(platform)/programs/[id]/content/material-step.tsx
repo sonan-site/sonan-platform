@@ -223,7 +223,7 @@ export function MaterialStep({
           id="sectionLines"
           label="سطرٌ لكل باب: اسمه ثم عدد وحداته"
           required
-          hint={`تُضاف في آخر المادة. مثال: «الإيمان ٤٧» ثم «الطهارة ٤٤» في السطر التالي.`}
+          hint={`تُضاف في آخر المادة. مثال: «الإيمان 47» ثم «الطهارة 44» في السطر التالي.`}
           error={sectionState.fieldErrors?.lines}
           span="full"
         >
@@ -240,7 +240,7 @@ export function MaterialStep({
       <StepForm title="صيغ العرض" action={formsAction} state={formsState}>
         <input type="hidden" name="programId" value={programId} />
         <p className={styles.formsWhy}>
-          منها تُصاغ نطاقات المشارك: «من الحديث ٤٦ من باب الإيمان إلى الحديث ٢ من باب الطهارة (٤ أحاديث)».
+          منها تُصاغ نطاقات المشارك: «من الحديث 46 من باب الإيمان إلى الحديث 2 من باب الطهارة (4 أحاديث)».
           والفارغ يُعرض بالصيغة العامة «{GENERIC_FORMS.singular}».
         </p>
         <Field id="sectionLabel" label="اسم القسم" hint="باب · سورة · فصل" error={formsState.fieldErrors?.sectionLabel}>
@@ -249,16 +249,16 @@ export function MaterialStep({
         <Field id="singular" label="الوحدة مفردةً" hint="الحديث" error={formsState.fieldErrors?.singular}>
           <Input id="singular" name="singular" defaultValue={forms.singular ?? ""} maxLength={30} />
         </Field>
-        <Field id="one" label="مع ١" hint="حديث واحد" error={formsState.fieldErrors?.one}>
+        <Field id="one" label="مع 1" hint="حديث واحد" error={formsState.fieldErrors?.one}>
           <Input id="one" name="one" defaultValue={forms.one ?? ""} maxLength={30} />
         </Field>
-        <Field id="two" label="مع ٢" hint="حديثان" error={formsState.fieldErrors?.two}>
+        <Field id="two" label="مع 2" hint="حديثان" error={formsState.fieldErrors?.two}>
           <Input id="two" name="two" defaultValue={forms.two ?? ""} maxLength={30} />
         </Field>
-        <Field id="few" label="مع ٣ إلى ١٠" hint="أحاديث" error={formsState.fieldErrors?.few}>
+        <Field id="few" label="مع 3 إلى 10" hint="أحاديث" error={formsState.fieldErrors?.few}>
           <Input id="few" name="few" defaultValue={forms.few ?? ""} maxLength={30} />
         </Field>
-        <Field id="many" label="مع ١١ فأكثر" hint="حديثاً" error={formsState.fieldErrors?.many}>
+        <Field id="many" label="مع 11 فأكثر" hint="حديثاً" error={formsState.fieldErrors?.many}>
           <Input id="many" name="many" defaultValue={forms.many ?? ""} maxLength={30} />
         </Field>
         {examples.length > 0 ? (

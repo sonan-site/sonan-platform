@@ -97,7 +97,7 @@ export async function saveEngineSetting(_prev: FormState, form: FormData): Promi
     case "daily_limit": {
       const limit = Number(raw);
       if (!Number.isInteger(limit) || limit < 1 || limit > 20) {
-        return { fieldErrors: { value: "الحد اليومي بين ١ و٢٠" } };
+        return { fieldErrors: { value: "الحد اليومي بين 1 و20" } };
       }
       return write(programId, trackId, key, limit, "حُفظ الحد اليومي.");
     }

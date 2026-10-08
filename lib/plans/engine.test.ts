@@ -114,13 +114,13 @@ describe("ملاحظات الخطة", () => {
   it("خطة صحيحة لا تغطّي النصيب كله: تنبيه لا خطأ", () => {
     const issues = planIssues(firstDays, fields, [track1]);
     expect(issues.filter((i) => i.severity === "error")).toEqual([]);
-    expect(issues[0]?.message).toBe("الخطة لا تغطّي نصيب المسار كله: مجموع مقادير «حفظ» ٥ من ٤٧");
+    expect(issues[0]?.message).toBe("الخطة لا تغطّي نصيب المسار كله: مجموع مقادير «حفظ» 5 من 47");
   });
 
   it("**المقيَّد لا يتجاوز ما بلغه الحفظ في يومه**", () => {
     const bad: PlanDraft = { ...firstDays, values: [...firstDays.values.filter((v) => !(v.day === 2 && v.fieldId === "r")), { day: 2, fieldId: "r", from: 1, to: 3 }] };
     expect(planIssues(bad, fields, [track1]).map((i) => i.message)).toContain(
-      "اليوم ٢: «ربط» يتجاوز ما بلغه الحفظ في هذا اليوم",
+      "اليوم 2: «ربط» يتجاوز ما بلغه الحفظ في هذا اليوم",
     );
   });
 
@@ -130,17 +130,17 @@ describe("ملاحظات الخطة", () => {
       values: [...firstDays.values, { day: 5, fieldId: "m", from: 60, to: 60 }, { day: 1, fieldId: "r", amount: 1 }],
     };
     const messages = planIssues(bad, fields, [track1]).map((i) => i.message);
-    expect(messages).toContain("اليوم ٥: «مراجعة» مكرّر");
-    expect(messages).toContain("اليوم ٥: «مراجعة» خارج نصيب المسار");
-    expect(messages).toContain("اليوم ١: «ربط» يحتاج «من» و«إلى» موجبين، والبداية لا تزيد على النهاية");
-    expect(messages).toContain("اليوم ٦ بلا نشاط إلزامي");
+    expect(messages).toContain("اليوم 5: «مراجعة» مكرّر");
+    expect(messages).toContain("اليوم 5: «مراجعة» خارج نصيب المسار");
+    expect(messages).toContain("اليوم 1: «ربط» يحتاج «من» و«إلى» موجبين، والبداية لا تزيد على النهاية");
+    expect(messages).toContain("اليوم 6 بلا نشاط إلزامي");
   });
 
   it("مع أكثر من مسار تُسبق الملاحظة باسمه", () => {
     const big: PlanDraft = { dayCount: 1, values: [{ day: 1, fieldId: "h", amount: 48 }] };
     const messages = planIssues(big, fields, [track1, track2]).map((i) => i.message);
-    expect(messages).toContain("الأول: مجموع مقادير «حفظ» (٤٨) يتجاوز نصيب المسار (٤٧)");
-    expect(messages).toContain("الثاني: الخطة لا تغطّي نصيب المسار كله: مجموع مقادير «حفظ» ٤٨ من ٩١");
+    expect(messages).toContain("الأول: مجموع مقادير «حفظ» (48) يتجاوز نصيب المسار (47)");
+    expect(messages).toContain("الثاني: الخطة لا تغطّي نصيب المسار كله: مجموع مقادير «حفظ» 48 من 91");
   });
 });
 
@@ -154,9 +154,9 @@ describe("ما يراه المشارك", () => {
   it("اليوم الثالث من المسار الأول", () => {
     const tasks = dayTasks(firstDays, fields, track1, material, 3);
     expect(tasks.map((t) => [t.field.label, t.lines.join(" + "), t.repetition])).toEqual([
-      ["حفظ", "الحديث ٣ من باب الإيمان", 15],
-      ["ربط", "الحديث ٢ من باب الإيمان", 5],
-      ["مراجعة", "من الحديث ١ إلى ٢ من باب الإيمان (حديثان)", null],
+      ["حفظ", "الحديث 3 من باب الإيمان", 15],
+      ["ربط", "الحديث 2 من باب الإيمان", 5],
+      ["مراجعة", "من الحديث 1 إلى 2 من باب الإيمان (حديثان)", null],
     ]);
   });
 
@@ -164,10 +164,10 @@ describe("ما يراه المشارك", () => {
     expect([1, 2, 3, 10, 11, 15].map(repetitionText)).toEqual([
       "مرة واحدة",
       "مرتين",
-      "٣ مرات",
-      "١٠ مرات",
-      "١١ مرة",
-      "١٥ مرة",
+      "3 مرات",
+      "10 مرات",
+      "11 مرة",
+      "15 مرة",
     ]);
   });
 });

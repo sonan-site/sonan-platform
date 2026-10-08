@@ -365,7 +365,7 @@ export function ParticipantsView({
               id="baselinePercentage"
               label="تقدير مستواه (٪)"
               required
-              hint="من ٠ إلى ١٠٠ بحسب تقديرك"
+              hint="من 0 إلى 100 بحسب تقديرك"
               error={state.fieldErrors?.["baselinePercentage"]}
             >
               <Input id="baselinePercentage" name="baselinePercentage" numeric latin required />

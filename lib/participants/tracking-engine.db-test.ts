@@ -241,7 +241,7 @@ describe("يوم الخطة والعدّاد", () => {
   });
 
   it("لا يُرصد ما له تكرار قبل بلوغ العدد", async () => {
-    await expect(mark(1, hifz, at("2026-11-01", "10:01"))).rejects.toThrow(/أكمل التكرار أولاً: ٠ من ٣/);
+    await expect(mark(1, hifz, at("2026-11-01", "10:01"))).rejects.toThrow(/أكمل التكرار أولاً: 0 من 3/);
   });
 
   it("العدّاد لا يتجاوز العدد المطلوب ولا ينزل تحت الصفر", async () => {
@@ -389,7 +389,7 @@ describe("يوم المشارك الأول", () => {
   });
 });
 
-describe("نافذة اليوم ولحظة البدء (الهجرة ٠٦٨)", () => {
+describe("نافذة اليوم ولحظة البدء (الهجرة 068)", () => {
   it("**ما أُتمّ بعد وقت الرصد يُحسب لليوم التالي** — لا يضيع بين يومين", async () => {
     const pid = await id(
       `insert into public.participants (user_id, program_id, track_id, status, joined_at)

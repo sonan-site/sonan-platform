@@ -163,7 +163,7 @@ export function planIssues(draft: PlanDraft, fields: PlanField[], tracks: TrackS
     issues.push({ trackId: null, day: null, fieldId: null, severity: "error", message, ...at });
 
   if (!Number.isInteger(draft.dayCount) || draft.dayCount < 1 || draft.dayCount > MAX_DAYS) {
-    err(`عدد أيام الخطة بين ١ و${n(MAX_DAYS)}`);
+    err(`عدد أيام الخطة بين 1 و${n(MAX_DAYS)}`);
     return issues;
   }
 
@@ -175,7 +175,7 @@ export function planIssues(draft: PlanDraft, fields: PlanField[], tracks: TrackS
       continue;
     }
     if (!Number.isInteger(v.day) || v.day < 1 || v.day > draft.dayCount) {
-      err(`قيمة في اليوم ${n(v.day)} خارج أيام الخطة (١–${n(draft.dayCount)})`, { day: v.day, fieldId: v.fieldId });
+      err(`قيمة في اليوم ${n(v.day)} خارج أيام الخطة (1–${n(draft.dayCount)})`, { day: v.day, fieldId: v.fieldId });
       continue;
     }
     const key = `${v.day}|${v.fieldId}`;
@@ -185,7 +185,7 @@ export function planIssues(draft: PlanDraft, fields: PlanField[], tracks: TrackS
       err(`اليوم ${n(v.day)}: «${field.label}» ${shapeMessage(field)}`, { day: v.day, fieldId: v.fieldId });
     }
     if (v.repetition !== undefined && (!Number.isInteger(v.repetition) || v.repetition < 1 || v.repetition > 1000)) {
-      err(`اليوم ${n(v.day)}: التكرار بين ١ و١٠٠٠`, { day: v.day, fieldId: v.fieldId });
+      err(`اليوم ${n(v.day)}: التكرار بين 1 و1000`, { day: v.day, fieldId: v.fieldId });
     }
   }
 

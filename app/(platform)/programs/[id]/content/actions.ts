@@ -27,7 +27,7 @@ async function guard(programId: string): Promise<FormState | null> {
 
 const bulkSchema = z.object({
   programId: z.uuid(),
-  startAt: z.coerce.number().int().min(1, "رقم البداية عدد موجب").max(100000, "رقم البداية ١٠٠٬٠٠٠ على الأكثر"),
+  startAt: z.coerce.number().int().min(1, "رقم البداية عدد موجب").max(100000, "رقم البداية 100٬000 على الأكثر"),
   lines: z
     .string()
     .transform((v) =>
@@ -261,7 +261,7 @@ export async function renameMaterialSection(
 const formText = z
   .string()
   .trim()
-  .max(30, "الصيغة ٣٠ حرفاً على الأكثر")
+  .max(30, "الصيغة 30 حرفاً على الأكثر")
   .transform((v) => (v.length === 0 ? null : v));
 
 const formsSchema = z.object({
@@ -317,8 +317,8 @@ const FROZEN_RANGES = "بدأ مشاركو هذا المسار الإرسال، 
 const rangeSchema = z.object({
   programId: z.uuid(),
   trackId: z.uuid("اختر مساراً"),
-  fromSequence: z.coerce.number().int().min(1, "بداية النصيب رقم من ١ فأكثر"),
-  toSequence: z.coerce.number().int().min(1, "نهاية النصيب رقم من ١ فأكثر"),
+  fromSequence: z.coerce.number().int().min(1, "بداية النصيب رقم من 1 فأكثر"),
+  toSequence: z.coerce.number().int().min(1, "نهاية النصيب رقم من 1 فأكثر"),
   sortOrder: z.coerce.number().int().min(0).default(0),
 });
 
@@ -409,10 +409,10 @@ const fieldPropsSchema = z
     countUnit: z
       .string()
       .trim()
-      .max(20, "وحدة العدّ ٢٠ حرفاً على الأكثر")
+      .max(20, "وحدة العدّ 20 حرفاً على الأكثر")
       .transform((v) => (v === "" ? null : v)),
     defaultRepetition: z
-      .union([z.literal(""), z.coerce.number().int().min(1, "التكرار ١ فأكثر").max(1000)])
+      .union([z.literal(""), z.coerce.number().int().min(1, "التكرار 1 فأكثر").max(1000)])
       .transform((v) => (v === "" ? null : v)),
     sortOrder: z.coerce.number().int().min(0).default(0),
   })
@@ -623,7 +623,7 @@ export async function updateContentUnitLabel(
   if ("denied" in g) return g.denied;
   // النصّ اختياري منذ `adr/0039`: الفراغ يمحوه، والعرض يبقى بالباب ورقمه.
   const text = z.string().trim().max(500).safeParse(label);
-  if (!text.success) return { error: "نصّ الوحدة ٥٠٠ حرف على الأكثر." };
+  if (!text.success) return { error: "نصّ الوحدة 500 حرف على الأكثر." };
 
   const { data, error } = await g.db
     .from("content_units")

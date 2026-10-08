@@ -29,7 +29,7 @@ const helpSchema = z.object({
   programId: z.uuid(),
   question: z.string().trim().min(5, "السؤال مطلوب"),
   answer: z.string().trim().min(5, "الجواب مطلوب"),
-  category: z.string().trim().max(60, "اسم المجموعة لا يزيد عن ٦٠ حرفاً").default(""),
+  category: z.string().trim().max(60, "اسم المجموعة لا يزيد عن 60 حرفاً").default(""),
 });
 
 /** حقول المحتوى كما تصل من النموذج — واحدةٌ للإضافة والتعديل، فلا تفترقان. */

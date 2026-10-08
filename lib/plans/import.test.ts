@@ -116,7 +116,7 @@ describe("الصيغة المعيارية", () => {
     );
     expect(result).toEqual({
       ok: false,
-      errors: ["اليوم ٢: «حفظ» يبدأ من الموضع ٤ والمتوقع ٣ — الحفظ يبدأ حيث انتهى ما قبله."],
+      errors: ["اليوم 2: «حفظ» يبدأ من الموضع 4 والمتوقع 3 — الحفظ يبدأ حيث انتهى ما قبله."],
     });
   });
 
@@ -135,9 +135,9 @@ describe("الصيغة المعيارية", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.errors).toEqual([
-      "اليوم ١: الحقل «سرد» ليس من حقول البرنامج.",
-      "اليوم ١: «ربط»: القسم «الزكاة» غير معروف في المادة.",
-      "اليوم ٢: «مراجعة»: ٤٨ بعد آخر «الإيمان» (٤٧).",
+      "اليوم 1: الحقل «سرد» ليس من حقول البرنامج.",
+      "اليوم 1: «ربط»: القسم «الزكاة» غير معروف في المادة.",
+      "اليوم 2: «مراجعة»: 48 بعد آخر «الإيمان» (47).",
     ]);
   });
 });
@@ -178,8 +178,8 @@ describe("الجدول", () => {
     const rows = parseCsv(csv);
     const warnings = mappingWarnings(suggestMapping(rows[0]!, fields), fields, material);
     expect(warnings).toEqual([
-      "«ربط» بلا عمود قسم: تُقرأ أرقامه متّصلةً عبر المادة كلها. إن كان الملف يرقّم كل باب من ١ فعيّن عمود قسمه، أو استورد بالذكاء الاصطناعي.",
-      "«مراجعة» بلا عمود قسم: تُقرأ أرقامه متّصلةً عبر المادة كلها. إن كان الملف يرقّم كل باب من ١ فعيّن عمود قسمه، أو استورد بالذكاء الاصطناعي.",
+      "«ربط» بلا عمود قسم: تُقرأ أرقامه متّصلةً عبر المادة كلها. إن كان الملف يرقّم كل باب من 1 فعيّن عمود قسمه، أو استورد بالذكاء الاصطناعي.",
+      "«مراجعة» بلا عمود قسم: تُقرأ أرقامه متّصلةً عبر المادة كلها. إن كان الملف يرقّم كل باب من 1 فعيّن عمود قسمه، أو استورد بالذكاء الاصطناعي.",
     ]);
   });
 
@@ -198,7 +198,7 @@ describe("الجدول", () => {
 
 describe("البرومبت", () => {
   it("يحمل الأقسام بأرقامها المتّصلة والحقول ومثالاً", () => {
-    const prompt = buildPrompt({ programName: "مسابقة سنن ١٤٤٨", material, fields, tracks: [track5] });
+    const prompt = buildPrompt({ programName: "مسابقة سنن 1448", material, fields, tracks: [track5] });
     expect(prompt).toContain("- الطهارة: 44 — الأرقام المتّصلة 48–91");
     expect(prompt).toContain('"حفظ": تراكمي (الحقل الأساس)');
     expect(prompt).toContain("الوحدة 5 من «الطهارة» = 48 + 5 − 1 = 52");
@@ -215,10 +215,10 @@ describe("ملاحظات المراجعة", () => {
     ]),
   };
 
-  it("**الكلمات كاملةً لا حروفاً** — «حجة الوداع» ليست «الحج»، و«الجزء ١١» ليس «الجزء 1»", () => {
+  it("**الكلمات كاملةً لا حروفاً** — «حجة الوداع» ليست «الحج»، و«الجزء 11» ليس «الجزء 1»", () => {
     expect(findSection(parts, "حجة الوداع")).toBeNull();
     expect(findSection(parts, "الجزء 11")).toBeNull();
-    expect(findSection(parts, "الجزء ١")?.id).toBe("p1");
+    expect(findSection(parts, "الجزء 1")?.id).toBe("p1");
     expect(findSection(parts, "‏الحج")?.id).toBe("hj");
   });
 
@@ -238,7 +238,7 @@ describe("ملاحظات المراجعة", () => {
     const result = parseExternalPlan(external, fields, material, null);
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.errors[0]).toBe("اليوم ١: «حفظ»: عمود القسم فارغ — اكتب قسم الرقم.");
+    expect(result.errors[0]).toBe("اليوم 1: «حفظ»: عمود القسم فارغ — اكتب قسم الرقم.");
     const fromTahara = external.days[2]!.values["حفظ"]!.from;
     expect(fromTahara).toEqual({ section: "الطهارة", number: "3" });
   });

@@ -162,7 +162,7 @@ export function BlockFields({
                 <Input
                   id={id(`stat-${i}`)}
                   name={`stat-${i}-value`}
-                  placeholder="٥"
+                  placeholder="5"
                   defaultValue={text(items[i]?.["value"])}
                 />
                 <Input
@@ -211,7 +211,7 @@ export function BlockFields({
                 <Input
                   name={`stage-${i}-dates`}
                   aria-label={`تاريخ المرحلة ${formatNumber(i + 1)}`}
-                  placeholder="٩ – ١٧ ربيع الآخر"
+                  placeholder="9 – 17 ربيع الآخر"
                   defaultValue={text(stages[i]?.["dates"])}
                 />
                 <Input
@@ -277,7 +277,7 @@ export function BlockFields({
                 <Input
                   name={`place-${i}-value`}
                   aria-label={`جائزة المركز ${formatNumber(i + 1)}`}
-                  placeholder="١٠٠٠"
+                  placeholder="1000"
                   defaultValue={text(places[i]?.["value"])}
                 />
               </span>

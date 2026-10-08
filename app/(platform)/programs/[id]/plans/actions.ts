@@ -106,7 +106,7 @@ const payloadSchema = z.object({
         repetition: z.number().int().min(1).max(1000).optional(),
       }),
     )
-    .max(366 * 20, "الخطة أكبر من الحدّ: ٢٠ حقلاً في كل يوم على الأكثر"),
+    .max(366 * 20, "الخطة أكبر من الحدّ: 20 حقلاً في كل يوم على الأكثر"),
 });
 
 const saveSchema = z.object({

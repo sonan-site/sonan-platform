@@ -246,7 +246,7 @@ export function parseExternalPlan(
 
       if (raw.repetition !== undefined && raw.repetition !== null && raw.repetition !== "") {
         const repetition = positiveInt(raw.repetition);
-        if (repetition === null || repetition > 1000) fail(`${at}: التكرار بين ١ و١٠٠٠.`);
+        if (repetition === null || repetition > 1000) fail(`${at}: التكرار بين 1 و1000.`);
         else value.repetition = repetition;
       }
       if (values.some((v) => v.day === day && v.fieldId === field.id)) {
@@ -401,7 +401,7 @@ export function mappingWarnings(mapping: Mapping, fields: PlanField[], material:
       const sections = cols.some((c) => c.role === "section" || c.role === "section_from" || c.role === "section_to");
       if (numbers && !sections) {
         warnings.push(
-          `«${field.label}» بلا عمود قسم: تُقرأ أرقامه متّصلةً عبر المادة كلها. إن كان الملف يرقّم كل ${material.forms.sectionLabel?.trim() || "قسم"} من ١ فعيّن عمود قسمه، أو استورد بالذكاء الاصطناعي.`,
+          `«${field.label}» بلا عمود قسم: تُقرأ أرقامه متّصلةً عبر المادة كلها. إن كان الملف يرقّم كل ${material.forms.sectionLabel?.trim() || "قسم"} من 1 فعيّن عمود قسمه، أو استورد بالذكاء الاصطناعي.`,
         );
       }
     }

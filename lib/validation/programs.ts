@@ -42,7 +42,7 @@ export const programSchema = z
     kind: z.enum(PROGRAM_KIND_CODES),
     participantLabel: z.string().trim().min(2, "مسمّى المشارك مطلوب"),
     // جهة تواصل إدارة البرنامج — تظهر للمشارك حين يعترضه ما لا يحلّه بنفسه.
-    contact: z.string().trim().max(200, "جهة التواصل لا تزيد عن ٢٠٠ حرف").default(""),
+    contact: z.string().trim().max(200, "جهة التواصل لا تزيد عن 200 حرف").default(""),
     capacity: z
       .string()
       .trim()
@@ -103,12 +103,12 @@ const day = z.string().trim().regex(DAY_ONLY, "اختر اليوم من التق
 export const scheduleEntrySchema = z
   .object({
     programId: z.uuid(),
-    title: z.string().trim().min(2, "عنوان الموعد مطلوب").max(60, "العنوان لا يزيد عن ٦٠ حرفاً"),
+    title: z.string().trim().min(2, "عنوان الموعد مطلوب").max(60, "العنوان لا يزيد عن 60 حرفاً"),
     startsOn: day,
     endsOn: z
       .union([day, z.literal("")])
       .transform((v) => (v === "" ? null : v)),
-    note: z.string().trim().max(160, "الملاحظة لا تزيد عن ١٦٠ حرفاً").default(""),
+    note: z.string().trim().max(160, "الملاحظة لا تزيد عن 160 حرفاً").default(""),
   })
   .refine((v) => v.endsOn === null || v.endsOn >= v.startsOn, {
     message: "النهاية لا تسبق البداية",

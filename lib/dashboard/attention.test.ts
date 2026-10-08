@@ -52,7 +52,7 @@ describe("ما يحتاج انتباهك", () => {
 
   it("والرقم يظهر بالأرقام الهندية في نصّ البند", () => {
     const [item] = attentionItems([row({ kind: "track_change", amount: 3 })]);
-    expect(item?.title).toContain("٣");
+    expect(item?.title).toContain("3");
     expect(item?.title).toContain("مسابقة سنن");
   });
 

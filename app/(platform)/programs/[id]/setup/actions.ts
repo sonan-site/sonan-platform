@@ -22,9 +22,9 @@ const schema = z.object({
     .refine((l) => l.length > 0, "الصق المادة — سطر لكل عنصر"),
   dayCount: z.coerce.number().int().min(1, "مدّة الخطة يوم فأكثر").max(MAX_DAYS),
   // الحفظ والمراجعة تمتدّان في المادة وحدةً وحدة، فمقدارهما عددٌ صحيح.
-  memorizeAmount: z.coerce.number().int("المقدار عدد صحيح").positive("المقدار عدد موجب").max(1000, "المقدار ١٠٠٠ فأقل"),
-  reviewAmount: z.coerce.number().int("المقدار عدد صحيح").min(0).max(1000, "المقدار ١٠٠٠ فأقل"),
-  repeatAmount: z.coerce.number().min(0).max(1000, "العدد ١٠٠٠ فأقل"),
+  memorizeAmount: z.coerce.number().int("المقدار عدد صحيح").positive("المقدار عدد موجب").max(1000, "المقدار 1000 فأقل"),
+  reviewAmount: z.coerce.number().int("المقدار عدد صحيح").min(0).max(1000, "المقدار 1000 فأقل"),
+  repeatAmount: z.coerce.number().min(0).max(1000, "العدد 1000 فأقل"),
 });
 
 export async function quickSetup(_prev: FormState, form: FormData): Promise<FormState> {

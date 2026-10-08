@@ -18,15 +18,15 @@ import {
 const FIXED = new Date("2026-09-02T09:00:00Z");
 
 describe("الأرقام", () => {
-  it("العرض بأرقام هندية-عربية", () => {
-    expect(formatNumber(1448)).toMatch(/[٠-٩]/);
-    expect(formatNumber(1448)).not.toMatch(/[0-9]/);
+  it("**العرض بأرقام لاتينية** (adr/0046)", () => {
+    expect(formatNumber(1448)).toMatch(/[0-9]/);
+    expect(formatNumber(1448)).not.toMatch(/[٠-٩]/);
   });
 
-  it("النسبة بأرقام هندية-عربية وعلامة مئوية", () => {
+  it("النسبة بأرقام لاتينية وعلامة مئوية", () => {
     const out = formatPercent(0.85);
-    expect(out).toMatch(/[٠-٩]/);
-    expect(out).toMatch(/٨٥/);
+    expect(out).not.toMatch(/[٠-٩]/);
+    expect(out).toMatch(/85/);
   });
 
   it("التحويل للاتيني يعكس العرض", () => {
@@ -35,22 +35,22 @@ describe("الأرقام", () => {
 });
 
 describe("التاريخ", () => {
-  it("الميلادي عربي بأرقام هندية", () => {
+  it("الميلادي عربيٌّ بأرقام لاتينية", () => {
     const out = formatDate(FIXED);
-    expect(out).toMatch(/[٠-٩]/);
-    expect(out).toMatch(/٢٠٢٦/);
+    expect(out).not.toMatch(/[٠-٩]/);
+    expect(out).toMatch(/2026/);
   });
 
   it("الهجري بأم القرى وسنة في نطاق ١٤٤٧–١٤٤٨", () => {
     const out = formatHijri(FIXED);
-    expect(out).toMatch(/١٤٤[٧٨]/);
+    expect(out).toMatch(/144[78]/);
   });
 
   it("الصيغة المزدوجة تحمل التقويمين", () => {
     const out = formatDateBoth(FIXED);
     expect(out).toContain("·");
-    expect(out).toMatch(/٢٠٢٦/);
-    expect(out).toMatch(/١٤٤[٧٨]/);
+    expect(out).toMatch(/2026/);
+    expect(out).toMatch(/144[78]/);
   });
 
   it("صيغة الإدخال لاتينية وبتوقيت الرياض لا المتصفح", () => {
@@ -71,14 +71,14 @@ describe("التاريخ", () => {
 
   it("الفرق الزمني مقروء بالعربية", () => {
     const threeDaysLater = new Date(FIXED.getTime() + 3 * 24 * 60 * 60 * 1000);
-    expect(formatRelative(threeDaysLater, FIXED)).toMatch(/[٠-٩]|غد/);
+    expect(formatRelative(threeDaysLater, FIXED)).toMatch(/[0-9]|غد/);
   });
 
   it("الساعة بتوقيت الرياض لاتينيةً للمقارنة، وبصيغة ١٢ ساعة للعرض", () => {
     expect(toTimeInput(new Date("2026-09-02T18:05:00Z"))).toBe("21:05");
     expect(toTimeInput(new Date("2026-09-02T21:00:00Z"))).toBe("00:00");
-    expect(formatClock("21:05")).toBe("٩:٠٥ م");
-    expect(formatClock("00:30")).toBe("١٢:٣٠ ص");
-    expect(formatClock("12:00")).toBe("١٢:٠٠ م");
+    expect(formatClock("21:05")).toBe("9:05 م");
+    expect(formatClock("00:30")).toBe("12:30 ص");
+    expect(formatClock("12:00")).toBe("12:00 م");
   });
 });

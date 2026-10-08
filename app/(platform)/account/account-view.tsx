@@ -101,7 +101,7 @@ export function AccountView({
             id="password"
             label="الجديدة"
             required
-            hint="٨ أحرف فأكثر"
+            hint="8 أحرف فأكثر"
             error={pwState.fieldErrors?.["password"]}
           >
             <PasswordInput id="password" name="password" autoComplete="new-password" required />

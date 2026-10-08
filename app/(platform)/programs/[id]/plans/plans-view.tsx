@@ -142,7 +142,7 @@ export function PlansView({
           ) : (
             <span>
               {formatNumber(defaultPlan.dayCount)} يوماً
-              {defaultPlan.lockedThrough > 0 ? ` · المقفل ١–${formatNumber(defaultPlan.lockedThrough)}` : ""}
+              {defaultPlan.lockedThrough > 0 ? ` · المقفل 1–${formatNumber(defaultPlan.lockedThrough)}` : ""}
               {defaultErrors > 0 ? ` · ${formatNumber(defaultErrors)} ملاحظات تمنع الحفظ` : ""}
             </span>
           )

@@ -171,7 +171,7 @@ describe("حقول الخطة", () => {
     ).rejects.toThrow(/idx_task_fields_base/);
   });
 
-  it("العددي بلا وحدة يُكمَّل «مرة» ويُفكّ من المادة — الهجرة ٠٦٢", async () => {
+  it("العددي بلا وحدة يُكمَّل «مرة» ويُفكّ من المادة — الهجرة 062", async () => {
     const { rows } = await db.query<{ count_unit: string; is_material_linked: boolean }>(
       `insert into public.task_fields (program_id, label, kind) values ($1, 'عددي', 'counted')
        returning count_unit, is_material_linked`,
@@ -203,7 +203,7 @@ describe("الخطة الافتراضية والحفظ", () => {
       db.query<{ severity: string; message: string }>(`select severity, message from public.fn_plan_issues($1)`, [planId]),
     );
     expect(issues.rows.map((r) => r.severity)).toEqual(["warning", "warning"]);
-    expect(issues.rows[0]!.message).toBe("الأول: الخطة لا تغطّي نصيب المسار كله: مجموع مقادير «حفظ» ٣ من ٤٧");
+    expect(issues.rows[0]!.message).toBe("الأول: الخطة لا تغطّي نصيب المسار كله: مجموع مقادير «حفظ» 3 من 47");
   });
 
   it("**BR-PLAN-03: المقيَّد لا يتجاوز ما بلغه الحفظ في يومه**", async () => {
@@ -214,9 +214,9 @@ describe("الخطة الافتراضية والحفظ", () => {
   it("الصيغة واليوم الفارغ والتكرار والمجموع", async () => {
     await expect(save([...firstDays(), { day: 1, field_id: rabt, amount: 2 }], 3)).rejects.toThrow(/«من» و«إلى»/);
     await expect(save([...firstDays(), { day: 1, field_id: hifz, amount: 2 }], 3)).rejects.toThrow(/مكرّر/);
-    await expect(save(firstDays(), 4)).rejects.toThrow(/اليوم ٤ بلا نشاط إلزامي/);
+    await expect(save(firstDays(), 4)).rejects.toThrow(/اليوم 4 بلا نشاط إلزامي/);
     await expect(save([{ day: 1, field_id: hifz, amount: 48 }], 1)).rejects.toThrow(/يتجاوز نصيب المسار/);
-    await expect(save(firstDays(), 400)).rejects.toThrow(/بين ١ و٣٦٦/);
+    await expect(save(firstDays(), 400)).rejects.toThrow(/بين 1 و366/);
   });
 
   it("من لا يملك الكتابة يُرفض", async () => {
@@ -282,11 +282,11 @@ describe("الخطة المخصّصة والنسخ", () => {
       `select note from public.plan_versions where plan_id = $1 and version_number = 3`,
       [planId],
     );
-    expect(note.rows[0]!.note).toBe("رجوع إلى النسخة ١");
+    expect(note.rows[0]!.note).toBe("رجوع إلى النسخة 1");
   });
 });
 
-describe("حارس الحقل — الهجرة ٠٦٠", () => {
+describe("حارس الحقل — الهجرة 060", () => {
   it("**حقلٌ له قيمٌ في خطة لا يتغيّر نوعه ولا يُحذف**", async () => {
     await expect(
       asUser(ADMIN, () => db.query(`update public.task_fields set kind = 'ranged', is_constrained = false where id = $1`, [review])),
@@ -301,7 +301,7 @@ describe("حارس الحقل — الهجرة ٠٦٠", () => {
   });
 });
 
-describe("حارس الخطة — الهجرة ٠٦٤", () => {
+describe("حارس الخطة — الهجرة 064", () => {
   it("**لا تُكتب أيامها ولا تنتقل ولا تُحذف مقفلةً من خارج دوالّها**، والاسم مفتوح", async () => {
     await expect(
       asUser(ADMIN, () => db.query(`update public.plans set day_count = 1 where id = $1`, [planId])),
@@ -318,7 +318,7 @@ describe("حارس الخطة — الهجرة ٠٦٤", () => {
       ),
     ).rejects.toThrow(/فلا تُستبدل خطتهم/);
     const { rowCount } = await asUser(ADMIN, () =>
-      db.query(`update public.plans set name = 'الخطة الافتراضية ١٤٤٨' where id = $1`, [planId]),
+      db.query(`update public.plans set name = 'الخطة الافتراضية 1448' where id = $1`, [planId]),
     );
     expect(rowCount).toBe(1);
   });

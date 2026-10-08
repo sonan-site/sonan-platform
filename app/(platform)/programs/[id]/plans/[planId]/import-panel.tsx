@@ -154,7 +154,7 @@ export function ImportPanel({
         if (key(draft, day) !== key(current, day)) {
           setResult({
             ok: false,
-            errors: [`الملف يغيّر اليوم ${formatNumber(day)}، والأيام ١–${formatNumber(lockedThrough)} أتمّها مشاركون فلا تتغيّر.`],
+            errors: [`الملف يغيّر اليوم ${formatNumber(day)}، والأيام 1–${formatNumber(lockedThrough)} أتمّها مشاركون فلا تتغيّر.`],
           });
           return;
         }
@@ -183,7 +183,7 @@ export function ImportPanel({
       {mode === "json" ? (
         <>
           <p className={styles.hint}>
-            ١. انسخ البرومبت، وضعه مع ملف الخطة — بأي صيغة — في أداة ذكاء اصطناعي. ٢. الصق هنا ما أخرجته. ٣. اقرأ،
+            1. انسخ البرومبت، وضعه مع ملف الخطة — بأي صيغة — في أداة ذكاء اصطناعي. 2. الصق هنا ما أخرجته. 3. اقرأ،
             ثم ضعها في المحرّر.
           </p>
           <div className={styles.row}>

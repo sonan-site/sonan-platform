@@ -18,8 +18,8 @@ describe("مدّة السلّة", () => {
   it("**والعربية تعدّ على أربعة وجوه**", () => {
     expect(binNotice(after(1), AT)).toBe("يُمحى بعد يوم واحد");
     expect(binNotice(after(2), AT)).toBe("يُمحى بعد يومين");
-    expect(binNotice(after(4), AT)).toBe("يُمحى بعد ٤ أيام");
-    expect(binNotice(after(30), AT)).toBe("يُمحى بعد ٣٠ يوماً");
+    expect(binNotice(after(4), AT)).toBe("يُمحى بعد 4 أيام");
+    expect(binNotice(after(30), AT)).toBe("يُمحى بعد 30 يوماً");
   });
 
   it("والمنقضي يُقال صراحةً لا برقمٍ سالب", () => {

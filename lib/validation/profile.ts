@@ -16,7 +16,7 @@ const namePart = (label: string) =>
     .string()
     .trim()
     .min(2, `${label} حرفان فأكثر`)
-    .max(40, `${label} لا يزيد عن ٤٠ حرفاً`)
+    .max(40, `${label} لا يزيد عن 40 حرفاً`)
     .regex(NAME, `${label} بالحروف فقط`);
 
 const optionalNamePart = (label: string) =>
@@ -49,7 +49,7 @@ export const profileSchema = z
       .refine((v) => {
         const age = ageOn(new Date(`${v}T00:00:00Z`), now());
         return age >= 4 && age <= 100;
-      }, "تاريخ الميلاد غير منطقي — العمر بين ٤ و١٠٠ سنة"),
+      }, "تاريخ الميلاد غير منطقي — العمر بين 4 و100 سنة"),
     nationality: z.string().refine(isCountryCode, "اختر الجنسية"),
     phoneCountry: z.string().refine(isCountryCode, "اختر مفتاح الدولة"),
     phone: z.string().trim().min(1, "الجوال مطلوب"),

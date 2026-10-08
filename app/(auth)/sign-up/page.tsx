@@ -141,7 +141,7 @@ function SignUpForm() {
           <Input id="email" name="email" type="email" autoComplete="email" latin required />
         </Field>
 
-        <Field id="password" label="كلمة المرور" required hint="٨ أحرف فأكثر" error={state.fieldErrors?.["password"]}>
+        <Field id="password" label="كلمة المرور" required hint="8 أحرف فأكثر" error={state.fieldErrors?.["password"]}>
           <PasswordInput id="password" name="password" autoComplete="new-password" required />
         </Field>
 

@@ -20,7 +20,7 @@ const duty = (over: Partial<DutyRow> = {}): DutyRow => ({
 describe("حال المشارك في لوحته", () => {
   it("**يومٌ جارٍ بانتظاره**", () => {
     expect(dutyState(duty())).toBe("working");
-    expect(dutyHeadline(duty())).toBe("اليوم ٧ من ٣٠");
+    expect(dutyHeadline(duty())).toBe("اليوم 7 من 30");
   });
 
   it("**وبإتمام أيامها كلها: أتمّ خطته** — وهي الحالة التي لا تقولها شاشة الرحلة", () => {
@@ -52,7 +52,7 @@ describe("حال المشارك في لوحته", () => {
 describe("الموعد", () => {
   it("في موعده، ومتأخر، ومتقدّم", () => {
     expect(dutyPace(duty())).toBe("في موعدك");
-    expect(dutyPace(duty({ dueDays: 9 }))).toBe("متأخر ٣ أيام");
+    expect(dutyPace(duty({ dueDays: 9 }))).toBe("متأخر 3 أيام");
     expect(dutyPace(duty({ dueDays: 4 }))).toBe("متقدّم يومين");
   });
 

@@ -126,7 +126,7 @@ describe("الموعد", () => {
   });
 
   it("المتأخر والمتقدّم بأيامهما", () => {
-    expect(pace(state({ dueDays: 4, doneDays: 1 })).text).toBe("متأخر ٣ أيام");
+    expect(pace(state({ dueDays: 4, doneDays: 1 })).text).toBe("متأخر 3 أيام");
     expect(pace(state({ dueDays: 4, doneDays: 6 })).text).toBe("متقدّم يومين");
   });
 });
@@ -135,9 +135,9 @@ describe("صيغ", () => {
   it("الأيام على وجوهها الأربعة", () => {
     expect(daysText(1)).toBe("يوماً واحداً");
     expect(daysText(2)).toBe("يومين");
-    expect(daysText(3)).toBe("٣ أيام");
-    expect(daysText(11)).toBe("١١ يوماً");
-    expect(daysText(103)).toBe("١٠٣ أيام");
+    expect(daysText(3)).toBe("3 أيام");
+    expect(daysText(11)).toBe("11 يوماً");
+    expect(daysText(103)).toBe("103 أيام");
   });
 
   it("حكم الأرشيف — والمعوَّض يبقى متعثّراً", () => {

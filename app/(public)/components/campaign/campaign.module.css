@@ -734,7 +734,7 @@
   place-items: center;
   inline-size: 28px;
   block-size: 28px;
-  content: counter(step, arabic-indic);
+  content: counter(step);
   border: 1px solid var(--c-gold-line);
   border-radius: var(--radius-full);
   color: var(--c-gold);
