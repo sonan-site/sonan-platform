@@ -193,6 +193,11 @@ describe("رقم التسجيل", () => {
   });
 
   it("**لا يكتبه المسجِّل بنفسه** — رقمٌ مرسَل يُستبدل", async () => {
+    await db.query(
+      `delete from public.admission_answers where participant_id in
+         (select id from public.participants where user_id = $1 and program_id = $2)`,
+      [MINOR, programId],
+    );
     await db.query(`delete from public.participants where user_id = $1 and program_id = $2`, [MINOR, programId]);
     const { error } = await as(
       MINOR,
