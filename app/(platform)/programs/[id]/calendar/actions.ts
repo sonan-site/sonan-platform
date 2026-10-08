@@ -8,7 +8,11 @@ import { nowIso } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { ENGINE_KEYS, type EngineKey } from "@/lib/programs/engine-settings";
 import type { Json } from "@/lib/db/database.types";
-import { scheduleEntrySchema } from "@/lib/validation/programs";
+import {
+  registrationWindowSchema,
+  scheduleEntrySchema,
+  scheduleEntryUpdateSchema,
+} from "@/lib/validation/programs";
 
 /**
  * التقويم وقواعد التقدّم (`adr/0038`) — إعداد برنامج، فصلاحيته `programs.write`.
@@ -264,4 +268,69 @@ export async function removeScheduleEntry(programId: string, entryId: string): P
   });
   calendarPath(programId);
   return { notice: "حُذف الموعد." };
+}
+
+export async function updateScheduleEntry(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = scheduleEntryUpdateSchema.safeParse({
+    programId: form.get("programId"),
+    entryId: form.get("entryId"),
+    title: form.get("title") ?? "",
+    startsOn: form.get("startsOn") ?? "",
+    endsOn: form.get("endsOn") ?? "",
+    note: form.get("note") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+  const { programId, entryId, title, startsOn, endsOn, note } = parsed.data;
+
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { data, error } = await db
+    .from("program_schedule")
+    .update({ title, starts_on: startsOn, ends_on: endsOn, note })
+    .eq("id", entryId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { error: "تعذّر تعديل الموعد." };
+
+  await db.rpc("fn_write_audit", {
+    p_action: "schedule_entry_updated",
+    p_entity_table: "program_schedule",
+    p_entity_id: entryId,
+    p_after: { program_id: programId, title, starts_on: startsOn, ends_on: endsOn },
+  });
+  calendarPath(programId);
+  return { notice: "عُدِّل الموعد." };
+}
+
+/** موعد التسجيل مشتقٌّ من نافذة التسجيل — فتعديله تعديلُها. */
+export async function saveRegistrationWindow(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = registrationWindowSchema.safeParse({
+    programId: form.get("programId"),
+    registrationOpensAt: form.get("registrationOpensAt") ?? "",
+    registrationClosesAt: form.get("registrationClosesAt") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+  const { programId, registrationOpensAt, registrationClosesAt } = parsed.data;
+
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { error } = await db
+    .from("programs")
+    .update({ registration_opens_at: registrationOpensAt, registration_closes_at: registrationClosesAt })
+    .eq("id", programId);
+  if (error) return { error: "تعذّر حفظ نافذة التسجيل." };
+
+  await db.rpc("fn_write_audit", {
+    p_action: "registration_window_updated",
+    p_entity_table: "programs",
+    p_entity_id: programId,
+    p_after: { registration_opens_at: registrationOpensAt, registration_closes_at: registrationClosesAt },
+  });
+  calendarPath(programId);
+  revalidatePath(`/programs/${programId}`);
+  return { notice: "حُفظت نافذة التسجيل." };
 }

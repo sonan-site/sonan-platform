@@ -114,3 +114,24 @@ export const scheduleEntrySchema = z
     message: "النهاية لا تسبق البداية",
     path: ["endsOn"],
   });
+
+/** تعديل موعدٍ قائم — الحقول نفسها ومعرّفه. */
+export const scheduleEntryUpdateSchema = scheduleEntrySchema.and(z.object({ entryId: z.uuid() }));
+
+/**
+ * نافذة التسجيل وحدها — تُعدَّل من مواعيد البرنامج أيضاً (موعد التسجيل
+ * مشتقٌّ منها)، بحدَّي يوم الرياض كنموذج البرنامج.
+ */
+export const registrationWindowSchema = z
+  .object({
+    programId: z.uuid(),
+    registrationOpensAt: windowEdge("start"),
+    registrationClosesAt: windowEdge("end"),
+  })
+  .refine(
+    (v) =>
+      !v.registrationOpensAt ||
+      !v.registrationClosesAt ||
+      new Date(v.registrationClosesAt) > new Date(v.registrationOpensAt),
+    { message: "تاريخ الإغلاق يجب أن يلي تاريخ الفتح", path: ["registrationClosesAt"] },
+  );

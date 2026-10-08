@@ -42,6 +42,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   page_block_updated: "تعديل عنصر في الصفحة",
   schedule_entry_added: "إضافة موعد للبرنامج",
   schedule_entry_removed: "حذف موعد من البرنامج",
+  schedule_entry_updated: "تعديل موعد في البرنامج",
+  registration_window_updated: "تعديل نافذة التسجيل",
   home_featured_updated: "تغيير واجهة الحملة في الصفحة الرئيسية",
   help_entry_added: "إضافة سؤال شائع",
   help_entry_removed: "حذف سؤال شائع",
