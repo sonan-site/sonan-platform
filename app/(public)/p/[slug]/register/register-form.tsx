@@ -16,7 +16,14 @@ export type QuestionRow = {
   trackId: string | null;
 };
 
-export type TrackOption = { id: string; name: string; description: string; capacity: number | null };
+export type TrackOption = {
+  id: string;
+  name: string;
+  description: string;
+  capacity: number | null;
+  /** المتبقي من مقاعده — فارغ = بلا سقف. */
+  remaining: number | null;
+};
 
 const ERR = { color: "var(--color-danger)" } as const;
 const CONSENT = { display: "flex", alignItems: "center", gap: "var(--space-3)" } as const;
@@ -77,9 +84,14 @@ export function RegisterForm({
                 اختر مسارك
               </option>
               {tracks.map((t) => (
-                <option key={t.id} value={t.id}>
+                // المكتمل يُعرض معطَّلاً لا يُخفى: يعرف المسجِّل أنه كان ولم يبقَ فيه مقعد.
+                <option key={t.id} value={t.id} disabled={t.remaining === 0}>
                   {t.name}
-                  {t.capacity !== null ? ` — السعة ${formatNumber(t.capacity)}` : ""}
+                  {t.remaining === null
+                    ? ""
+                    : t.remaining === 0
+                      ? " — اكتملت المقاعد"
+                      : ` — متبقٍّ ${formatNumber(t.remaining)} من ${formatNumber(t.capacity ?? 0)}`}
                 </option>
               ))}
             </Select>

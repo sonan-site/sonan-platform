@@ -54,6 +54,7 @@ function percent(value: number): string {
 export function JourneyView({
   participantId,
   justJoined,
+  registrationNo,
   programName,
   trackName,
   state,
@@ -68,6 +69,8 @@ export function JourneyView({
   participantId: string;
   /** جاء من التسجيل للتوّ. */
   justJoined: boolean;
+  /** `SN-1448-0001` — فارغ إن لم يكن للبرنامج بادئة (`adr/0047`). */
+  registrationNo: string | null;
   programName: string;
   trackName: string;
   state: JourneyState;
@@ -109,12 +112,20 @@ export function JourneyView({
 
       {justJoined ? (
         <p role="status" className={styles.joined}>
-          تمّ تسجيلك في {programName}. هذا واجبك الأول.
+          تمّ تسجيلك في {programName}.
+          {registrationNo ? <> رقم تسجيلك <b dir="ltr">{registrationNo}</b> — احتفظ به للاختبارات والاستفسار.</> : null}{" "}
+          هذا واجبك الأول.
         </p>
       ) : null}
       <h1>{programName}</h1>
 
       <dl className={styles.stats}>
+        {registrationNo ? (
+          <div>
+            <dt>رقم التسجيل</dt>
+            <dd dir="ltr">{registrationNo}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>المسار</dt>
           <dd>{trackName}</dd>

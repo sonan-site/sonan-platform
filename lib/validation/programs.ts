@@ -135,3 +135,25 @@ export const registrationWindowSchema = z
       new Date(v.registrationClosesAt) > new Date(v.registrationOpensAt),
     { message: "تاريخ الإغلاق يجب أن يلي تاريخ الفتح", path: ["registrationClosesAt"] },
   );
+
+/** أهلية البرنامج ورقم التسجيل (`adr/0047`) — كلّها اختيارية، والفارغ بلا شرط. */
+export const eligibilitySchema = z.object({
+  programId: z.uuid(),
+  minAge: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : Number(v)))
+    .nullable()
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 100), "العمر عددٌ صحيح بين 1 و100"),
+  allowedGender: z
+    .enum(["", "male", "female"])
+    .transform((v) => (v === "" ? null : v)),
+  requireSaudiPhone: z.boolean(),
+  requireIdentity: z.boolean(),
+  registrationPrefix: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .refine((v) => v === null || /^[A-Za-z0-9-]{1,20}$/.test(v), "حروفٌ لاتينية وأرقام وشرطات، حتى 20"),
+});

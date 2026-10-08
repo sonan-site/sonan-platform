@@ -1024,6 +1024,7 @@ export type Database = {
           joined_at: string
           judge_from: string
           program_id: string
+          registration_no: number | null
           status: Database["public"]["Enums"]["participant_status"]
           track_id: string | null
           updated_at: string
@@ -1037,6 +1038,7 @@ export type Database = {
           joined_at?: string
           judge_from?: string
           program_id: string
+          registration_no?: number | null
           status?: Database["public"]["Enums"]["participant_status"]
           track_id?: string | null
           updated_at?: string
@@ -1050,6 +1052,7 @@ export type Database = {
           joined_at?: string
           judge_from?: string
           program_id?: string
+          registration_no?: number | null
           status?: Database["public"]["Enums"]["participant_status"]
           track_id?: string | null
           updated_at?: string
@@ -1401,6 +1404,7 @@ export type Database = {
       }
       programs: {
         Row: {
+          allowed_gender: Database["public"]["Enums"]["gender"] | null
           award_percentage: number | null
           capacity: number | null
           compensation_enabled: boolean
@@ -1411,12 +1415,16 @@ export type Database = {
           deleted_at: string | null
           id: string
           kind: Database["public"]["Enums"]["program_kind"]
+          min_age: number | null
           name: string
           participant_label: string
           passing_percentage: number | null
           progress_measure: Database["public"]["Enums"]["progress_measure"]
           registration_closes_at: string | null
           registration_opens_at: string | null
+          registration_prefix: string | null
+          require_identity: boolean
+          require_saudi_phone: boolean
           section_id: string
           section_label: string | null
           slug: string
@@ -1433,6 +1441,7 @@ export type Database = {
           work_days: number[]
         }
         Insert: {
+          allowed_gender?: Database["public"]["Enums"]["gender"] | null
           award_percentage?: number | null
           capacity?: number | null
           compensation_enabled?: boolean
@@ -1443,12 +1452,16 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["program_kind"]
+          min_age?: number | null
           name: string
           participant_label?: string
           passing_percentage?: number | null
           progress_measure?: Database["public"]["Enums"]["progress_measure"]
           registration_closes_at?: string | null
           registration_opens_at?: string | null
+          registration_prefix?: string | null
+          require_identity?: boolean
+          require_saudi_phone?: boolean
           section_id: string
           section_label?: string | null
           slug: string
@@ -1465,6 +1478,7 @@ export type Database = {
           work_days?: number[]
         }
         Update: {
+          allowed_gender?: Database["public"]["Enums"]["gender"] | null
           award_percentage?: number | null
           capacity?: number | null
           compensation_enabled?: boolean
@@ -1475,12 +1489,16 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["program_kind"]
+          min_age?: number | null
           name?: string
           participant_label?: string
           passing_percentage?: number | null
           progress_measure?: Database["public"]["Enums"]["progress_measure"]
           registration_closes_at?: string | null
           registration_opens_at?: string | null
+          registration_prefix?: string | null
+          require_identity?: boolean
+          require_saudi_phone?: boolean
           section_id?: string
           section_label?: string | null
           slug?: string
@@ -2277,6 +2295,7 @@ export type Database = {
           id: string
           joined_at: string
           prior_done_days: number
+          registration_no: number
           status: Database["public"]["Enums"]["participant_status"]
           stumbled_days: number
           total: number
@@ -2351,6 +2370,10 @@ export type Database = {
       fn_register: {
         Args: { p_answers?: Json; p_program_id: string; p_track_id: string }
         Returns: string
+      }
+      fn_registration_blockers: {
+        Args: { p_program_id: string }
+        Returns: string[]
       }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
       fn_remove_custom_plan: { Args: { p_plan_id: string }; Returns: undefined }

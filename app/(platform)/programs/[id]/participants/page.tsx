@@ -1,3 +1,4 @@
+import { formatRegistrationNo } from "@/lib/programs/registration";
 import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
@@ -42,7 +43,7 @@ export default async function ParticipantsPage({
   // كانت الشاشة تجلب إنجاز البرنامج كله فتبلغ سقف الألف صفّ بعد ثمانين مشاركاً.
   const [programResult, participantsResult, tracksResult, requestsResult, plansResult, rangesResult] =
     await Promise.all([
-    db.from("programs").select("id, name, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
+    db.from("programs").select("id, name, kind, registration_prefix").eq("id", id).is("deleted_at", null).maybeSingle(),
     db.rpc("fn_program_participants", { p_program_id: id, p_limit: 500, p_offset: 0 }),
     // المؤرشَفة معها: طلبٌ قديم إلى مسارٍ أُرشف يبقى باسمه لا «—».
     db
@@ -87,6 +88,7 @@ export default async function ParticipantsPage({
   const participants: ParticipantRow[] = (participantsResult.data ?? []).map((p) => ({
     id: p.id,
     name: p.full_name ?? "مشارك محذوف",
+    registrationNo: formatRegistrationNo(programResult.data?.registration_prefix ?? null, p.registration_no),
     trackName: p.track_id ? (trackName.get(p.track_id) ?? "—") : "بلا مسار",
     hasTrack: p.track_id !== null,
     status: p.status,

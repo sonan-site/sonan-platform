@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { registrationState, type ProgramWindow } from "./registration";
+import { formatRegistrationNo, registrationState, type ProgramWindow } from "./registration";
 
 const AT = new Date("2026-09-02T09:00:00Z");
 
@@ -59,5 +59,14 @@ describe("BR-CAP-01 — حالة التسجيل مشتقّة", () => {
         AT,
       ),
     ).toBe("closed");
+  });
+});
+
+describe("رقم التسجيل", () => {
+  it("**البادئة وأربع خانات** — وبلا بادئة لا رقم", () => {
+    expect(formatRegistrationNo("SN-1448", 1)).toBe("SN-1448-0001");
+    expect(formatRegistrationNo("SN-1448", 12345)).toBe("SN-1448-12345");
+    expect(formatRegistrationNo(null, 1)).toBeNull();
+    expect(formatRegistrationNo("SN-1448", null)).toBeNull();
   });
 });

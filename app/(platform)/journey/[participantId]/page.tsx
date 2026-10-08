@@ -1,3 +1,4 @@
+import { formatRegistrationNo } from "@/lib/programs/registration";
 import { notFound } from "next/navigation";
 import { JourneyBail } from "@/components/shared/journey-bail";
 import { ErrorState } from "@/components/shared/states";
@@ -40,7 +41,7 @@ export default async function JourneyDayPage({
   const { data: participant, error: participantError } = await db
     .from("participants")
     .select(
-      "id, status, track_id, programs!inner(id, name, slug, contact, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name)",
+      "id, status, track_id, registration_no, programs!inner(id, name, slug, contact, registration_prefix, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name)",
     )
     .eq("id", participantId)
     .eq("user_id", session.userId)
@@ -55,6 +56,7 @@ export default async function JourneyDayPage({
     name: string;
     slug: string;
     contact: string;
+    registration_prefix: string | null;
     section_label: string | null;
     unit_singular: string | null;
     unit_one: string | null;
@@ -204,6 +206,7 @@ export default async function JourneyDayPage({
     <JourneyView
       participantId={participantId}
       justJoined={joined === "1"}
+      registrationNo={formatRegistrationNo(program.registration_prefix, participant.registration_no)}
       programName={program.name}
       trackName={track.name}
       state={state}

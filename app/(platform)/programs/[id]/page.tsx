@@ -5,6 +5,7 @@ import { authorizeRequest } from "@/lib/permissions/server";
 import { programReadiness } from "@/lib/programs/readiness-server";
 import { registrationState } from "@/lib/programs/registration";
 import { ProgramView, type ProgramDetail } from "./program-view";
+import { EligibilityForm } from "./eligibility-form";
 
 /**
  * نظرة عامة على البرنامج — **جاهزيته وحقائقه ودورة حياته**.
@@ -32,7 +33,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
     db
       .from("programs")
       .select(
-        "id, name, slug, summary, contact, status, kind, participant_label, capacity, registration_opens_at, registration_closes_at, passing_percentage, award_percentage",
+        "id, name, slug, summary, contact, status, kind, participant_label, capacity, registration_opens_at, registration_closes_at, passing_percentage, award_percentage, min_age, allowed_gender, require_saudi_phone, require_identity, registration_prefix",
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -69,11 +70,25 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <ProgramView
-      readinessItems={ready.items}
-      missing={ready.missing}
-      program={program}
-      canWrite={canWrite}
-    />
+    <>
+      <ProgramView
+        readinessItems={ready.items}
+        missing={ready.missing}
+        program={program}
+        canWrite={canWrite}
+      />
+      {canWrite ? (
+        <EligibilityForm
+          programId={p.id}
+          values={{
+            minAge: p.min_age,
+            allowedGender: p.allowed_gender,
+            requireSaudiPhone: p.require_saudi_phone,
+            requireIdentity: p.require_identity,
+            registrationPrefix: p.registration_prefix,
+          }}
+        />
+      ) : null}
+    </>
   );
 }

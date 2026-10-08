@@ -26,6 +26,8 @@ import {
 export type ParticipantRow = {
   id: string;
   name: string;
+  /** `SN-1448-0001` (`adr/0047`) — فارغ بلا بادئة. */
+  registrationNo: string | null;
   trackName: string;
   hasTrack: boolean;
   status: string;
@@ -93,6 +95,11 @@ export function ParticipantsView({
 
   const columns: Column<ParticipantRow>[] = [
     { key: "name", header: "المشارك", sortable: true, primary: true, render: (p) => p.name },
+    {
+      key: "registrationNo",
+      header: "رقم التسجيل",
+      render: (p) => (p.registrationNo ? <span dir="ltr">{p.registrationNo}</span> : "—"),
+    },
     {
       key: "track",
       header: "المسار",

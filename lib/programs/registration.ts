@@ -49,3 +49,12 @@ export const REGISTRATION_LABEL: Record<RegistrationState, string> = {
   full: "اكتمل العدد",
   closed: "مغلق",
 };
+
+/**
+ * رقم التسجيل للعرض (`adr/0047`): البادئة وعددٌ بأربع خانات — `SN-1448-0001`.
+ * بلا بادئة أو بلا رقم لا شيء يُعرض.
+ */
+export function formatRegistrationNo(prefix: string | null, no: number | null): string | null {
+  if (!prefix || no === null) return null;
+  return `${prefix}-${String(no).padStart(4, "0")}`;
+}

@@ -66,13 +66,23 @@ export default async function RegisterPage({
     );
   }
 
+  // الأهلية (`adr/0047`): الموانع كلها تُعرض قبل النموذج — من الدالة نفسها
+  // التي يرفض بها التسجيل، فلا يختلف المعروض عن المفروض.
+  const { data: blockers } = await db.rpc("fn_registration_blockers", { p_program_id: program.id });
+  if (blockers && blockers.length > 0) {
+    return (
+      <EmptyState
+        kind="no-data"
+        title="قبل أن تسجّل"
+        body={blockers.join(" · ")}
+        action={<Link href="/account">افتح حسابي</Link>}
+      />
+    );
+  }
+
   const [tracksResult, questionsResult] = await Promise.all([
-    db
-      .from("tracks")
-      .select("id, name, description, capacity")
-      .eq("program_id", program.id)
-      .is("deleted_at", null)
-      .order("sort_order"),
+    // المقاعد المتبقية من القاعدة — عدّ المشاركين محجوبٌ عن المسجِّل بسياسته.
+    db.rpc("fn_public_tracks", { p_program_id: program.id }),
     db
       .from("admission_questions")
       .select("id, question, is_required, track_id, kind")
@@ -82,7 +92,13 @@ export default async function RegisterPage({
       .order("created_at"),
   ]);
 
-  const tracks: TrackOption[] = tracksResult.data ?? [];
+  const tracks: TrackOption[] = (tracksResult.data ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description ?? "",
+    capacity: t.capacity,
+    remaining: t.capacity === null ? null : Math.max(0, t.capacity - t.taken),
+  }));
   const questions: QuestionRow[] = (questionsResult.data ?? []).map((q) => ({
     id: q.id,
     question: q.question,
