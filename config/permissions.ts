@@ -8,6 +8,7 @@
 
 export const PERMISSION_SECTIONS = {
   users: "المستخدمون",
+  identities: "الهويات",
   roles: "الأدوار",
   settings: "الإعدادات",
   attachments: "المرفقات",
@@ -24,6 +25,9 @@ type Entry = { section: PermissionSection; label: string };
 export const PERMISSIONS = {
   "users.read": { section: "users", label: "عرض المستخدمين" },
   "users.write": { section: "users", label: "تعديل المستخدمين وإيقافهم وحذفهم" },
+  // رقم الهوية بيانٌ حسّاس (adr/0047): `users.read` يراه مقنّعاً، وهذان كاملاً وتصحيحاً.
+  "identities.read": { section: "identities", label: "عرض أرقام الهويات كاملة" },
+  "identities.write": { section: "identities", label: "تصحيح أرقام الهويات" },
 
   "roles.read": { section: "roles", label: "عرض الأدوار وصلاحياتها" },
   "roles.write": { section: "roles", label: "إنشاء الأدوار وتعديل صلاحياتها" },

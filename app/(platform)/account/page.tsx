@@ -14,7 +14,7 @@ export default async function AccountPage() {
   if (session.status !== "active") redirect("/sign-in");
 
   const db = await createClient();
-  const [{ data: auth }, profileResult, participationsResult, programsResult] = await Promise.all([
+  const [{ data: auth }, profileResult, participationsResult, programsResult, identityResult] = await Promise.all([
     db.auth.getUser(),
     db
       .from("profiles")
@@ -36,6 +36,13 @@ export default async function AccountPage() {
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(50),
+    // هويتي (`adr/0047`) — صفّي وحدي بسياسته، ورقمي كاملاً.
+    db
+      .from("profile_identities")
+      .select("national_id, guardian_phone")
+      .eq("user_id", session.userId)
+      .is("deleted_at", null)
+      .maybeSingle(),
   ]);
 
   if (profileResult.error || !profileResult.data || participationsResult.error) {
@@ -76,6 +83,10 @@ export default async function AccountPage() {
         nationality: profileResult.data.nationality ?? "",
         phone: profileResult.data.phone,
         phoneSecondary: profileResult.data.phone_secondary,
+      }}
+      identity={{
+        nationalId: identityResult.data?.national_id ?? null,
+        guardianPhone: identityResult.data?.guardian_phone ?? null,
       }}
       hasPassword={providers.has("email")}
       hasGoogle={providers.has("google")}

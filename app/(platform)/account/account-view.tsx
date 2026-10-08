@@ -4,13 +4,19 @@ import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
-import { ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
+import { PhoneField, ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
 import { Card, Cards, Messages, Muted, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Modal } from "@/components/shared/modal";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { PARTICIPANT_STATUS_LABEL, type ParticipantStatus } from "@/lib/programs/kinds";
-import { changePassword, closeMyAccount, updateMyProfile, withdrawParticipation } from "./actions";
+import {
+  changePassword,
+  closeMyAccount,
+  updateMyIdentity,
+  updateMyProfile,
+  withdrawParticipation,
+} from "./actions";
 import { PasswordInput } from "@/components/shared/password-input";
 
 export type Participation = {
@@ -25,6 +31,7 @@ export type AvailableProgram = { id: string; name: string; summary: string; slug
 export function AccountView({
   email,
   profile,
+  identity,
   hasPassword,
   hasGoogle,
   isStaff,
@@ -33,6 +40,7 @@ export function AccountView({
 }: {
   email: string;
   profile: ProfileValues;
+  identity: { nationalId: string | null; guardianPhone: string | null };
   hasPassword: boolean;
   hasGoogle: boolean;
   isStaff: boolean;
@@ -41,6 +49,7 @@ export function AccountView({
 }) {
   const [profileState, profileAction, profilePending] = useActionState(updateMyProfile, EMPTY_FORM_STATE);
   const [pwState, pwAction, pwPending] = useActionState(changePassword, EMPTY_FORM_STATE);
+  const [idState, idAction, idPending] = useActionState(updateMyIdentity, EMPTY_FORM_STATE);
   const [closeState, closeAction, closePending] = useActionState(closeMyAccount, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
   const [leaving, setLeaving] = useState<Participation | null>(null);
@@ -76,6 +85,44 @@ export function AccountView({
             </Button>
           </FormActions>
           <Messages state={profileState} />
+        </StepForm>
+
+        {/* هويتي (`adr/0047`) — تُشترط عند التسجيل في برنامجٍ يطلبها، ولا يراها كاملةً غير صاحبها. */}
+        <StepForm title="هويتي" action={idAction} state={idState}>
+          <Muted>
+            تطلبها بعض البرامج عند التسجيل. لا يراها كاملةً غيرك، وإدارة البرنامج تراها مقنّعة.
+          </Muted>
+          <Field
+            id="nationalId"
+            label="رقم الهوية أو الإقامة"
+            hint={identity.nationalId ? "مثبَّت — لتصحيحه تواصل مع إدارة البرنامج" : "عشرة أرقام يبدأ بـ1 أو 2"}
+            error={idState.fieldErrors?.["nationalId"]}
+          >
+            <Input
+              id="nationalId"
+              name="nationalId"
+              inputMode="numeric"
+              maxLength={10}
+              latin
+              defaultValue={identity.nationalId ?? ""}
+              readOnly={Boolean(identity.nationalId)}
+              invalid={Boolean(idState.fieldErrors?.["nationalId"])}
+            />
+          </Field>
+          <PhoneField
+            id="guardianPhone"
+            label="جوال وليّ الأمر"
+            hint="مطلوبٌ لمن هم دون الثامنة عشرة"
+            value={identity.guardianPhone}
+            error={idState.fieldErrors?.["guardianPhone"]}
+            countryName="guardianPhoneCountry"
+          />
+          <FormActions>
+            <Button type="submit" variant="primary" pending={idPending}>
+              احفظ الهوية
+            </Button>
+          </FormActions>
+          <Messages state={idState} />
         </StepForm>
       </Step>
 

@@ -1262,6 +1262,36 @@ export type Database = {
           },
         ]
       }
+      profile_identities: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          guardian_phone: string | null
+          id: string
+          national_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          guardian_phone?: string | null
+          id?: string
+          national_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          guardian_phone?: string | null
+          id?: string
+          national_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date: string | null
@@ -2117,6 +2147,14 @@ export type Database = {
         Returns: boolean
       }
       fn_home_featured: { Args: never; Returns: string }
+      fn_identity_masked: {
+        Args: { p_user_id: string }
+        Returns: {
+          guardian_phone: string
+          is_full: boolean
+          national_id: string
+        }[]
+      }
       fn_inherit_engine_setting: {
         Args: { p_key: string; p_track_id: string }
         Returns: undefined

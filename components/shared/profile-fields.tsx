@@ -122,7 +122,7 @@ function NationalityField({ value, error }: { value: string; error?: string }) {
  * مفتاح الدولة ورقمها. **التصحيح يُعرض لا يُخفى:** عند مغادرة الخانة يظهر ما
  * سيُحفظ فعلاً، فمن كتب `0501234567` يرى `+966 50 123 4567` قبل أن يحفظ.
  */
-function PhoneField({
+export function PhoneField({
   id,
   label,
   hint,

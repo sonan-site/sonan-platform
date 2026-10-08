@@ -12,6 +12,7 @@ import { env } from "@/lib/env.server";
 import { setSignInBlocked } from "@/lib/mail";
 import { setPasswordSchema } from "@/lib/validation/auth";
 import { z } from "@/lib/validation/z";
+import { identityInput, identitySchema } from "@/lib/validation/identity";
 import { profileInput, profileSchema } from "@/lib/validation/profile";
 
 /**
@@ -136,4 +137,29 @@ export async function closeMyAccount(_prev: FormState, form: FormData): Promise<
   await db.auth.signOut();
 
   redirect("/sign-in?error=account-closed");
+}
+
+/**
+ * هويتي (`adr/0047`) — رقم الهوية وجوال وليّ الأمر، في جدولٍ لا يقرؤه غير
+ * صاحبه. والرقم المثبَّت يرفض حارسُ القاعدة تغييره، فتُعرض رسالته كما هي.
+ */
+export async function updateMyIdentity(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = identitySchema.safeParse(identityInput(form));
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const session = await getSession();
+  if (session.status !== "active") return { error: "انتهت جلستك. سجّل الدخول من جديد." };
+
+  const db = await createClient();
+  const { error } = await db
+    .from("profile_identities")
+    .upsert({ user_id: session.userId, ...parsed.data }, { onConflict: "user_id" });
+  if (error) {
+    return {
+      error: userMessage(error, "تعذّر حفظ هويتك.", "رقم الهوية مسجّلٌ لحسابٍ آخر — تواصل مع إدارة البرنامج."),
+    };
+  }
+
+  revalidatePath("/account");
+  return { notice: "حُفظت هويتك." };
 }
