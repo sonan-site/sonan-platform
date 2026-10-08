@@ -13,6 +13,7 @@ select r.id, code
 from public.roles r
 cross join (values
   ('users.read'), ('users.write'),
+  ('identities.read'), ('identities.write'),
   ('roles.read'), ('roles.write'), ('roles.assign'),
   ('settings.read'), ('settings.write'),
   ('attachments.read'), ('attachments.write'),
