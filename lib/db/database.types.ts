@@ -658,6 +658,143 @@ export type Database = {
           },
         ]
       }
+      evaluation_answers: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          evaluated_at: string
+          evaluation_id: string
+          id: string
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          evaluated_at?: string
+          evaluation_id: string
+          id?: string
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          evaluated_at?: string
+          evaluation_id?: string
+          id?: string
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_answers_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "judge_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluation_deductions: {
+        Row: {
+          created_at: string
+          criterion_id: string
+          deleted_at: string | null
+          evaluation_answer_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criterion_id: string
+          deleted_at?: string | null
+          evaluation_answer_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criterion_id?: string
+          deleted_at?: string | null
+          evaluation_answer_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_deductions_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "deduction_criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluation_deductions_evaluation_answer_id_fkey"
+            columns: ["evaluation_answer_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_answers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_sessions: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          deleted_at: string | null
+          exam_id: string
+          id: string
+          location: string
+          name: string
+          opened_at: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          exam_id: string
+          id?: string
+          location?: string
+          name: string
+          opened_at?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          exam_id?: string
+          id?: string
+          location?: string
+          name?: string
+          opened_at?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sessions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           award_percentage: number | null
@@ -931,6 +1068,54 @@ export type Database = {
             columns: ["program_id"]
             isOneToOne: false
             referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      judge_evaluations: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          judge_id: string
+          participant_id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          judge_id: string
+          participant_id: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          judge_id?: string
+          participant_id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "judge_evaluations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "judge_evaluations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -1843,6 +2028,47 @@ export type Database = {
           },
         ]
       }
+      retroactive_entries: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          entered_at: string
+          entered_by: string
+          evaluation_id: string
+          id: string
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          entered_at?: string
+          entered_by: string
+          evaluation_id: string
+          id?: string
+          reason: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          entered_at?: string
+          entered_by?: string
+          evaluation_id?: string
+          id?: string
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retroactive_entries_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "judge_evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -1942,6 +2168,89 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_judges: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_judges_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_participants: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          participant_id: string
+          question_ids: string[]
+          session_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          participant_id: string
+          question_ids?: string[]
+          session_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          participant_id?: string
+          question_ids?: string[]
+          session_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_participants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "exam_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -2288,6 +2597,13 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_apply_sorting: {
+        Args: { p_exam_id: string; p_overrides?: Json }
+        Returns: {
+          not_qualified: number
+          qualified: number
+        }[]
+      }
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_attempt_score: {
@@ -2415,6 +2731,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      fn_distribute_participants: {
+        Args: { p_exam_id: string }
+        Returns: number
+      }
       fn_done_days_at: {
         Args: {
           p_at: string
@@ -2423,6 +2743,10 @@ export type Database = {
           p_track_id: string
         }
         Returns: number
+      }
+      fn_draw_oral: {
+        Args: { p_exam_id: string; p_participant_id: string }
+        Returns: string[]
       }
       fn_due_days_at: {
         Args: {
@@ -2465,6 +2789,14 @@ export type Database = {
           work_days: number[]
         }[]
       }
+      fn_evaluation_judge: {
+        Args: { p_judge_id: string; p_session_id: string }
+        Returns: string
+      }
+      fn_evaluation_total: {
+        Args: { p_evaluation_id: string }
+        Returns: number
+      }
       fn_exam_best: {
         Args: { p_exam_id: string; p_participant_id: string }
         Returns: {
@@ -2493,6 +2825,34 @@ export type Database = {
           participant_id: string
           passed: boolean
           registration_no: number
+          track_id: string
+        }[]
+      }
+      fn_final_eligibility: {
+        Args: { p_exam_id: string }
+        Returns: {
+          eligible: boolean
+          full_name: string
+          participant_id: string
+          percent: number
+          prerequisite_passed: boolean
+          registration_no: number
+          status: Database["public"]["Enums"]["participant_status"]
+          track_id: string
+        }[]
+      }
+      fn_final_scores: {
+        Args: { p_exam_id: string }
+        Returns: {
+          approved: number
+          final_score: number
+          full_name: string
+          judges: number
+          max_score: number
+          participant_id: string
+          percent: number
+          registration_no: number
+          session_name: string
           track_id: string
         }[]
       }
@@ -2530,9 +2890,63 @@ export type Database = {
         Args: { p_date: string; p_program_id: string; p_track_id: string }
         Returns: boolean
       }
+      fn_is_session_judge: { Args: { p_session_id: string }; Returns: boolean }
       fn_journey_state: { Args: { p_participant_id: string }; Returns: Json }
       fn_journey_state_at: {
         Args: { p_at: string; p_participant_id: string }
+        Returns: Json
+      }
+      fn_judge_approve: {
+        Args: {
+          p_judge_id?: string
+          p_participant_id: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      fn_judge_mark: {
+        Args: {
+          p_criterion_ids: string[]
+          p_judge_id?: string
+          p_participant_id: string
+          p_question_id: string
+          p_reason?: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      fn_judge_session: {
+        Args: { p_judge_id?: string; p_session_id: string }
+        Returns: {
+          approved: boolean
+          evaluated: number
+          full_name: string
+          participant_id: string
+          registration_no: number
+          sort_order: number
+          total: number
+          track_name: string
+        }[]
+      }
+      fn_judge_sessions: {
+        Args: never
+        Returns: {
+          approved: number
+          exam_name: string
+          location: string
+          name: string
+          participants: number
+          scheduled_at: string
+          session_id: string
+          status: Database["public"]["Enums"]["session_status"]
+        }[]
+      }
+      fn_judge_sheet: {
+        Args: {
+          p_judge_id?: string
+          p_participant_id: string
+          p_session_id: string
+        }
         Returns: Json
       }
       fn_local_now: { Args: { p_at?: string }; Returns: string }
@@ -2548,6 +2962,10 @@ export type Database = {
           p_participant_id: string
         }
         Returns: Json
+      }
+      fn_move_participant: {
+        Args: { p_participant_id: string; p_session_id: string }
+        Returns: undefined
       }
       fn_my_duties: {
         Args: never
@@ -2746,6 +3164,15 @@ export type Database = {
       }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
       fn_remove_custom_plan: { Args: { p_plan_id: string }; Returns: undefined }
+      fn_reopen_evaluation: {
+        Args: {
+          p_judge_id: string
+          p_participant_id: string
+          p_reason: string
+          p_session_id: string
+        }
+        Returns: undefined
+      }
       fn_restore_plan_version: {
         Args: { p_version_id: string }
         Returns: number
@@ -2764,6 +3191,7 @@ export type Database = {
         Args: { p_program_id: string; p_q: Json; p_question_id: string }
         Returns: string
       }
+      fn_session_program: { Args: { p_session_id: string }; Returns: string }
       fn_set_engine_setting: {
         Args: {
           p_key: string
@@ -2775,6 +3203,10 @@ export type Database = {
       }
       fn_set_material_sections: {
         Args: { p_expected?: string[]; p_program_id: string; p_sections: Json }
+        Returns: undefined
+      }
+      fn_set_session_judge: {
+        Args: { p_assign: boolean; p_session_id: string; p_user_id: string }
         Returns: undefined
       }
       fn_set_unit_labels: {
@@ -2886,6 +3318,7 @@ export type Database = {
       publish_status: "draft" | "published"
       question_type: "single" | "multiple" | "true_false"
       request_status: "pending" | "approved" | "rejected"
+      session_status: "scheduled" | "in_progress" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3050,6 +3483,7 @@ export const Constants = {
       publish_status: ["draft", "published"],
       question_type: ["single", "multiple", "true_false"],
       request_status: ["pending", "approved", "rejected"],
+      session_status: ["scheduled", "in_progress", "closed"],
     },
   },
 } as const

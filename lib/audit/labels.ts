@@ -21,6 +21,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   user_restored: "إعادة تفعيل حساب",
   account_closed: "إغلاق حساب بطلب صاحبه",
   participation_withdrawn: "انسحاب من برنامج",
+  exam_sorting_applied: "حسم الفرز للاختبار النهائي",
+  evaluation_reopened: "إعادة فتح تقييم محكّم",
   role_assigned: "إسناد دور",
   role_revoked: "سحب دور",
   section_created: "إنشاء قسم",
