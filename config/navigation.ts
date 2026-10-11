@@ -17,7 +17,8 @@ export type IconName =
   | "ScrollText"
   | "BookOpen"
   | "CalendarDays"
-  | "UserRound";
+  | "UserRound"
+  | "Gavel";
 
 export type NavItem = {
   /** مفتاح ثابت — لا يتغيّر بتغيّر العنوان، فيصلح للاختبار وحفظ الحالة. */
@@ -100,6 +101,16 @@ export const NAVIGATION: readonly NavItem[] = [
     participantsOnly: true,
     primary: true,
     mode: "participant",
+  },
+  {
+    key: "judge",
+    title: "التحكيم",
+    href: "/judge",
+    icon: "Gavel",
+    // للجان الاختبار (adr/0048): الجلسات المسندة وحدها، من الجوال في القاعة.
+    permission: "exams.judge",
+    primary: false,
+    mode: "staff",
   },
   {
     key: "settings",

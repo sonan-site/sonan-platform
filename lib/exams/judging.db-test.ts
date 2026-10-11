@@ -327,6 +327,24 @@ describe("التحكيم", () => {
     expect((await one(`select status from public.exam_sessions where id = $1`, [sessionId])).status).toBe("closed");
   });
 
+  it("**الإدارة ترى حال كل محكّم مع كل مشارك** — والمرشَّحون للجنة حاملو التحكيم", async () => {
+    const ev = await as<{ judge_id: string; approved: boolean; retroactive: boolean; participant_id: string }>(
+      ADMIN,
+      `select participant_id, judge_id, approved, retroactive from public.fn_session_evaluations($1)`,
+      [sessionId],
+    );
+    expect(ev.rows).toHaveLength(4);
+    expect(ev.rows.every((r) => r.approved)).toBe(true);
+    expect(ev.rows.find((r) => r.participant_id === part.C && r.judge_id === J2)!.retroactive).toBe(true);
+    expect((await as(J1, `select * from public.fn_session_evaluations($1)`, [sessionId])).error).toMatch(/لا تملك/);
+    const cand = await as<{ user_id: string }>(ADMIN, `select user_id from public.fn_exam_judge_candidates($1)`, [programId]);
+    // ودور النظام يحمل الكتالوج كله، فصاحبه مرشَّحٌ أيضاً — يكفي أن يكون الاثنان ولا يكون غير الحامل.
+    const ids = cand.rows.map((r) => r.user_id);
+    expect(ids).toEqual(expect.arrayContaining([J1, J2]));
+    expect(ids).not.toContain(NOJ);
+    expect(ids).not.toContain(ADMIN);
+  });
+
   it("**ولا كتابة مباشرة** في التقييمات", async () => {
     const { error } = await as(J1, `update public.judge_evaluations set approved_at = null`);
     expect(error).toMatch(/permission denied/);

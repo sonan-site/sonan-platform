@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
@@ -145,9 +146,16 @@ function ExamsStep({ programId, tracks, exams }: { programId: string; tracks: Tr
       header: "",
       align: "end",
       render: (e) => (
-        <Button onClick={() => setEditing(e)} aria-label={`تعديل إعدادات ${e.name}`}>
-          تعديل الإعدادات
-        </Button>
+        <span className={styles.rowActions}>
+          <Button onClick={() => setEditing(e)} aria-label={`تعديل إعدادات ${e.name}`}>
+            تعديل الإعدادات
+          </Button>
+          {e.examType === "oral" ? (
+            <Link className={styles.go} href={`/programs/${programId}/exams/${e.id}`}>
+              الفرز والجلسات
+            </Link>
+          ) : null}
+        </span>
       ),
     },
   ];

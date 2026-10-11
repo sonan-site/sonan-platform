@@ -2806,6 +2806,13 @@ export type Database = {
         }[]
       }
       fn_exam_gate: { Args: { p_exam_id: string }; Returns: string[] }
+      fn_exam_judge_candidates: {
+        Args: { p_program_id: string }
+        Returns: {
+          full_name: string
+          user_id: string
+        }[]
+      }
       fn_exam_participant: { Args: { p_exam_id: string }; Returns: string }
       fn_exam_pool: {
         Args: {
@@ -3190,6 +3197,19 @@ export type Database = {
       fn_save_question: {
         Args: { p_program_id: string; p_q: Json; p_question_id: string }
         Returns: string
+      }
+      fn_session_evaluations: {
+        Args: { p_session_id: string }
+        Returns: {
+          approved: boolean
+          evaluated: number
+          judge_id: string
+          judge_name: string
+          participant_id: string
+          retroactive: boolean
+          score: number
+          total: number
+        }[]
       }
       fn_session_program: { Args: { p_session_id: string }; Returns: string }
       fn_set_engine_setting: {

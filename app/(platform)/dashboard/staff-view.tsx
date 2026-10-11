@@ -6,6 +6,7 @@ import {
   Settings,
   ShieldCheck,
   UserRound,
+  Gavel,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   BookOpen,
   CalendarDays,
   UserRound,
+  Gavel,
 };
 
 const ICON_SIZE = 20;

@@ -3,6 +3,7 @@
 import {
   BookOpen,
   CalendarDays,
+  Gavel,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -46,6 +47,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   BookOpen,
   CalendarDays,
   UserRound,
+  Gavel,
 };
 
 const ICON_SIZE = 20;

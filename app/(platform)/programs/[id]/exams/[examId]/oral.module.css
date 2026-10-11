@@ -1,0 +1,48 @@
+/* الاختبار الشفهي: الجلسات ولجانها — adr/0048 */
+
+.label {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.people {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-5);
+}
+
+.person {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.personName {
+  font-weight: var(--weight-bold);
+}
+
+.evals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.ok {
+  color: var(--color-success);
+}
+
+.pending {
+  color: var(--color-text-muted);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
