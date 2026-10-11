@@ -274,6 +274,16 @@ describe("المحاولة", () => {
     expect((await as(PLAYER, `select * from public.fn_exam_results($1)`, [examId])).error).toMatch(/لا تملك/);
   });
 
+  it("**«اختباراتي» لصاحب المشاركة وحده** — بمحاولاته وموانعه", async () => {
+    const mine = await as<{ name: string; attempts: number; passed: boolean; blockers: string[] }>(
+      PLAYER,
+      `select name, attempts, passed, blockers from public.fn_my_exams($1)`,
+      [participantId],
+    );
+    expect(mine.rows).toEqual([{ name: "المرحلي", attempts: 2, passed: false, blockers: ["استنفدت محاولاتك"] }]);
+    expect((await as(OTHER, `select * from public.fn_my_exams($1)`, [participantId])).rows).toHaveLength(0);
+  });
+
   it("**ولا كتابة مباشرة** في المحاولات", async () => {
     const { error } = await as(PLAYER, `update public.remote_attempts set skips_used = 0 where id = $1`, [attempt]);
     expect(error).toMatch(/permission denied/);

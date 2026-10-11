@@ -51,6 +51,20 @@ function percent(value: number): string {
   return formatPercent(value / 100, Number.isInteger(value) ? 0 : 1);
 }
 
+export type JourneyExam = {
+  id: string;
+  name: string;
+  opensAt: string | null;
+  closesAt: string | null;
+  attempts: number;
+  maxAttempts: number | null;
+  bestPercent: number | null;
+  passed: boolean;
+  open: boolean;
+  /** أول موانعه — فارغ = يدخل الآن. */
+  blocker: string | null;
+};
+
 export function JourneyView({
   participantId,
   justJoined,
@@ -65,6 +79,7 @@ export function JourneyView({
   tasks,
   archive,
   priorDays,
+  exams,
 }: {
   participantId: string;
   /** جاء من التسجيل للتوّ. */
@@ -85,6 +100,8 @@ export function JourneyView({
   archive: ArchiveRow[];
   /** أيامٌ أتمّها في مساراتٍ قبل هذا — صفرٌ لمن لم يُنقل. */
   priorDays: number;
+  /** اختباراته عن بعد (`adr/0048`). */
+  exams: JourneyExam[];
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<{ error?: string; notice?: string }>({});
@@ -164,6 +181,10 @@ export function JourneyView({
           </div>
         ) : null}
       </dl>
+
+      {exams.map((exam) => (
+        <ExamCard key={exam.id} participantId={participantId} exam={exam} />
+      ))}
 
       {state.carried ? (
         <p role="status" className={styles.alert}>
@@ -397,6 +418,40 @@ function TaskCard({
         <p role="alert" className={styles.cardError}>
           {error}
         </p>
+      ) : null}
+    </section>
+  );
+}
+
+/** بطاقة اختبارٍ في «رحلتي»: حاله في سطر، ورابطه حين يُدخل أو تُرى نتيجته. */
+function ExamCard({ participantId, exam }: { participantId: string; exam: JourneyExam }) {
+  const href = `/journey/${participantId}/exam/${exam.id}`;
+  const span =
+    exam.opensAt && exam.closesAt
+      ? `من ${formatDateBoth(exam.opensAt)} إلى ${formatDateBoth(exam.closesAt)}`
+      : null;
+  let line: string;
+  let action: string | null = null;
+  if (exam.open) {
+    line = "لك محاولةٌ لم تكتمل.";
+    action = "أكمل الاختبار";
+  } else if (exam.passed) {
+    line = `اجتزته بنسبة ${percent(exam.bestPercent ?? 0)}.`;
+  } else if (exam.blocker === null) {
+    line = exam.attempts > 0 ? `أعلى نتيجة لك ${percent(exam.bestPercent ?? 0)} — ولك محاولةٌ أخرى.` : "الاختبار متاحٌ لك الآن.";
+    action = exam.attempts > 0 ? "ابدأ محاولة جديدة" : "ادخل الاختبار";
+  } else {
+    line = exam.bestPercent !== null ? `${exam.blocker} — أعلى نتيجة لك ${percent(exam.bestPercent)}.` : `${exam.blocker}.`;
+  }
+  return (
+    <section className={styles.exam} aria-label={exam.name}>
+      <p className={styles.examName}>{exam.name}</p>
+      {span ? <p className={styles.muted}>{span}</p> : null}
+      <p>{line}</p>
+      {action ? (
+        <Link className={styles.examGo} href={href}>
+          {action}
+        </Link>
       ) : null}
     </section>
   );

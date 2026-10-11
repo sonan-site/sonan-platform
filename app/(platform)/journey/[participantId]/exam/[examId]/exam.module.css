@@ -1,0 +1,123 @@
+/* الاختبار عن بعد للمشارك — adr/0048 */
+
+.shell {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: 34rem;
+  margin-inline: auto;
+}
+
+.back {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.intro,
+.result,
+.question {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.intro h1,
+.result h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.rules,
+.blockers {
+  margin: 0;
+  padding-inline-start: var(--space-5);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.blockers {
+  color: var(--color-warning);
+}
+
+.ok {
+  color: var(--color-success);
+}
+
+.warn {
+  color: var(--color-warning);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+.big {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+}
+
+.bar {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.urgent {
+  color: var(--color-danger);
+  font-weight: var(--weight-bold);
+}
+
+.meter {
+  inline-size: 100%;
+  block-size: var(--space-2);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-normal);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.options {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.option {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.option:active {
+  transform: scale(0.99);
+}
+
+.picked {
+  border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+  font-weight: var(--weight-bold);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

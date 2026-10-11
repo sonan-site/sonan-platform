@@ -54,6 +54,18 @@ export type QuestionRow = {
   options: { text: string; correct: boolean }[];
 };
 
+export type ResultRow = {
+  key: string;
+  examName: string;
+  name: string;
+  registrationNo: number | null;
+  trackId: string | null;
+  attempts: number;
+  open: boolean;
+  bestPercent: number | null;
+  passed: boolean;
+};
+
 type Track = { id: string; name: string };
 
 const EXAM_TYPE = { remote: "عن بعد", oral: "شفهي حضوري" } as const;
@@ -71,6 +83,7 @@ export function ExamsView({
   questionTotal,
   page,
   lastUnit,
+  results,
 }: {
   programId: string;
   tracks: Track[];
@@ -81,6 +94,7 @@ export function ExamsView({
   page: number;
   /** أعلى رقم وحدة في المادة — حدّ «رقم الوحدة» في السؤال. */
   lastUnit: number;
+  results: ResultRow[];
 }) {
   return (
     <>
@@ -98,6 +112,7 @@ export function ExamsView({
         page={page}
         lastUnit={lastUnit}
       />
+      {exams.some((e) => e.examType === "remote") ? <ResultsStep tracks={tracks} results={results} /> : null}
     </>
   );
 }
@@ -675,5 +690,39 @@ function QuestionForm({
       </FormActions>
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
     </form>
+  );
+}
+
+// ══ ٤ · نتائج الاختبار عن بعد ══
+
+function ResultsStep({ tracks, results }: { tracks: Track[]; results: ResultRow[] }) {
+  const passed = results.filter((r) => r.passed).length;
+  const columns: Column<ResultRow>[] = [
+    { key: "name", header: "المشارك", primary: true, render: (r) => r.name },
+    { key: "no", header: "رقم التسجيل", align: "end", render: (r) => (r.registrationNo === null ? "—" : formatNumber(r.registrationNo)) },
+    { key: "track", header: "المسار", render: (r) => tracks.find((t) => t.id === r.trackId)?.name ?? "—" },
+    { key: "exam", header: "الاختبار", render: (r) => r.examName },
+    { key: "attempts", header: "المحاولات", align: "end", render: (r) => `${formatNumber(r.attempts)}${r.open ? " (جارية)" : ""}` },
+    { key: "best", header: "الأعلى", align: "end", render: (r) => (r.bestPercent === null ? "—" : pct(r.bestPercent)) },
+    { key: "passed", header: "النتيجة", render: (r) => (r.passed ? "اجتاز" : r.bestPercent === null ? "لم يسلّم" : "لم يجتز") },
+  ];
+  return (
+    <Step
+      n={4}
+      title="نتائج الاختبار عن بعد"
+      why="من دخل، وكم حاول، وأعلى ما بلغ — والمعتدّ أعلى محاولاته."
+      done={passed > 0}
+      state={<span>{results.length === 0 ? "لم يدخل أحد بعد." : `${formatNumber(results.length)} دخلوا · ${formatNumber(passed)} اجتازوا`}</span>}
+    >
+      <DataTable
+        columns={columns}
+        rows={results}
+        rowKey={(r) => r.key}
+        total={results.length}
+        page={1}
+        pageSize={Math.max(results.length, 1)}
+        empty={{ title: "لا محاولات", body: "تظهر هنا محاولات المشاركين حين تُفتح النافذة." }}
+      />
+    </Step>
   );
 }

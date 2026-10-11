@@ -2568,6 +2568,27 @@ export type Database = {
           track_name: string
         }[]
       }
+      fn_my_exams: {
+        Args: { p_participant_id: string }
+        Returns: {
+          attempts: number
+          best_percent: number
+          blockers: string[]
+          closes_at: string
+          entry_percentage: number
+          exam_id: string
+          max_attempts: number
+          max_skips: number
+          name: string
+          open_attempt_id: string
+          opens_at: string
+          pass_percentage: number
+          passed: boolean
+          question_count: number
+          seconds_per_question: number
+          stage: Database["public"]["Enums"]["exam_stage"]
+        }[]
+      }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }
       fn_my_permissions: {
         Args: never

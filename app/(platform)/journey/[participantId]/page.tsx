@@ -97,7 +97,7 @@ export default async function JourneyDayPage({
   const requested = day && /^\d+$/.test(day) ? Number(day) : null;
   const shown = resolveDay(state, requested);
 
-  const [tasksResult, rangesResult, sectionsResult, archiveResult, recordResult] = await Promise.all([
+  const [tasksResult, rangesResult, sectionsResult, archiveResult, recordResult, examsResult] = await Promise.all([
     db.rpc("fn_day_tasks", { p_participant_id: participantId, p_day: shown }),
     db
       .from("track_content_ranges")
@@ -122,12 +122,15 @@ export default async function JourneyDayPage({
       .limit(400),
     // أيامه في مساراتٍ قبل هذا — تبقى ظاهرة بعد نقله (adr/0027).
     db.rpc("fn_participant_record", { p_participant_id: participantId }),
+    // اختباراته عن بعد بموانعها (adr/0048) — من الدالة التي يرفض بها البدء.
+    db.rpc("fn_my_exams", { p_participant_id: participantId }),
   ]);
 
   // **لا استعلام يبتلع خطأه.** نصيبٌ فارغ يجعل كل نطاقٍ «بعد آخر نصيب المسار».
   if (tasksResult.error) return <ErrorState body="تعذّر جلب واجب اليوم." />;
   if (rangesResult.error || sectionsResult.error) return <ErrorState body="تعذّر جلب مادة مسارك." />;
   if (archiveResult.error || recordResult.error) return <ErrorState body="تعذّر جلب سجلّ التزامك." />;
+  if (examsResult.error) return <ErrorState body="تعذّر جلب اختباراتك." />;
   const priorDays = (recordResult.data ?? []).filter((r) => !r.is_current).reduce((sum, r) => sum + r.done_days, 0);
 
   const share: TrackShare = {
@@ -217,6 +220,18 @@ export default async function JourneyDayPage({
       tasks={tasks}
       archive={archive}
       priorDays={priorDays}
+      exams={(examsResult.data ?? []).map((e) => ({
+        id: e.exam_id,
+        name: e.name,
+        opensAt: e.opens_at,
+        closesAt: e.closes_at,
+        attempts: e.attempts,
+        maxAttempts: e.max_attempts,
+        bestPercent: e.best_percent === null ? null : Number(e.best_percent),
+        passed: e.passed,
+        open: e.open_attempt_id !== null,
+        blocker: e.blockers?.[0] ?? null,
+      }))}
     />
   );
 }

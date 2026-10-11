@@ -5,7 +5,7 @@ import { createClient } from "@/lib/db/server";
 import { toDateInput } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { kindAllowsExams } from "@/lib/programs/kinds";
-import { ExamsView, type CriterionRow, type ExamSettings, type QuestionRow } from "./exams-view";
+import { ExamsView, type CriterionRow, type ExamSettings, type QuestionRow, type ResultRow } from "./exams-view";
 
 /**
  * الاختبارات وبنك الأسئلة (`adr/0048`): تعريف كل اختبار بإعداداته المخصّصة،
@@ -100,6 +100,24 @@ export default async function ExamsPage({
     awardPercentage: e.award_percentage === null ? null : Number(e.award_percentage),
   }));
 
+  // نتائج كل اختبارٍ عن بعد — من دالةٍ تحرس الصلاحية وتشتقّ الأعلى.
+  const remote = exams.filter((e) => e.examType === "remote");
+  const resultSets = await Promise.all(remote.map((e) => db.rpc("fn_exam_results", { p_exam_id: e.id })));
+  if (resultSets.some((r) => r.error)) return <ErrorState body="تعذّر جلب نتائج الاختبار." />;
+  const results: ResultRow[] = remote.flatMap((e, i) =>
+    (resultSets[i]!.data ?? []).map((r) => ({
+      key: `${e.id}-${r.participant_id}`,
+      examName: e.name,
+      name: r.full_name,
+      registrationNo: r.registration_no,
+      trackId: r.track_id,
+      attempts: r.attempts,
+      open: r.open_attempt,
+      bestPercent: r.best_percent === null ? null : Number(r.best_percent),
+      passed: r.passed,
+    })),
+  );
+
   const criteria: CriterionRow[] = (criteriaResult.data ?? []).map((c) => ({
     id: c.id,
     label: c.label,
@@ -132,6 +150,7 @@ export default async function ExamsPage({
       questionTotal={questionsResult.count ?? 0}
       page={page}
       lastUnit={unitsResult.data?.[0]?.sequence ?? 0}
+      results={results}
     />
   );
 }
