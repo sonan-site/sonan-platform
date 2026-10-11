@@ -2,17 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
 import { DataTable, type Column } from "@/components/shared/data-table";
-import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
-import { InlineText } from "@/components/shared/inline-edit";
+import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
-import { Messages, Muted, Step, StepForm, TabHead } from "@/components/shared/steps";
-import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
+import { Muted, Step, TabHead } from "@/components/shared/steps";
 import { formatNumber } from "@/lib/format";
-import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
-import { createDefaultPlan, createExam, customizeTrackPlan, renameExam, revertTrackPlan } from "./actions";
+import { createDefaultPlan, customizeTrackPlan, revertTrackPlan } from "./actions";
 import styles from "./plans.module.css";
 
 export type PlanSummary = {
@@ -35,28 +32,14 @@ export type TrackPlanRow = {
   warnings: string[];
 };
 
-export type ExamRow = {
-  id: string;
-  name: string;
-  type: "remote" | "oral";
-  stage: "interim" | "final";
-  trackName: string | null;
-  questionCount: number;
-};
-
 export function PlansView({
   programId,
   defaultPlan,
   rows,
-  tracks,
-  exams,
 }: {
   programId: string;
   defaultPlan: PlanSummary | null;
   rows: TrackPlanRow[];
-  tracks: { id: string; name: string }[];
-  /** `null` لنمطٍ بلا اختبارات `[BR-KIND-01]`. */
-  exams: ExamRow[] | null;
 }) {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
@@ -207,8 +190,6 @@ export function PlansView({
         />
       </Step>
 
-      {exams ? <ExamsSection programId={programId} exams={exams} tracks={tracks} /> : null}
-
       <Modal open={customizing !== null} title="خطة مخصّصة" onClose={() => setCustomizing(null)}>
         <p>
           تحلّ خطةٌ مخصّصة محلّ الافتراضية في «{customizing?.trackName}» وحده. ابدأها بنسخ الافتراضية ثم
@@ -249,126 +230,5 @@ export function PlansView({
         </FormActions>
       </Modal>
     </>
-  );
-}
-
-const EXAM_TYPE = { remote: "عن بعد", oral: "شفهي حضوري" } as const;
-const EXAM_STAGE = { interim: "مرحلي", final: "نهائي" } as const;
-
-/**
- * الاختبارات تعريفاً — خارج الخطة (`adr/0040`). لا تشغل يوم خطة، ووحدتها في
- * المرحلة الثانية تقرأ نسبة الإنجاز من المحرّك. وللمسابقة وحدها `[BR-KIND-01]`.
- */
-function ExamsSection({
-  programId,
-  exams,
-  tracks,
-}: {
-  programId: string;
-  exams: ExamRow[];
-  tracks: { id: string; name: string }[];
-}) {
-  const [state, action, pending] = useActionState(createExam, EMPTY_FORM_STATE);
-  const [examType, setExamType] = useState<"remote" | "oral">("remote");
-
-  const columns: Column<ExamRow>[] = [
-    {
-      key: "name",
-      header: "الاختبار",
-      primary: true,
-      render: (e) => (
-        <InlineText label={`اسم ${e.name}`} value={e.name} onSave={(next) => renameExam(e.id, next, programId)} />
-      ),
-    },
-    { key: "type", header: "النوع", render: (e) => EXAM_TYPE[e.type] },
-    { key: "stage", header: "المرحلة", render: (e) => EXAM_STAGE[e.stage] },
-    { key: "track", header: "المسار", render: (e) => e.trackName ?? "كل المسارات" },
-    { key: "count", header: "الأسئلة", align: "end", render: (e) => formatNumber(e.questionCount) },
-  ];
-
-  return (
-    <Step
-      n={3}
-      title="الاختبارات"
-      why="تعريف الاختبار باسمه ونوعه وأسئلته. والاختبار لا يشغل يوماً في الخطة: يقرأ نسبة إنجاز المشارك متى طلبها."
-      done={exams.length > 0}
-      state={<span>{exams.length === 0 ? "لا اختبارات معرَّفة." : `${formatNumber(exams.length)} اختبارات`}</span>}
-    >
-      {exams.length > 0 ? (
-        <DataTable
-          columns={columns}
-          rows={exams}
-          rowKey={(e) => e.id}
-          total={exams.length}
-          page={1}
-          empty={{ title: "لا اختبارات", body: "" }}
-        />
-      ) : null}
-
-      <StepForm title="تعريف اختبار" action={action} state={state}>
-        <input type="hidden" name="programId" value={programId} />
-        <Field id="examName" label="اسم الاختبار" required error={state.fieldErrors?.name}>
-          <Input id="examName" name="name" required />
-        </Field>
-        <Field id="examType" label="النوع" required>
-          <Select
-            id="examType"
-            name="examType"
-            value={examType}
-            onChange={(e) => setExamType(e.target.value as "remote" | "oral")}
-          >
-            <option value="remote">عن بعد</option>
-            <option value="oral">شفهي حضوري</option>
-          </Select>
-        </Field>
-        <Field id="stage" label="المرحلة" required error={state.fieldErrors?.stage}>
-          <Select id="stage" name="stage" key={examType} defaultValue={examType === "oral" ? "final" : "interim"}>
-            {examType === "oral" ? null : <option value="interim">مرحلي</option>}
-            <option value="final">نهائي</option>
-          </Select>
-        </Field>
-        <Field id="examTrack" label="المسار" hint="فارغ = كل المسارات.">
-          <Select id="examTrack" name="trackId" defaultValue="">
-            <option value="">كل المسارات</option>
-            {tracks.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field id="passPercentage" label="نسبة الاجتياز" error={state.fieldErrors?.passPercentage}>
-          <Input id="passPercentage" name="passPercentage" type="number" min={0} max={100} defaultValue={EXAM_DEFAULTS.passPercentage} numeric />
-        </Field>
-        <Field id="questionCount" label="عدد الأسئلة" required error={state.fieldErrors?.questionCount}>
-          <Input id="questionCount" name="questionCount" type="number" min={1} defaultValue={EXAM_DEFAULTS.questionCount} numeric />
-        </Field>
-        {examType === "remote" ? (
-          <>
-            <Field id="secondsPerQuestion" label="زمن السؤال بالثواني" required error={state.fieldErrors?.secondsPerQuestion}>
-              <Input id="secondsPerQuestion" name="secondsPerQuestion" type="number" min={1} defaultValue={EXAM_DEFAULTS.secondsPerQuestion} numeric />
-            </Field>
-            <Field id="maxSkips" label="حدّ تغيير السؤال" error={state.fieldErrors?.maxSkips}>
-              <Input id="maxSkips" name="maxSkips" type="number" min={0} defaultValue={EXAM_DEFAULTS.maxSkips} numeric />
-            </Field>
-          </>
-        ) : (
-          <>
-            <Field id="judgeCount" label="عدد المحكمين" required error={state.fieldErrors?.judgeCount}>
-              <Input id="judgeCount" name="judgeCount" type="number" min={1} defaultValue={EXAM_DEFAULTS.judgeCount} numeric />
-            </Field>
-            <Field id="awardPercentage" label="نسبة استحقاق الجوائز" error={state.fieldErrors?.awardPercentage}>
-              <Input id="awardPercentage" name="awardPercentage" type="number" min={0} max={100} defaultValue={EXAM_DEFAULTS.awardPercentage} numeric />
-            </Field>
-          </>
-        )}
-        <FormActions>
-          <Button type="submit" pending={pending}>
-            عرّف الاختبار
-          </Button>
-        </FormActions>
-        <Messages state={state} />
-      </StepForm>
-    </Step>
   );
 }

@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
-import { kindAllowsExams } from "@/lib/programs/kinds";
-import { PlansView, type ExamRow, type PlanSummary, type TrackPlanRow } from "./plans-view";
+import { PlansView, type PlanSummary, type TrackPlanRow } from "./plans-view";
 
 /**
  * الخطط (`adr/0036` · `0038`): خطة افتراضية للبرنامج يرثها كل مسار، وخطة
@@ -20,16 +19,10 @@ export default async function PlansPage({ params }: { params: Promise<{ id: stri
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [programResult, tracksResult, plansResult, examsResult] = await Promise.all([
-    db.from("programs").select("id, name, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
+  const [programResult, tracksResult, plansResult] = await Promise.all([
+    db.from("programs").select("id, name").eq("id", id).is("deleted_at", null).maybeSingle(),
     db.from("tracks").select("id, name").eq("program_id", id).is("deleted_at", null).order("sort_order"),
     db.from("plans").select("id, track_id, name, day_count").eq("program_id", id).is("deleted_at", null),
-    db
-      .from("exams")
-      .select("id, name, exam_type, stage, track_id, question_count")
-      .eq("program_id", id)
-      .is("deleted_at", null)
-      .order("created_at"),
   ]);
 
   if (programResult.error || tracksResult.error || plansResult.error) {
@@ -88,22 +81,12 @@ export default async function PlansPage({ params }: { params: Promise<{ id: stri
     };
   });
 
-  const exams: ExamRow[] = (examsResult.data ?? []).map((e) => ({
-    id: e.id,
-    name: e.name,
-    type: e.exam_type,
-    stage: e.stage,
-    trackName: tracks.find((t) => t.id === e.track_id)?.name ?? null,
-    questionCount: e.question_count,
-  }));
 
   return (
     <PlansView
       programId={id}
       defaultPlan={defaultPlan}
       rows={rows}
-      tracks={tracks}
-      exams={kindAllowsExams(programResult.data.kind) ? exams : null}
     />
   );
 }

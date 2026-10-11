@@ -1,0 +1,50 @@
+/* الاختبارات وبنك الأسئلة — adr/0048 */
+
+.bankBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.import {
+  margin-block-end: var(--space-4);
+}
+
+.errors {
+  margin: var(--space-2) 0 0;
+  padding-inline-start: var(--space-5);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+.rowActions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.questionForm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.options {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}

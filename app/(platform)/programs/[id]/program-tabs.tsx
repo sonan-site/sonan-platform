@@ -16,10 +16,12 @@ export function ProgramTabs({
   programId,
   canWrite,
   canReadParticipants,
+  canManageExams,
 }: {
   programId: string;
   canWrite: boolean;
   canReadParticipants: boolean;
+  canManageExams: boolean;
 }) {
   const pathname = usePathname();
   const base = `/programs/${programId}`;
@@ -30,6 +32,7 @@ export function ProgramTabs({
     { href: `${base}/content`, label: "المادة", show: canWrite },
     { href: `${base}/calendar`, label: "التقويم", show: canWrite },
     { href: `${base}/plans`, label: "الخطط", show: canWrite },
+    { href: `${base}/exams`, label: "الاختبارات", show: canManageExams },
     { href: `${base}/page`, label: "الصفحة المعلنة", show: canWrite },
     { href: `${base}/faq`, label: "الأسئلة الشائعة", show: canWrite },
     { href: `${base}/participants`, label: "المشاركون", show: canReadParticipants },

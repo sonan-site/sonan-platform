@@ -5,7 +5,7 @@ import { ErrorState } from "@/components/shared/states";
 import { WizardBar } from "@/components/shared/wizard-bar";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
-import { PROGRAM_STATUS_LABEL } from "@/lib/programs/kinds";
+import { kindAllowsExams, PROGRAM_STATUS_LABEL } from "@/lib/programs/kinds";
 import { programReadiness } from "@/lib/programs/readiness-server";
 import { nextStep } from "@/lib/programs/readiness";
 import { ProgramTabs } from "./program-tabs";
@@ -40,10 +40,13 @@ export default async function ProgramLayout({
   const canReadParticipants = (
     await authorizeRequest({ permission: "participants.read", programId: id, resourceProgramId: id })
   ).ok;
+  const canManageExams = (
+    await authorizeRequest({ permission: "exams.manage", programId: id, resourceProgramId: id })
+  ).ok;
 
   const db = await createClient();
   const [{ data: program }, ready] = await Promise.all([
-    db.from("programs").select("id, name, status").eq("id", id).is("deleted_at", null).maybeSingle(),
+    db.from("programs").select("id, name, status, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
     programReadiness(id),
   ]);
   if (!program) notFound();
@@ -60,7 +63,12 @@ export default async function ProgramLayout({
         </h1>
       </div>
 
-      <ProgramTabs programId={id} canWrite={canWrite} canReadParticipants={canReadParticipants} />
+      <ProgramTabs
+        programId={id}
+        canWrite={canWrite}
+        canReadParticipants={canReadParticipants}
+        canManageExams={canManageExams && kindAllowsExams(program.kind)}
+      />
 
       {canWrite && ready ? (
         <WizardBar
