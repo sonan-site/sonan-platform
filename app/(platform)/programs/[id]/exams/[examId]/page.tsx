@@ -20,7 +20,7 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
   const db = await createClient();
   const { data: exam } = await db
     .from("exams")
-    .select("id, name, exam_type, judge_count, entry_percentage")
+    .select("id, name, exam_type, judge_count, entry_percentage, eligibility_at")
     .eq("id", examId)
     .eq("program_id", id)
     .is("deleted_at", null)
@@ -107,6 +107,7 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
         examName={exam.name}
         entryPercentage={exam.entry_percentage === null ? null : Number(exam.entry_percentage)}
         judgeCount={exam.judge_count ?? 0}
+        eligibilityAt={exam.eligibility_at}
         tracks={tracksResult.data ?? []}
         eligibility={rows}
         sessions={sessions}

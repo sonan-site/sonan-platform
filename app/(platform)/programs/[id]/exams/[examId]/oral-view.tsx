@@ -9,7 +9,7 @@ import { Button, Field, FormActions, Input, Select } from "@/components/shared/f
 import { Modal } from "@/components/shared/modal";
 import { Card, Cards, ChipButton, Chips, Messages, Muted, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
-import { formatDateTime, formatNumber } from "@/lib/format";
+import { formatDateTime, formatNumber, now } from "@/lib/format";
 import {
   applySorting,
   archiveSession,
@@ -82,6 +82,7 @@ export function OralView({
   examName,
   entryPercentage,
   judgeCount,
+  eligibilityAt,
   tracks,
   eligibility,
   sessions,
@@ -93,6 +94,8 @@ export function OralView({
   examName: string;
   entryPercentage: number | null;
   judgeCount: number;
+  /** لحظة احتساب الإنجاز — الحسم قبلها ممنوع. */
+  eligibilityAt: string | null;
   tracks: Track[];
   eligibility: EligibilityRow[];
   sessions: SessionCard[];
@@ -110,6 +113,7 @@ export function OralView({
         programId={programId}
         examId={examId}
         entryPercentage={entryPercentage}
+        eligibilityAt={eligibilityAt}
         rows={eligibility}
         trackName={trackName}
       />
@@ -131,12 +135,14 @@ function SortingStep({
   programId,
   examId,
   entryPercentage,
+  eligibilityAt,
   rows,
   trackName,
 }: {
   programId: string;
   examId: string;
   entryPercentage: number | null;
+  eligibilityAt: string | null;
   rows: EligibilityRow[];
   trackName: (id: string | null) => string;
 }) {
@@ -203,11 +209,19 @@ function SortingStep({
         pageSize={Math.max(rows.length, 1)}
         empty={{ title: "لا مشاركين", body: "" }}
       />
-      <FormActions>
-        <Button variant="primary" disabled={rows.length === 0} onClick={() => setConfirming(true)}>
-          احسم الفرز
-        </Button>
-      </FormActions>
+      {eligibilityAt === null ? (
+        <Muted>حدّد في إعدادات الاختبار يوم احتساب الإنجاز — ولا يُحسم الفرز قبله. وما فوق معاينةٌ بإنجاز اليوم.</Muted>
+      ) : new Date(eligibilityAt) > now() ? (
+        <Muted>
+          يُحسم الفرز بعد {formatDateTime(eligibilityAt)}. وما فوق معاينةٌ بإنجاز اليوم — الحسم يُنهي رحلة من لا يتأهل.
+        </Muted>
+      ) : (
+        <FormActions>
+          <Button variant="primary" disabled={rows.length === 0} onClick={() => setConfirming(true)}>
+            احسم الفرز
+          </Button>
+        </FormActions>
+      )}
       <Modal open={confirming} title="حسم الفرز" onClose={() => setConfirming(false)}>
         <p>
           يتأهل {formatNumber(qualified)}، ولا يتأهل {formatNumber(rows.length - qualified)}

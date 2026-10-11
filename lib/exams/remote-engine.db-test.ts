@@ -284,6 +284,15 @@ describe("المحاولة", () => {
     expect((await as(OTHER, `select * from public.fn_my_exams($1)`, [participantId])).rows).toHaveLength(0);
   });
 
+  it("**«اختباراتي» لا تُحسب قبل النافذة بأسبوع**", async () => {
+    const names = async () =>
+      (await as<{ name: string }>(PLAYER, `select name from public.fn_my_exams($1)`, [participantId])).rows.map((r) => r.name);
+    await db.query(`update public.exams set opens_at = now() + interval '10 days', closes_at = now() + interval '17 days' where id = $1`, [examId]);
+    expect(await names()).toEqual([]);
+    await db.query(`update public.exams set opens_at = now() + interval '3 days' where id = $1`, [examId]);
+    expect(await names()).toEqual(["المرحلي"]);
+  });
+
   it("**ولا كتابة مباشرة** في المحاولات", async () => {
     const { error } = await as(PLAYER, `update public.remote_attempts set skips_used = 0 where id = $1`, [attempt]);
     expect(error).toMatch(/permission denied/);

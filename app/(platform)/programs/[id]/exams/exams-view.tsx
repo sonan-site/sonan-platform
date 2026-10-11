@@ -38,6 +38,8 @@ export type ExamSettings = {
   maxAttempts: number | null;
   opensOn: string;
   closesOn: string;
+  /** لحظة احتساب الإنجاز للتأهل (الشفهي) — يومٌ يُحتسب إلى آخره. */
+  eligibilityOn: string;
   judgeCount: number | null;
   awardPercentage: number | null;
 };
@@ -129,6 +131,7 @@ function settingsSummary(e: ExamSettings, exams: ExamSettings[]): string {
     parts.push(`${formatNumber(e.secondsPerQuestion ?? 0)} ثانية للسؤال`, `${formatNumber(e.maxAttempts ?? 1)} محاولة`);
   } else {
     parts.push(`${formatNumber(e.judgeCount ?? 0)} محكّمين`, `الجائزة من ${pct(e.awardPercentage ?? 0)}`);
+    parts.push(e.eligibilityOn ? `الإنجاز يُحتسب حتى ${e.eligibilityOn}` : "لحظة احتساب الإنجاز لم تُحدَّد");
   }
   return parts.join(" · ");
 }
@@ -307,6 +310,14 @@ function ExamForm({
         </>
       ) : (
         <>
+          <Field
+            id={`${p}elig`}
+            label="يُحتسب الإنجاز حتى نهاية يوم"
+            hint="بتوقيت الرياض. لا يُحسم الفرز قبله ولا بلا تحديده."
+            error={f?.eligibilityOn}
+          >
+            <Input id={`${p}elig`} name="eligibilityOn" type="date" defaultValue={exam?.eligibilityOn ?? ""} />
+          </Field>
           <Field id={`${p}judges`} label="عدد المحكّمين في اللجنة" required error={f?.judgeCount}>
             <Input id={`${p}judges`} name="judgeCount" type="number" min={1} numeric required defaultValue={exam?.judgeCount ?? EXAM_DEFAULTS.judgeCount} />
           </Field>

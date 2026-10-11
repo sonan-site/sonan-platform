@@ -64,6 +64,7 @@ const examSchema = z
     maxAttempts: optionalNumber(z.number().int().min(1, "من 1 إلى 10").max(10, "من 1 إلى 10")),
     opensOn: optionalDay,
     closesOn: optionalDay,
+    eligibilityOn: optionalDay,
     judgeCount: optionalNumber(z.number().int().positive("عدد موجب")),
     awardPercentage: optionalNumber(z.number().min(0, "بين 0 و100").max(100, "بين 0 و100")),
   })
@@ -115,6 +116,7 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
     maxAttempts: text("maxAttempts"),
     opensOn: String(form.get("opensOn") ?? ""),
     closesOn: String(form.get("closesOn") ?? ""),
+    eligibilityOn: String(form.get("eligibilityOn") ?? ""),
     judgeCount: text("judgeCount"),
     awardPercentage: text("awardPercentage"),
   });
@@ -138,6 +140,7 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
     max_attempts: remote ? (v.maxAttempts ?? null) : null,
     opens_at: remote && v.opensOn ? riyadhDayStart(v.opensOn) : null,
     closes_at: remote && v.closesOn ? riyadhDayEnd(v.closesOn) : null,
+    eligibility_at: !remote && v.eligibilityOn ? riyadhDayEnd(v.eligibilityOn) : null,
     judge_count: remote ? null : (v.judgeCount ?? null),
     award_percentage: remote ? null : (v.awardPercentage ?? null),
   };

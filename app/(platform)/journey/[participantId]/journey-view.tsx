@@ -80,6 +80,7 @@ export function JourneyView({
   archive,
   priorDays,
   exams,
+  examsUnavailable,
 }: {
   participantId: string;
   /** جاء من التسجيل للتوّ. */
@@ -102,6 +103,8 @@ export function JourneyView({
   priorDays: number;
   /** اختباراته عن بعد (`adr/0048`). */
   exams: JourneyExam[];
+  /** تعذّر جلب الاختبارات — تُخفى بطاقتها ويُقال ذلك في سطر. */
+  examsUnavailable: boolean;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<{ error?: string; notice?: string }>({});
@@ -182,6 +185,7 @@ export function JourneyView({
         ) : null}
       </dl>
 
+      {examsUnavailable ? <p className={styles.muted}>تعذّر جلب اختباراتك الآن — أعد فتح الصفحة لتظهر.</p> : null}
       {exams.map((exam) => (
         <ExamCard key={exam.id} participantId={participantId} exam={exam} />
       ))}

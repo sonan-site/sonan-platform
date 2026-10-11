@@ -130,7 +130,6 @@ export default async function JourneyDayPage({
   if (tasksResult.error) return <ErrorState body="تعذّر جلب واجب اليوم." />;
   if (rangesResult.error || sectionsResult.error) return <ErrorState body="تعذّر جلب مادة مسارك." />;
   if (archiveResult.error || recordResult.error) return <ErrorState body="تعذّر جلب سجلّ التزامك." />;
-  if (examsResult.error) return <ErrorState body="تعذّر جلب اختباراتك." />;
   const priorDays = (recordResult.data ?? []).filter((r) => !r.is_current).reduce((sum, r) => sum + r.done_days, 0);
 
   const share: TrackShare = {
@@ -220,6 +219,8 @@ export default async function JourneyDayPage({
       tasks={tasks}
       archive={archive}
       priorDays={priorDays}
+      // الاختبار ميزةٌ ثانوية في يوم الحفظ: تعذّرها يُخفي بطاقتها ولا يُسقط الرحلة.
+      examsUnavailable={examsResult.error !== null}
       exams={(examsResult.data ?? []).map((e) => ({
         id: e.exam_id,
         name: e.name,

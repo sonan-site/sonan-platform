@@ -175,6 +175,18 @@ describe("الفرز", () => {
     expect((await as(J1, `select * from public.fn_final_eligibility($1)`, [finalId])).error).toMatch(/لا تملك فرز/);
   });
 
+  it("**لا حسم بلا لحظة احتساب ولا قبلها** — حسمٌ مبكر يُنهي رحلات الجميع", async () => {
+    const tryApply = () => as(ADMIN, `select * from public.fn_apply_sorting($1, '{}'::jsonb)`, [finalId]);
+    expect((await tryApply()).error).toMatch(/حدّد لحظة احتساب الإنجاز/);
+    await db.query(`update public.exams set eligibility_at = now() + interval '1 day' where id = $1`, [finalId]);
+    expect((await tryApply()).error).toMatch(/قبل لحظة احتساب الإنجاز/);
+    await db.query(`update public.exams set eligibility_at = now() - interval '1 hour' where id = $1`, [finalId]);
+    const { rows } = await db.query(`select count(*)::int n from public.participants where id = any($1::uuid[]) and status = 'memorizing'`, [
+      Object.values(part),
+    ]);
+    expect(rows[0].n).toBe(3); // لم يتغيّر أحد
+  });
+
   it("**الحسم مرّة باستثناءٍ إداري يغلب الحساب**", async () => {
     const { rows, error } = await as<{ qualified: number; not_qualified: number }>(
       ADMIN,
@@ -206,6 +218,11 @@ describe("الجلسات", () => {
     expect((await as(ADMIN, `select public.fn_set_session_judge($1, $2, true)`, [sessionId, NOJ])).error).toMatch(
       /لا يحمل صلاحية التحكيم/,
     );
+  });
+
+  it("**الإسناد للمتأهل وحده**", async () => {
+    const { error } = await as(ADMIN, `select public.fn_move_participant($1, $2)`, [sessionId, part.B]);
+    expect(error).toMatch(/لا يُسنَد إلى جلسة إلا المتأهل/);
   });
 
   it("**التوزيع يُسند المتأهلين بأسئلتهم** ولا يُسند غيرهم", async () => {

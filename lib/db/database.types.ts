@@ -801,6 +801,7 @@ export type Database = {
           closes_at: string | null
           created_at: string
           deleted_at: string | null
+          eligibility_at: string | null
           entry_percentage: number | null
           exam_type: Database["public"]["Enums"]["exam_type"]
           id: string
@@ -823,6 +824,7 @@ export type Database = {
           closes_at?: string | null
           created_at?: string
           deleted_at?: string | null
+          eligibility_at?: string | null
           entry_percentage?: number | null
           exam_type: Database["public"]["Enums"]["exam_type"]
           id?: string
@@ -845,6 +847,7 @@ export type Database = {
           closes_at?: string | null
           created_at?: string
           deleted_at?: string | null
+          eligibility_at?: string | null
           entry_percentage?: number | null
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
