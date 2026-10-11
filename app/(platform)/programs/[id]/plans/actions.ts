@@ -232,6 +232,7 @@ export async function createExam(_prev: FormState, form: FormData): Promise<Form
     question_count: parsed.data.questionCount,
     seconds_per_question: isRemote ? (parsed.data.secondsPerQuestion ?? null) : null,
     max_skips: isRemote ? (parsed.data.maxSkips ?? EXAM_DEFAULTS.maxSkips) : null,
+    max_attempts: isRemote ? 1 : null,
     judge_count: isRemote ? null : (parsed.data.judgeCount ?? null),
     award_percentage: isRemote ? null : (parsed.data.awardPercentage ?? null),
   });

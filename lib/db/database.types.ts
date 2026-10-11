@@ -607,17 +607,73 @@ export type Database = {
           },
         ]
       }
+      deduction_criteria: {
+        Row: {
+          created_at: string
+          deduction_value: number
+          deleted_at: string | null
+          id: string
+          label: string
+          program_id: string
+          question_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deduction_value: number
+          deleted_at?: string | null
+          id?: string
+          label: string
+          program_id: string
+          question_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deduction_value?: number
+          deleted_at?: string | null
+          id?: string
+          label?: string
+          program_id?: string
+          question_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deduction_criteria_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deduction_criteria_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           award_percentage: number | null
+          closes_at: string | null
           created_at: string
           deleted_at: string | null
+          entry_percentage: number | null
           exam_type: Database["public"]["Enums"]["exam_type"]
           id: string
           judge_count: number | null
+          max_attempts: number | null
           max_skips: number | null
           name: string
+          opens_at: string | null
           pass_percentage: number
+          prerequisite_exam_id: string | null
           program_id: string
           question_count: number
           seconds_per_question: number | null
@@ -627,14 +683,19 @@ export type Database = {
         }
         Insert: {
           award_percentage?: number | null
+          closes_at?: string | null
           created_at?: string
           deleted_at?: string | null
+          entry_percentage?: number | null
           exam_type: Database["public"]["Enums"]["exam_type"]
           id?: string
           judge_count?: number | null
+          max_attempts?: number | null
           max_skips?: number | null
           name: string
+          opens_at?: string | null
           pass_percentage: number
+          prerequisite_exam_id?: string | null
           program_id: string
           question_count: number
           seconds_per_question?: number | null
@@ -644,14 +705,19 @@ export type Database = {
         }
         Update: {
           award_percentage?: number | null
+          closes_at?: string | null
           created_at?: string
           deleted_at?: string | null
+          entry_percentage?: number | null
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
           judge_count?: number | null
+          max_attempts?: number | null
           max_skips?: number | null
           name?: string
+          opens_at?: string | null
           pass_percentage?: number
+          prerequisite_exam_id?: string | null
           program_id?: string
           question_count?: number
           seconds_per_question?: number | null
@@ -672,6 +738,13 @@ export type Database = {
             columns: ["track_id", "program_id"]
             isOneToOne: false
             referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
+          {
+            foreignKeyName: "fk_exams_prerequisite"
+            columns: ["prerequisite_exam_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
             referencedColumns: ["id", "program_id"]
           },
         ]
@@ -1524,6 +1597,111 @@ export type Database = {
           },
         ]
       }
+      question_options: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_correct: boolean
+          question_id: string
+          sort_order: number
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          sort_order?: number
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          sort_order?: number
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          content_unit_id: string
+          correct_answer_text: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          program_id: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          score: number
+          text: string
+          track_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_unit_id: string
+          correct_answer_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          program_id: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          score?: number
+          text: string
+          track_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_unit_id?: string
+          correct_answer_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          program_id?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          score?: number
+          text?: string
+          track_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_content_unit_id_program_id_fkey"
+            columns: ["content_unit_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "content_units"
+            referencedColumns: ["id", "program_id"]
+          },
+          {
+            foreignKeyName: "questions_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_track_id_program_id_fkey"
+            columns: ["track_id", "program_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id", "program_id"]
+          },
+        ]
+      }
       rate_limit_events: {
         Row: {
           bucket: string
@@ -2173,6 +2351,10 @@ export type Database = {
           national_id: string
         }[]
       }
+      fn_import_questions: {
+        Args: { p_program_id: string; p_rows: Json }
+        Returns: number
+      }
       fn_inherit_engine_setting: {
         Args: { p_key: string; p_track_id: string }
         Returns: undefined
@@ -2391,6 +2573,10 @@ export type Database = {
         }
         Returns: number
       }
+      fn_save_question: {
+        Args: { p_program_id: string; p_q: Json; p_question_id: string }
+        Returns: string
+      }
       fn_set_engine_setting: {
         Args: {
           p_key: string
@@ -2506,6 +2692,7 @@ export type Database = {
       program_status: "draft" | "published" | "closed"
       progress_measure: "units" | "days"
       publish_status: "draft" | "published"
+      question_type: "single" | "multiple" | "true_false"
       request_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -2669,6 +2856,7 @@ export const Constants = {
       program_status: ["draft", "published", "closed"],
       progress_measure: ["units", "days"],
       publish_status: ["draft", "published"],
+      question_type: ["single", "multiple", "true_false"],
       request_status: ["pending", "approved", "rejected"],
     },
   },

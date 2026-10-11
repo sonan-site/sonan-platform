@@ -16,6 +16,7 @@ export const PERMISSION_SECTIONS = {
   sections: "الأقسام",
   programs: "البرامج",
   participants: "المشاركون",
+  exams: "الاختبارات",
 } as const;
 
 export type PermissionSection = keyof typeof PERMISSION_SECTIONS;
@@ -52,6 +53,10 @@ export const PERMISSIONS = {
     section: "participants",
     label: "تعديل المشاركين والبتّ في طلبات تغيير المسار",
   },
+
+  // طبقة المسابقة (adr/0048): البنك والجلسات والإدخال، وشاشة المحكّم لجلساته وحدها.
+  "exams.manage": { section: "exams", label: "إدارة الاختبارات وبنك الأسئلة" },
+  "exams.judge": { section: "exams", label: "التحكيم في الجلسات المسندة" },
 } as const satisfies Record<string, Entry>;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

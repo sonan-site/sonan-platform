@@ -95,8 +95,8 @@ describe("الاختبار للمسابقة وحدها", () => {
       db.query(
         `insert into public.exams
            (program_id, name, exam_type, stage, pass_percentage, question_count,
-            seconds_per_question, max_skips)
-         values ($1, 'تصفية', 'remote', 'interim', 80, 10, 60, 0)`,
+            seconds_per_question, max_skips, max_attempts)
+         values ($1, 'تصفية', 'remote', 'interim', 80, 10, 60, 0, 1)`,
         [id],
       ),
     ).rejects.toThrow(/لا يُعرَّف إلا في برنامج مسابقة/);
@@ -107,8 +107,8 @@ describe("الاختبار للمسابقة وحدها", () => {
     const { rowCount } = await db.query(
       `insert into public.exams
          (program_id, name, exam_type, stage, pass_percentage, question_count,
-          seconds_per_question, max_skips)
-       values ($1, 'تصفية', 'remote', 'interim', 80, 10, 60, 0)`,
+          seconds_per_question, max_skips, max_attempts)
+       values ($1, 'تصفية', 'remote', 'interim', 80, 10, 60, 0, 1)`,
       [id],
     );
     expect(rowCount).toBe(1);

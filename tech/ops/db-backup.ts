@@ -18,7 +18,7 @@ import { nowIso } from "../../lib/format/index.ts";
  * عام. مجلدها `BACKUP_DIR` (افتراضاً `C:\dev\backups\sonan`) ولا يُرفع لأي خدمة.
  *
  * **والتجربة تقيس ما يهمّ:** عدد صفوف كل جدول في `public` و`auth` و`storage`،
- * وعدد الدوال والسياسات والمشغّلات في `public` — حيّاً ومستعاداً. أي فرقٍ يُفشلها.
+ * وعدد الدوال والسياسات والمنح والمشغّلات في `public` — حيّاً ومستعاداً. أي فرقٍ يُفشلها.
  * وأخطاء `supabase_vault` متوقَّعة: امتدادٌ داخلي لـSupabase لا يوجد خارجها،
  * ولا نستعمله (جدوله فارغ — والتجربة تتحقق من ذلك).
  *
@@ -43,7 +43,8 @@ if (!existsSync(bin("pg_dump"))) throw new Error(`pg_dump غير موجود في
 mkdirSync(BACKUP_DIR, { recursive: true });
 const stamp = nowIso().slice(0, 16).replace(/[:T]/g, "-");
 const file = join(BACKUP_DIR, `sonan-${stamp}.dump`);
-execFileSync(bin("pg_dump"), ["-Fc", "--no-owner", "--no-privileges", "-f", file, URL], { stdio: "inherit" });
+// المنح تُنسخ (بلا `--no-privileges`): نسخةٌ بلا منحٍ تُعيد البيانات وتحجبها عن التطبيق.
+execFileSync(bin("pg_dump"), ["-Fc", "--no-owner", "-f", file, URL], { stdio: "inherit" });
 say(`النسخة: ${file} (${Math.round(statSync(file).size / 1024)} KB)`);
 
 const old = readdirSync(BACKUP_DIR)
@@ -86,6 +87,8 @@ async function census(url: string) {
   const shape = {
     functions: await one(`select count(*) n from pg_proc p join pg_namespace n on n.oid = p.pronamespace where nspname = 'public'`),
     policies: await one(`select count(*) n from pg_policies where schemaname = 'public'`),
+    grants: await one(`select count(*) n from information_schema.role_table_grants
+                       where table_schema = 'public' and grantee in ('anon', 'authenticated', 'service_role')`),
     triggers: await one(`select count(*) n from pg_trigger t join pg_class c on c.oid = t.tgrelid
                          join pg_namespace n on n.oid = c.relnamespace where nspname = 'public' and not tgisinternal`),
   };
@@ -102,9 +105,9 @@ try {
   for (const r of ROLES) psql(`create role ${r} nologin`);
   psql("create database restored");
 
-  const restore = spawnSync(bin("pg_restore"), ["-h", "localhost", "-p", PORT, "-U", "postgres", "-d", "restored", "--no-owner", "--no-privileges", file], { encoding: "utf8" });
+  const restore = spawnSync(bin("pg_restore"), ["-h", "localhost", "-p", PORT, "-U", "postgres", "-d", "restored", "--no-owner", file], { encoding: "utf8" });
   const errors = restore.stderr.split(/\r?\n/).filter((l) => l.includes("error:"));
-  const unexpected = errors.filter((l) => !/supabase_vault|vault\.secrets/.test(l));
+  const unexpected = errors.filter((l) => !/supabase_vault|\bvault\./.test(l));
   say(`أخطاء الاستعادة: ${errors.length} (غير المتوقَّع منها: ${unexpected.length})`);
   for (const l of unexpected) say(`  ${l}`);
 
@@ -122,7 +125,7 @@ try {
     if (live.shape[k] !== back.shape[k]) diffs.push(`${k}: حيّ ${live.shape[k]} · مستعاد ${back.shape[k]}`);
   }
   for (const d of diffs) say(`فرق: ${d}`);
-  say(`جداول: ${live.rows.size} · صفوف متطابقة: ${rows} · دوال ${back.shape.functions} · سياسات ${back.shape.policies} · مشغّلات ${back.shape.triggers}`);
+  say(`جداول: ${live.rows.size} · صفوف متطابقة: ${rows} · دوال ${back.shape.functions} · سياسات ${back.shape.policies} · منح ${back.shape.grants} · مشغّلات ${back.shape.triggers}`);
 
   failed = diffs.length > 0 || unexpected.length > 0 || live.vault > 0;
   say(failed ? "التجربة: فشلت" : "التجربة: نجحت — النسخة تُستعاد كاملة");
