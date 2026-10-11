@@ -1729,6 +1729,120 @@ export type Database = {
         }
         Relationships: []
       }
+      remote_answers: {
+        Row: {
+          answered_at: string | null
+          attempt_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_skipped: boolean
+          question_id: string
+          selected_option_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          answered_at?: string | null
+          attempt_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_skipped?: boolean
+          question_id: string
+          selected_option_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          answered_at?: string | null
+          attempt_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_skipped?: boolean
+          question_id?: string
+          selected_option_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remote_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "remote_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remote_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      remote_attempts: {
+        Row: {
+          attempt_no: number
+          created_at: string
+          current_index: number
+          current_started_at: string
+          deleted_at: string | null
+          exam_id: string
+          id: string
+          participant_id: string
+          question_ids: string[]
+          skips_used: number
+          started_at: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_no: number
+          created_at?: string
+          current_index?: number
+          current_started_at?: string
+          deleted_at?: string | null
+          exam_id: string
+          id?: string
+          participant_id: string
+          question_ids: string[]
+          skips_used?: number
+          started_at?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_no?: number
+          created_at?: string
+          current_index?: number
+          current_started_at?: string
+          deleted_at?: string | null
+          exam_id?: string
+          id?: string
+          participant_id?: string
+          question_ids?: string[]
+          skips_used?: number
+          started_at?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remote_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remote_attempts_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           created_at: string
@@ -2162,8 +2276,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_answer_correct: {
+        Args: { p_question_id: string; p_selected: string[] }
+        Returns: boolean
+      }
+      fn_answer_question: {
+        Args: {
+          p_attempt_id: string
+          p_option_ids: string[]
+          p_question_id: string
+        }
+        Returns: Json
+      }
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
+      fn_attempt_score: {
+        Args: { p_attempt_id: string }
+        Returns: {
+          max_score: number
+          percent: number
+          score: number
+        }[]
+      }
+      fn_attempt_state: { Args: { p_attempt_id: string }; Returns: Json }
       fn_attention_items: {
         Args: never
         Returns: {
@@ -2328,6 +2463,37 @@ export type Database = {
           progress_measure: Database["public"]["Enums"]["progress_measure"]
           start_date: string
           work_days: number[]
+        }[]
+      }
+      fn_exam_best: {
+        Args: { p_exam_id: string; p_participant_id: string }
+        Returns: {
+          attempts: number
+          best_percent: number
+          passed: boolean
+        }[]
+      }
+      fn_exam_gate: { Args: { p_exam_id: string }; Returns: string[] }
+      fn_exam_participant: { Args: { p_exam_id: string }; Returns: string }
+      fn_exam_pool: {
+        Args: {
+          p_exam_id: string
+          p_exclude: string[]
+          p_participant_id: string
+        }
+        Returns: string[]
+      }
+      fn_exam_results: {
+        Args: { p_exam_id: string }
+        Returns: {
+          attempts: number
+          best_percent: number
+          full_name: string
+          open_attempt: boolean
+          participant_id: string
+          passed: boolean
+          registration_no: number
+          track_id: string
         }[]
       }
       fn_follows_plan: {
@@ -2602,6 +2768,11 @@ export type Database = {
         Args: { p_program_id: string; p_track_id: string }
         Returns: number
       }
+      fn_skip_question: {
+        Args: { p_attempt_id: string; p_question_id: string }
+        Returns: Json
+      }
+      fn_start_attempt: { Args: { p_exam_id: string }; Returns: string }
       fn_track_has_plan: { Args: { p_track_id: string }; Returns: boolean }
       fn_track_ordinal_of: {
         Args: { p_sequence: number; p_track_id: string }
