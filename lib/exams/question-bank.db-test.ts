@@ -202,6 +202,33 @@ describe("حفظ السؤال", () => {
   });
 });
 
+describe("الاستعمال", () => {
+  it("**الشفهي مفتوحٌ بجوابٍ للمحكّم** — ويُضبط مفتوحاً ولو أُرسل غيره", async () => {
+    const { rows, error } = await save(MANAGER, { unit_sequence: 2, text: "سمّع حديث النية", usage: "oral", type: "single", answer: "إنما الأعمال بالنيات…" });
+    expect(error).toBeNull();
+    const q = (await db.query(`select question_type, usage from public.questions where id = $1`, [rows[0]!.id])).rows[0];
+    expect(q).toEqual({ question_type: "open", usage: "oral" });
+    expect((await save(MANAGER, { unit_sequence: 2, text: "سمّع حديث النية", usage: "oral" })).error).toMatch(/اكتب الجواب للمحكّم/);
+  });
+
+  it("**صح/خطأ لا يكون شفهياً، والمفتوح لا يكون للمرحلي**", async () => {
+    expect((await save(MANAGER, { ...single(), usage: "both", type: "true_false", tf_answer: "صح", options: [] })).error).toMatch(/لا يكون شفهياً/);
+    expect((await save(MANAGER, { ...single(), type: "open" })).error).toMatch(/المفتوح للشفهي وحده/);
+    expect((await save(MANAGER, single({ usage: "both" }))).error).toBeNull(); // له جواب
+    expect((await save(MANAGER, single({ usage: "both", answer: "" }))).error).toMatch(/اكتب الجواب/);
+  });
+
+  it("**والقيد يحرس الكتابة المباشرة**", async () => {
+    const unit = (await db.query(`select id from public.content_units where program_id = $1 and sequence = 1`, [programId])).rows[0].id;
+    const { error } = await as(
+      MANAGER,
+      `insert into public.questions (program_id, content_unit_id, text, question_type, usage) values ($1, $2, 'سؤال شفهي بلا جواب', 'open', 'oral')`,
+      [programId, unit],
+    );
+    expect(error).toMatch(/chk_questions_oral_answer/);
+  });
+});
+
 describe("سرّية البنك", () => {
   it("**قارئ البرنامج والمحكّم لا يريان البنك ولا يكتبانه**", async () => {
     expect((await as(READER, `select 1 from public.questions`)).rows).toHaveLength(0);

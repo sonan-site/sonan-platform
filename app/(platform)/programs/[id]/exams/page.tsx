@@ -5,7 +5,7 @@ import { createClient } from "@/lib/db/server";
 import { toDateInput } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { kindAllowsExams } from "@/lib/programs/kinds";
-import { ExamsView, type CriterionRow, type ExamSettings, type QuestionRow, type ResultRow } from "./exams-view";
+import { ExamsView, type CoverageRow, type CriterionRow, type ExamSettings, type QuestionRow, type ResultRow } from "./exams-view";
 
 /**
  * الاختبارات وبنك الأسئلة (`adr/0048`): تعريف كل اختبار بإعداداته المخصّصة،
@@ -36,7 +36,7 @@ export default async function ExamsPage({
   let questionsQuery = db
     .from("questions")
     .select(
-      "id, track_id, text, question_type, score, correct_answer_text, content_units(sequence), question_options(text, is_correct, sort_order, deleted_at)",
+      "id, track_id, text, question_type, usage, score, correct_answer_text, content_units(sequence), question_options(text, is_correct, sort_order, deleted_at)",
       { count: "exact" },
     )
     .eq("program_id", id)
@@ -45,7 +45,7 @@ export default async function ExamsPage({
     .range(from, from + DEFAULT_PAGE_SIZE - 1);
   if (search) questionsQuery = questionsQuery.ilike("text", `%${search.replace(/[%_]/g, "")}%`);
 
-  const [programResult, tracksResult, examsResult, criteriaResult, questionsResult, unitsResult] = await Promise.all([
+  const [programResult, tracksResult, examsResult, criteriaResult, questionsResult, unitsResult, coverageResult] = await Promise.all([
     db.from("programs").select("id, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
     db.from("tracks").select("id, name").eq("program_id", id).is("deleted_at", null).order("sort_order"),
     db
@@ -71,9 +71,11 @@ export default async function ExamsPage({
       .is("deleted_at", null)
       .order("sequence", { ascending: false })
       .limit(1),
+    // الصالح لكل اختبارٍ في كل مسار ضمن نطاق دخوله — العدد العامّ يُخفي المسار الناقص.
+    db.rpc("fn_bank_coverage", { p_program_id: id }),
   ]);
 
-  if (programResult.error || tracksResult.error || examsResult.error || criteriaResult.error || questionsResult.error) {
+  if (programResult.error || tracksResult.error || examsResult.error || criteriaResult.error || questionsResult.error || coverageResult.error) {
     return <ErrorState body="تعذّر جلب الاختبارات." />;
   }
   if (!programResult.data) notFound();
@@ -134,6 +136,7 @@ export default async function ExamsPage({
       trackId: row.track_id,
       text: row.text,
       type: row.question_type,
+      usage: row.usage,
       score: Number(row.score),
       answer: row.correct_answer_text,
       unit: row.content_units?.sequence ?? 0,
@@ -152,6 +155,16 @@ export default async function ExamsPage({
       page={page}
       lastUnit={unitsResult.data?.[0]?.sequence ?? 0}
       results={results}
+      coverage={(coverageResult.data ?? []).map(
+        (c): CoverageRow => ({
+          key: `${c.exam_id}-${c.track_id}`,
+          examName: c.exam_name,
+          trackName: c.track_name,
+          scopeUnits: c.scope_units,
+          available: c.available,
+          needed: c.needed,
+        }),
+      )}
     />
   );
 }

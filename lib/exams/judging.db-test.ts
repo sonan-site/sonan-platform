@@ -134,7 +134,7 @@ beforeAll(async () => {
   for (let u = 1; u <= 5; u++) {
     const { error } = await as(ADMIN, `select public.fn_save_question($1, null, $2::jsonb)`, [
       programId,
-      JSON.stringify({ unit_sequence: u, text: `سؤال شفهي ${u}`, type: "true_false", tf_answer: "صح", score: 2, answer: `الجواب ${u}` }),
+      JSON.stringify({ unit_sequence: u, text: `سؤال شفهي ${u}`, usage: "oral", score: 2, answer: `الجواب ${u}` }),
     ]);
     if (error) throw new Error(error);
   }

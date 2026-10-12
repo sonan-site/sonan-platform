@@ -141,6 +141,15 @@ beforeAll(async () => {
     wrong.set(rows[0]!.id, opts.rows.find((o) => !o.is_correct).id);
   }
 
+  // سؤالٌ شفهيٌّ مفتوح في نطاقه: لا يدخل المرحلي أبداً.
+  {
+    const { error } = await as(ADMIN, `select public.fn_save_question($1, null, $2::jsonb)`, [
+      programId,
+      JSON.stringify({ unit_sequence: 2, text: "سمّع الحديث الثاني", usage: "oral", answer: "نصّه" }),
+    ]);
+    if (error) throw new Error(error);
+  }
+
   examId = (
     await one(
       `insert into public.exams (program_id, name, exam_type, stage, pass_percentage, question_count,
@@ -185,6 +194,8 @@ describe("المحاولة", () => {
       [ids],
     );
     expect(units.rows.every((r) => r.sequence <= 6)).toBe(true);
+    const open = await db.query(`select count(*)::int n from public.questions where id = any($1::uuid[]) and question_type = 'open'`, [ids]);
+    expect(open.rows[0].n).toBe(0);
 
     const s = (await stateOf(attempt))!;
     expect(s).toMatchObject({ status: "open", index: 1, total: 3, skips_left: 1 });
@@ -291,6 +302,16 @@ describe("المحاولة", () => {
     expect(await names()).toEqual([]);
     await db.query(`update public.exams set opens_at = now() + interval '3 days' where id = $1`, [examId]);
     expect(await names()).toEqual(["المرحلي"]);
+  });
+
+  it("**تغطية البنك لكل مسار ضمن نطاق الدخول**", async () => {
+    const { rows } = await as<{ scope_units: number; available: number; needed: number }>(
+      ADMIN,
+      `select scope_units, available, needed from public.fn_bank_coverage($1) where exam_id = $2`,
+      [programId, examId],
+    );
+    // المسار عشر وحدات، والدخول ٧٥٪ ← أول ثماني. والصالح للمرحلي ستةٌ في ١–٦ (المفتوح والتاسعة خارجه، وواحدٌ مؤرشف).
+    expect(rows[0]).toEqual({ scope_units: 8, available: 5, needed: 3 });
   });
 
   it("**ولا كتابة مباشرة** في المحاولات", async () => {

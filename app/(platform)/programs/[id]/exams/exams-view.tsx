@@ -9,7 +9,7 @@ import { Button, Field, FormActions, Input, Select, Textarea } from "@/component
 import { Modal } from "@/components/shared/modal";
 import { ChipButton, Chips, Messages, Muted, Step, StepForm, TabHead } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { bankTemplateCsv, parseBankTable, type BankRow } from "@/lib/exams/bank-import";
+import { bankTemplateCsv, parseBankTable, type BankRow, type BankUsage } from "@/lib/exams/bank-import";
 import { formatNumber } from "@/lib/format";
 import { EXAM_DEFAULTS } from "@/lib/programs/exam-defaults";
 import { parseCsv } from "@/lib/plans/import";
@@ -51,10 +51,21 @@ export type QuestionRow = {
   trackId: string | null;
   text: string;
   type: BankRow["type"];
+  usage: BankUsage;
   score: number;
   answer: string;
   unit: number;
   options: { text: string; correct: boolean }[];
+};
+
+export type CoverageRow = {
+  key: string;
+  examName: string;
+  trackName: string;
+  /** وحدات المسار التي يُسأل منها الداخل عند نسبة الدخول. */
+  scopeUnits: number;
+  available: number;
+  needed: number;
 };
 
 export type ResultRow = {
@@ -73,7 +84,8 @@ type Track = { id: string; name: string };
 
 const EXAM_TYPE = { remote: "عن بعد", oral: "شفهي حضوري" } as const;
 const EXAM_STAGE = { interim: "مرحلي", final: "نهائي" } as const;
-const QUESTION_TYPE = { single: "مفرد", multiple: "متعدد", true_false: "صح وخطأ" } as const;
+const QUESTION_TYPE = { single: "مفرد", multiple: "متعدد", true_false: "صح وخطأ", open: "مفتوح" } as const;
+const USAGE = { remote: "عن بعد", oral: "شفهي", both: "كلاهما" } as const;
 
 const pct = (n: number) => `${formatNumber(n)}٪`;
 
@@ -87,6 +99,7 @@ export function ExamsView({
   page,
   lastUnit,
   results,
+  coverage,
 }: {
   programId: string;
   tracks: Track[];
@@ -98,6 +111,7 @@ export function ExamsView({
   /** أعلى رقم وحدة في المادة — حدّ «رقم الوحدة» في السؤال. */
   lastUnit: number;
   results: ResultRow[];
+  coverage: CoverageRow[];
 }) {
   return (
     <>
@@ -114,6 +128,7 @@ export function ExamsView({
         total={questionTotal}
         page={page}
         lastUnit={lastUnit}
+        coverage={coverage}
       />
       {exams.some((e) => e.examType === "remote") ? <ResultsStep tracks={tracks} results={results} /> : null}
     </>
@@ -412,6 +427,7 @@ function BankStep({
   total,
   page,
   lastUnit,
+  coverage,
 }: {
   programId: string;
   tracks: Track[];
@@ -419,7 +435,9 @@ function BankStep({
   total: number;
   page: number;
   lastUnit: number;
+  coverage: CoverageRow[];
 }) {
+  const short = coverage.filter((c) => c.available < c.needed).length;
   const router = useRouter();
   const [editing, setEditing] = useState<QuestionRow | "new" | null>(null);
   const [busy, start] = useTransition();
@@ -427,6 +445,7 @@ function BankStep({
   const columns: Column<QuestionRow>[] = [
     { key: "text", header: "السؤال", primary: true, render: (q) => q.text },
     { key: "unit", header: "الوحدة", align: "end", render: (q) => formatNumber(q.unit) },
+    { key: "usage", header: "الاستعمال", render: (q) => USAGE[q.usage] },
     { key: "type", header: "النوع", render: (q) => QUESTION_TYPE[q.type] },
     { key: "track", header: "المسار", render: (q) => tracks.find((t) => t.id === q.trackId)?.name ?? "عام" },
     { key: "score", header: "الدرجة", align: "end", render: (q) => formatNumber(q.score) },
@@ -462,9 +481,28 @@ function BankStep({
       n={3}
       title="بنك الأسئلة"
       why="منه يُسحب الاختبار المرحلي عن بعد بخياراته، والنهائي شفهياً بلا خيارات — والمحكّم يرى الجواب."
-      done={total > 0}
-      state={<span>{total === 0 ? "البنك فارغ." : `${formatNumber(total)} سؤالاً`}</span>}
+      done={total > 0 && short === 0}
+      state={
+        <span>
+          {total === 0 ? "البنك فارغ." : `${formatNumber(total)} سؤالاً`}
+          {short > 0 ? ` · ${formatNumber(short)} مسارات ناقصة` : ""}
+        </span>
+      }
     >
+      {coverage.length > 0 ? (
+        <div className={styles.coverage}>
+          <p className={styles.coverageTitle}>ما يكفي كل مسار — من الوحدات التي يُسأل منها الداخل</p>
+          <ul className={styles.coverageList}>
+            {coverage.map((c) => (
+              <li key={c.key} className={c.available < c.needed ? styles.short : styles.enough}>
+                {c.examName} · {c.trackName}: {formatNumber(c.available)} صالحاً من أول {formatNumber(c.scopeUnits)} وحدة
+                — المطلوب {formatNumber(c.needed)}
+                {c.available < c.needed ? ` (ينقص ${formatNumber(c.needed - c.available)})` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className={styles.bankBar}>
         <Button variant="primary" onClick={() => setEditing("new")}>
           أضِف سؤالاً
@@ -592,7 +630,9 @@ function QuestionForm({
   lastUnit: number;
   onSaved: () => void;
 }) {
+  const [usage, setUsage] = useState<BankUsage>(question?.usage ?? "remote");
   const [type, setType] = useState<BankRow["type"]>(question?.type ?? "single");
+  const oral = usage === "oral";
   const [options, setOptions] = useState(
     question && question.type !== "true_false"
       ? [...question.options, ...EMPTY_OPTIONS].slice(0, Math.max(4, question.options.length))
@@ -617,15 +657,17 @@ function QuestionForm({
 
   function submit(form: FormData) {
     setError(null);
+    const kind: BankRow["type"] = oral ? "open" : type === "open" ? "single" : type;
     const row: BankRow = {
       track_id: String(form.get("trackId") ?? "") || null,
+      usage,
       unit_sequence: Number(form.get("unit")),
       text: String(form.get("text") ?? "").trim(),
-      type,
+      type: kind,
       score: Number(form.get("score")) || 1,
       answer: String(form.get("answer") ?? "").trim(),
-      ...(type === "true_false" ? { tf_answer: tf } : {}),
-      options: type === "true_false" ? [] : options.filter((o) => o.text.trim() !== ""),
+      ...(kind === "true_false" ? { tf_answer: tf } : {}),
+      options: kind === "true_false" || kind === "open" ? [] : options.filter((o) => o.text.trim() !== ""),
     };
     start(async () => {
       const result = await saveQuestion(programId, question?.id ?? null, row);
@@ -655,18 +697,38 @@ function QuestionForm({
           ))}
         </Select>
       </Field>
+      <Field
+        id="qUsage"
+        label="الاستعمال"
+        required
+        hint={
+          usage === "both"
+            ? "«كلاهما» لسؤالٍ يُفهم بلا خياراته — المحكّم يقرؤه شفهياً كما هو."
+            : oral
+              ? "سؤالٌ مفتوح يُجاب من الحفظ، والمحكّم يرى جوابه."
+              : "للاختبار المرحلي بخياراته."
+        }
+      >
+        <Select id="qUsage" value={usage} onChange={(e) => setUsage(e.target.value as BankUsage)}>
+          <option value="remote">عن بعد — المرحلي</option>
+          <option value="oral">شفهي — النهائي</option>
+          <option value="both">كلاهما</option>
+        </Select>
+      </Field>
+      {oral ? null : (
       <Field id="qType" label="النوع" required>
         <Select id="qType" value={type} onChange={(e) => setType(e.target.value as BankRow["type"])}>
           <option value="single">مفرد — جوابٌ صحيح واحد</option>
           <option value="multiple">متعدد — جوابٌ صحيح أو أكثر</option>
-          <option value="true_false">صح وخطأ</option>
+          {usage === "remote" ? <option value="true_false">صح وخطأ</option> : null}
         </Select>
       </Field>
+      )}
       <Field id="qScore" label="الدرجة" required>
         <Input id="qScore" name="score" type="number" min={0.25} step="0.25" numeric required defaultValue={question?.score ?? 1} />
       </Field>
 
-      {type === "true_false" ? (
+      {oral ? null : type === "true_false" && usage === "remote" ? (
         <Field id="qTf" label="الجواب الصحيح" required>
           <Select id="qTf" value={tf} onChange={(e) => setTf(e.target.value as "صح" | "خطأ")}>
             <option value="صح">صح</option>
@@ -698,8 +760,13 @@ function QuestionForm({
         </fieldset>
       )}
 
-      <Field id="qAnswer" label="الجواب للمحكّم" hint="يراه المحكّم في الشفهي، ولا يراه المشارك.">
-        <Textarea id="qAnswer" name="answer" rows={2} defaultValue={question?.answer} />
+      <Field
+        id="qAnswer"
+        label="الجواب للمحكّم"
+        required={usage !== "remote"}
+        hint="يراه المحكّم في الشفهي، ولا يراه المشارك."
+      >
+        <Textarea id="qAnswer" name="answer" rows={2} required={usage !== "remote"} defaultValue={question?.answer} />
       </Field>
 
       <FormActions>

@@ -1839,6 +1839,7 @@ export type Database = {
           text: string
           track_id: string | null
           updated_at: string
+          usage: Database["public"]["Enums"]["question_usage"]
         }
         Insert: {
           content_unit_id: string
@@ -1852,6 +1853,7 @@ export type Database = {
           text: string
           track_id?: string | null
           updated_at?: string
+          usage?: Database["public"]["Enums"]["question_usage"]
         }
         Update: {
           content_unit_id?: string
@@ -1865,6 +1867,7 @@ export type Database = {
           text?: string
           track_id?: string | null
           updated_at?: string
+          usage?: Database["public"]["Enums"]["question_usage"]
         }
         Relationships: [
           {
@@ -2628,6 +2631,18 @@ export type Database = {
         }[]
       }
       fn_auth_showcase: { Args: never; Returns: Json }
+      fn_bank_coverage: {
+        Args: { p_program_id: string }
+        Returns: {
+          available: number
+          exam_id: string
+          exam_name: string
+          needed: number
+          scope_units: number
+          track_id: string
+          track_name: string
+        }[]
+      }
       fn_bootstrap_admin: {
         Args: { p_full_name: string; p_phone: string; p_user_id: string }
         Returns: string
@@ -3339,7 +3354,8 @@ export type Database = {
       program_status: "draft" | "published" | "closed"
       progress_measure: "units" | "days"
       publish_status: "draft" | "published"
-      question_type: "single" | "multiple" | "true_false"
+      question_type: "single" | "multiple" | "true_false" | "open"
+      question_usage: "remote" | "oral" | "both"
       request_status: "pending" | "approved" | "rejected"
       session_status: "scheduled" | "in_progress" | "closed"
     }
@@ -3504,7 +3520,8 @@ export const Constants = {
       program_status: ["draft", "published", "closed"],
       progress_measure: ["units", "days"],
       publish_status: ["draft", "published"],
-      question_type: ["single", "multiple", "true_false"],
+      question_type: ["single", "multiple", "true_false", "open"],
+      question_usage: ["remote", "oral", "both"],
       request_status: ["pending", "approved", "rejected"],
       session_status: ["scheduled", "in_progress", "closed"],
     },

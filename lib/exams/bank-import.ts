@@ -8,15 +8,22 @@ import { normalizeName } from "@/lib/plans/import";
  * فريق الجمعية من قالبٍ تنزّله المنصة، فالأعمدة معروفة بعناوينها. والعنوان
  * يُطابَق بلا تشكيل ولا «ال»، وترتيب الأعمدة حرّ.
  *
+ * **والاستعمال إلزامي** (أ٥): عن بعد · شفهي · كلاهما. الشفهي سؤالٌ مفتوح بلا
+ * خيارات وجوابه للمحكّم إلزامي؛ و«كلاهما» لسؤالٍ يقوم نصّه وحده بلا خياراته
+ * (قرار الراعي ١٢ أكتوبر) — فالمحكّم يقرؤه شفهياً كما هو.
+ *
  * يُخرج صفوفاً بصيغة `fn_save_question`، وكل خطأ برقم سطره في الملف (١ العناوين).
  * والقاعدة تُعيد الفحص كلّه — هذا لأن يرى المُعِدّ أخطاءه كلها مرّة، لا أولها.
  */
 
+export type BankUsage = "remote" | "oral" | "both";
+
 export type BankRow = {
   track_id: string | null;
+  usage: BankUsage;
   unit_sequence: number;
   text: string;
-  type: "single" | "multiple" | "true_false";
+  type: "single" | "multiple" | "true_false" | "open";
   score: number;
   answer: string;
   tf_answer?: "صح" | "خطأ";
@@ -32,6 +39,7 @@ const MAX_ERRORS = 20;
 export const BANK_HEADERS = [
   "المسار",
   "رقم الوحدة",
+  "الاستعمال",
   "السؤال",
   "النوع",
   "الدرجة",
@@ -40,6 +48,12 @@ export const BANK_HEADERS = [
   "الصحيح",
 ] as const;
 
+const USAGES: Record<string, BankUsage> = {
+  [normalizeName("عن بعد")]: "remote",
+  [normalizeName("شفهي")]: "oral",
+  [normalizeName("كلاهما")]: "both",
+};
+
 const TYPES: Record<string, BankRow["type"]> = {
   [normalizeName("مفرد")]: "single",
   [normalizeName("متعدد")]: "multiple",
@@ -47,12 +61,19 @@ const TYPES: Record<string, BankRow["type"]> = {
   [normalizeName("صح/خطأ")]: "true_false",
 };
 
-/** قالبٌ بسطرَي مثال — يُنزَّل CSV بترميز UTF-8 مع BOM ليفتحه Excel عربياً. */
+/**
+ * قالبٌ بأمثلة الاستعمالات الثلاثة — CSV بترميز UTF-8 مع BOM ليفتحه Excel عربياً.
+ * والمثال نفسه يشرح القاعدة: «كلاهما» نصّه يقوم وحده، والشفهي بلا خيارات.
+ */
 export function bankTemplateCsv(): string {
   const example = [
-    ["", "1", "من راوي حديث «إنما الأعمال بالنيات»؟", "مفرد", "1", "عمر بن الخطاب رضي الله عنه",
+    ["", "1", "عن بعد", "من راوي حديث «إنما الأعمال بالنيات»؟", "مفرد", "1", "",
       "عمر بن الخطاب", "أبو هريرة", "ابن عباس", "", "", "", "1"],
-    ["", "2", "الحديث في صحيح البخاري وحده.", "صح وخطأ", "1", "", "", "", "", "", "", "", "خطأ"],
+    ["", "2", "عن بعد", "الحديث في صحيح البخاري وحده.", "صح وخطأ", "1", "", "", "", "", "", "", "", "خطأ"],
+    ["", "1", "كلاهما", "من راوي حديث «إنما الأعمال بالنيات» عن رسول الله ﷺ؟", "مفرد", "1",
+      "عمر بن الخطاب رضي الله عنه", "عمر بن الخطاب", "أبو هريرة", "", "", "", "", "1"],
+    ["", "1", "شفهي", "سمّع حديث «إنما الأعمال بالنيات» كاملاً.", "مفتوح", "1",
+      "عن عمر بن الخطاب رضي الله عنه قال: سمعت رسول الله ﷺ يقول: إنما الأعمال بالنيات…", "", "", "", "", "", "", ""],
   ];
   const quote = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   return "﻿" + [BANK_HEADERS as readonly string[], ...example].map((r) => r.map(quote).join(",")).join("\r\n");
@@ -66,7 +87,7 @@ export function parseBankTable(table: string[][], tracks: { id: string; name: st
   head.forEach((h, i) => index.set(normalizeName(h), i));
   const col = (name: string) => index.get(normalizeName(name));
 
-  const missing = ["رقم الوحدة", "السؤال", "النوع", "الصحيح"].filter((h) => col(h) === undefined);
+  const missing = ["رقم الوحدة", "الاستعمال", "السؤال", "النوع", "الصحيح"].filter((h) => col(h) === undefined);
   if (missing.length) {
     return { ok: false, errors: [`أعمدة ناقصة في الملف: ${missing.join("، ")}. نزّل القالب وانسخ أسئلتك فيه.`] };
   }
@@ -95,18 +116,33 @@ export function parseBankTable(table: string[][], tracks: { id: string; name: st
     const unit = Number(cell(row, "رقم الوحدة"));
     if (!Number.isInteger(unit) || unit < 1) return fail("رقم الوحدة عددٌ صحيح من 1.");
 
+    const usage = USAGES[normalizeName(cell(row, "الاستعمال"))];
+    if (!usage) return fail("حدّد الاستعمال: عن بعد أو شفهي أو كلاهما.");
+
     const text = cell(row, "السؤال");
     if (text.length < 3) return fail("نصّ السؤال مطلوب.");
 
+    const answer = cell(row, "الجواب للمحكّم");
+    if (usage !== "remote" && answer.length === 0) return fail("الجواب للمحكّم مطلوب لما يدخل الشفهي.");
+
+    if (usage === "oral") {
+      const scoreText = cell(row, "الدرجة");
+      const score = scoreText === "" ? 1 : Number(scoreText);
+      if (!(score > 0)) return fail("الدرجة عددٌ موجب.");
+      rows.push({ track_id: trackId, usage, unit_sequence: unit, text, type: "open", score, answer, options: [] });
+      return;
+    }
+
     const type = TYPES[normalizeName(cell(row, "النوع"))];
-    if (!type) return fail("النوع: مفرد أو متعدد أو صح وخطأ.");
+    if (!type) return fail("النوع: مفرد أو متعدد أو صح وخطأ (والمفتوح للشفهي وحده).");
+    if (type === "true_false" && usage !== "remote") return fail("صح وخطأ لا يكون شفهياً — اجعله «عن بعد».");
 
     const scoreText = cell(row, "الدرجة");
     const score = scoreText === "" ? 1 : Number(scoreText);
     if (!(score > 0)) return fail("الدرجة عددٌ موجب.");
 
     const correct = cell(row, "الصحيح");
-    const base = { track_id: trackId, unit_sequence: unit, text, type, score, answer: cell(row, "الجواب للمحكّم") };
+    const base = { track_id: trackId, usage, unit_sequence: unit, text, type, score, answer };
 
     if (type === "true_false") {
       const tf = normalizeName(correct) === normalizeName("صح") ? "صح" : normalizeName(correct) === normalizeName("خطأ") ? "خطأ" : null;

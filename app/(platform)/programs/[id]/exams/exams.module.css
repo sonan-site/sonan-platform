@@ -63,3 +63,28 @@
 .go:active {
   transform: scale(0.98);
 }
+
+.coverage {
+  margin-block-end: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.coverageTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--weight-bold);
+}
+
+.coverageList {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.short {
+  color: var(--color-warning);
+}
+
+.enough {
+  color: var(--color-success);
+}

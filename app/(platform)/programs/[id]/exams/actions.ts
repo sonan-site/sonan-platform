@@ -172,9 +172,10 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
 
 const questionSchema = z.object({
   track_id: z.uuid().nullable(),
+  usage: z.enum(["remote", "oral", "both"]),
   unit_sequence: z.number().int().positive(),
   text: z.string().trim().min(3).max(1000),
-  type: z.enum(["single", "multiple", "true_false"]),
+  type: z.enum(["single", "multiple", "true_false", "open"]),
   score: z.number().positive().max(1000),
   answer: z.string().max(2000),
   tf_answer: z.enum(["صح", "خطأ"]).optional(),
