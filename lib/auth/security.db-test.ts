@@ -434,6 +434,102 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
     ]);
   });
 
+  /**
+   * ودوالّ `security definer` التي يصلها **المستخدم المسجَّل** — قائمةٌ مغلقة كذلك
+   * (مراجعة ١١ أكتوبر، ح٤): المساعدات الداخلية (التصحيح، الدرجة، السحب، المهلة)
+   * لا تُمنح، فلا يُسأل الخادم «أهذا الخيار صحيح؟» من خارج المحاولة.
+   */
+  it("**لا دالة متجاوِزة يصلها المستخدم إلا ما سُمّي**", async () => {
+    const { rows } = await db.query<{ name: string }>(
+      `select p.proname as name
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and p.prosecdef
+         and p.prorettype <> 'pg_catalog.trigger'::regtype
+         and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+       order by 1`,
+    );
+    expect(rows.map((r) => r.name)).toEqual([
+      "fn_answer_question",
+      "fn_apply_sorting",
+      "fn_archive_track",
+      "fn_attempt_state",
+      "fn_attention_items",
+      "fn_auth_showcase",
+      "fn_bank_coverage",
+      "fn_can_grant_role",
+      "fn_close_my_account",
+      "fn_count_repetition",
+      "fn_create_plan",
+      "fn_customize_engine_setting",
+      "fn_dashboard_counts",
+      "fn_day_tasks",
+      "fn_day_template_program_id",
+      "fn_decide_track_change",
+      "fn_delete_account",
+      "fn_deleted_accounts",
+      "fn_distribute_participants",
+      "fn_exam_gate",
+      "fn_exam_judge_candidates",
+      "fn_exam_lock_state",
+      "fn_exam_results",
+      "fn_final_eligibility",
+      "fn_final_scores",
+      "fn_has_permission",
+      "fn_home_featured",
+      "fn_identity_masked",
+      "fn_inherit_engine_setting",
+      "fn_is_active",
+      "fn_is_session_judge",
+      "fn_journey_state",
+      "fn_judge_approve",
+      "fn_judge_mark",
+      "fn_judge_session",
+      "fn_judge_sessions",
+      "fn_judge_sheet",
+      "fn_mark_field",
+      "fn_move_participant",
+      "fn_my_duties",
+      "fn_my_exams",
+      "fn_my_participant",
+      "fn_my_permissions",
+      "fn_open_next_day",
+      "fn_override_exam_settings",
+      "fn_participant_record",
+      "fn_pending_invites",
+      "fn_plan_issues",
+      "fn_plan_locked_through",
+      "fn_plan_program_id",
+      "fn_program_participants",
+      "fn_program_readiness",
+      "fn_programs_publish_state",
+      "fn_progress_at",
+      "fn_public_tracks",
+      "fn_purge_account",
+      "fn_registration_state",
+      "fn_remove_custom_plan",
+      "fn_reopen_evaluation",
+      "fn_restore_plan_version",
+      "fn_role_is_system",
+      "fn_save_plan",
+      "fn_save_question",
+      "fn_seal_exam",
+      "fn_session_evaluations",
+      "fn_session_program",
+      "fn_set_engine_setting",
+      "fn_set_session_judge",
+      "fn_skip_question",
+      "fn_start_attempt",
+      "fn_track_ordinal_of",
+      "fn_track_program_id",
+      "fn_track_unit_at",
+      "fn_track_unit_count",
+      "fn_track_usage",
+      "fn_undo_mark",
+      "fn_withdraw_participation",
+      "fn_write_audit"
+    ]);
+  });
+
   it("**الزائر يقرأ مسارات البرنامج المنشور وعناصر صفحته وأسئلته**", async () => {
     await db.query(
       `insert into public.page_blocks (program_id, block_type, sort_order, content)

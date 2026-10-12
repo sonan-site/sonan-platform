@@ -362,6 +362,17 @@ describe("التحكيم", () => {
     expect(ids).not.toContain(ADMIN);
   });
 
+  it("**المعيار المستعمَل لا يتغيّر** — يُؤرشف", async () => {
+    expect((await as(ADMIN, `update public.deduction_criteria set deduction_value = 2 where id = $1`, [swap])).error).toMatch(
+      /خُصم بهذا المعيار/,
+    );
+    expect((await as(ADMIN, `update public.deduction_criteria set deleted_at = now() where id = $1`, [swap])).error).toBeNull();
+  });
+
+  it("**الإعدادات الشفهية تُقفل بعد الإسناد**", async () => {
+    expect((await as(ADMIN, `update public.exams set judge_count = 1 where id = $1`, [finalId])).error).toMatch(/بدأ الاختبار/);
+  });
+
   it("**ولا كتابة مباشرة** في التقييمات", async () => {
     const { error } = await as(J1, `update public.judge_evaluations set approved_at = null`);
     expect(error).toMatch(/permission denied/);

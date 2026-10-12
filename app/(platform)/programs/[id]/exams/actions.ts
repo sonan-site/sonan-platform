@@ -147,6 +147,22 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
 
   const db = await createClient();
   if (v.examId) {
+    // تعديلٌ رجعي لإعدادٍ مقفل (الهجرة ٠٨٦): بسببٍ يُدقَّق، ثم يكمل الحفظ العادي بلا تغييرٍ مقفل.
+    const reason = String(form.get("overrideReason") ?? "").trim();
+    if (reason) {
+      const locked = remote
+        ? { pass_percentage: row.pass_percentage, question_count: row.question_count,
+            seconds_per_question: row.seconds_per_question, max_skips: row.max_skips, track_id: row.track_id }
+        : { pass_percentage: row.pass_percentage, question_count: row.question_count, judge_count: row.judge_count,
+            award_percentage: row.award_percentage, entry_percentage: row.entry_percentage,
+            prerequisite_exam_id: row.prerequisite_exam_id, eligibility_at: row.eligibility_at, track_id: row.track_id };
+      const { error } = await db.rpc("fn_override_exam_settings", {
+        p_exam_id: v.examId,
+        p_changes: locked as unknown as Json,
+        p_reason: reason,
+      });
+      if (error) return { error: bankMessage(error, "تعذّر التعديل الرجعي.") };
+    }
     // النوع لا يتغيّر بعد التعريف: إعداداته غير إعدادات الآخر، والجلسات والمحاولات تتبعه.
     const { data, error } = await db
       .from("exams")
@@ -156,7 +172,7 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
       .eq("exam_type", v.examType)
       .is("deleted_at", null)
       .select("id");
-    if (error) return { error: "تعذّر حفظ الإعدادات." };
+    if (error) return { error: bankMessage(error, "تعذّر حفظ الإعدادات.") };
     if ((data?.length ?? 0) === 0) return { error: "لم تُحفظ الإعدادات — تحقّق من صلاحيتك." };
     examsPath(v.programId);
     return { notice: "حُفظت إعدادات الاختبار." };

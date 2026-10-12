@@ -23,6 +23,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   participation_withdrawn: "انسحاب من برنامج",
   exam_sorting_applied: "حسم الفرز للاختبار النهائي",
   evaluation_reopened: "إعادة فتح تقييم محكّم",
+  exam_settings_changed: "تعديل إعدادات اختبار",
   role_assigned: "إسناد دور",
   role_revoked: "سحب دور",
   section_created: "إنشاء قسم",

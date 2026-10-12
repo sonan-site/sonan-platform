@@ -2612,6 +2612,8 @@ export type Database = {
       }
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
+      fn_attempt_deadline: { Args: { p_attempt_id: string }; Returns: string }
+      fn_attempt_done: { Args: { p_attempt_id: string }; Returns: boolean }
       fn_attempt_score: {
         Args: { p_attempt_id: string }
         Returns: {
@@ -2831,6 +2833,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      fn_exam_lock_state: {
+        Args: { p_program_id: string }
+        Returns: {
+          exam_id: string
+          locked: boolean
+        }[]
+      }
       fn_exam_participant: { Args: { p_exam_id: string }; Returns: string }
       fn_exam_pool: {
         Args: {
@@ -3045,6 +3054,10 @@ export type Database = {
         Args: { p_at: string; p_participant_id: string }
         Returns: Json
       }
+      fn_override_exam_settings: {
+        Args: { p_changes: Json; p_exam_id: string; p_reason: string }
+        Returns: undefined
+      }
       fn_participant_engine: {
         Args: { p_participant_id: string }
         Returns: Record<string, unknown>
@@ -3216,6 +3229,8 @@ export type Database = {
         Args: { p_program_id: string; p_q: Json; p_question_id: string }
         Returns: string
       }
+      fn_seal_exam: { Args: { p_exam_id: string }; Returns: number }
+      fn_seal_expired_attempts: { Args: { p_exam_id: string }; Returns: number }
       fn_session_evaluations: {
         Args: { p_session_id: string }
         Returns: {

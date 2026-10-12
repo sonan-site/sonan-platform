@@ -45,7 +45,8 @@ export default async function ExamsPage({
     .range(from, from + DEFAULT_PAGE_SIZE - 1);
   if (search) questionsQuery = questionsQuery.ilike("text", `%${search.replace(/[%_]/g, "")}%`);
 
-  const [programResult, tracksResult, examsResult, criteriaResult, questionsResult, unitsResult, coverageResult] = await Promise.all([
+  const [programResult, tracksResult, examsResult, criteriaResult, questionsResult, unitsResult, coverageResult, lockResult] =
+    await Promise.all([
     db.from("programs").select("id, kind").eq("id", id).is("deleted_at", null).maybeSingle(),
     db.from("tracks").select("id, name").eq("program_id", id).is("deleted_at", null).order("sort_order"),
     db
@@ -73,9 +74,11 @@ export default async function ExamsPage({
       .limit(1),
     // الصالح لكل اختبارٍ في كل مسار ضمن نطاق دخوله — العدد العامّ يُخفي المسار الناقص.
     db.rpc("fn_bank_coverage", { p_program_id: id }),
+    // ما بدأ من الاختبارات — إعدادات درجته مقفلة، وتغييرها تعديلٌ رجعي بسبب.
+    db.rpc("fn_exam_lock_state", { p_program_id: id }),
   ]);
 
-  if (programResult.error || tracksResult.error || examsResult.error || criteriaResult.error || questionsResult.error || coverageResult.error) {
+  if (programResult.error || tracksResult.error || examsResult.error || criteriaResult.error || questionsResult.error || coverageResult.error || lockResult.error) {
     return <ErrorState body="تعذّر جلب الاختبارات." />;
   }
   if (!programResult.data) notFound();
@@ -83,7 +86,9 @@ export default async function ExamsPage({
     return <ErrorState title="لا اختبارات في هذا البرنامج" body="الاختبارات لبرامج المسابقة وحدها." />;
   }
 
+  const lockedIds = new Set((lockResult.data ?? []).filter((l) => l.locked).map((l) => l.exam_id));
   const exams: ExamSettings[] = (examsResult.data ?? []).map((e) => ({
+    locked: lockedIds.has(e.id),
     id: e.id,
     name: e.name,
     examType: e.exam_type,
@@ -105,6 +110,8 @@ export default async function ExamsPage({
 
   // نتائج كل اختبارٍ عن بعد — من دالةٍ تحرس الصلاحية وتشتقّ الأعلى.
   const remote = exams.filter((e) => e.examType === "remote");
+  // المهجورة المنقضية مهلتُها تُختم قبل القراءة — فـ«الجارية» جاريةٌ فعلاً.
+  await Promise.all(remote.map((e) => db.rpc("fn_seal_exam", { p_exam_id: e.id })));
   const resultSets = await Promise.all(remote.map((e) => db.rpc("fn_exam_results", { p_exam_id: e.id })));
   if (resultSets.some((r) => r.error)) return <ErrorState body="تعذّر جلب نتائج الاختبار." />;
   const results: ResultRow[] = remote.flatMap((e, i) =>

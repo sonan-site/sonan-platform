@@ -10,7 +10,8 @@ export type AttemptQuestion = {
   options: { id: string; text: string }[];
 };
 
-export type AttemptState =
+/** `late`: الخادم رفض الجواب أو التخطّي لانقضاء وقته (الهجرة ٠٨٦) — فيُقال للمشارك. */
+export type AttemptState = (
   | {
       status: "open";
       exam: string;
@@ -31,7 +32,8 @@ export type AttemptState =
       percent: number;
       passed: boolean;
       passPercentage: number;
-    };
+    }
+) & { late?: boolean };
 
 const num = (v: unknown) => Number(v ?? 0);
 
@@ -39,8 +41,10 @@ const num = (v: unknown) => Number(v ?? 0);
 export function parseAttemptState(raw: unknown): AttemptState {
   if (!raw || typeof raw !== "object") throw new Error("attempt state missing");
   const r = raw as Record<string, unknown>;
+  const late = r.late === true ? { late: true } : {};
   if (r.status === "submitted") {
     return {
+      ...late,
       status: "submitted",
       exam: String(r.exam ?? ""),
       attemptNo: num(r.attempt_no),
@@ -55,6 +59,7 @@ export function parseAttemptState(raw: unknown): AttemptState {
   const q = r.question as Record<string, unknown> | undefined;
   if (!q || typeof q.id !== "string") throw new Error("attempt question missing");
   return {
+    ...late,
     status: "open",
     exam: String(r.exam ?? ""),
     attemptNo: num(r.attempt_no),

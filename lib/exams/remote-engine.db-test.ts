@@ -212,6 +212,7 @@ describe("المحاولة", () => {
     const other = [...right.keys()].find((q) => q !== s.question!.id)!;
     const after = await answer(attempt, other, right.get(other)!);
     expect(after.index).toBe(1);
+    expect((after as State & { late?: boolean }).late).toBe(true); // يُعلَم به المشارك
   });
 
   it("**التخطّي ضمن حدّه** يبدّل السؤال، والثاني يُرفض", async () => {
@@ -266,6 +267,13 @@ describe("المحاولة", () => {
     expect(second.error).toBeNull();
     const id2 = second.rows[0]!.id;
     expect(id2).not.toBe(attempt);
+    // التنوّع: ما لم يُسأل أولاً — في النطاق ما يكفي فلا تكرار.
+    const overlap = await one(
+      `select cardinality(array(select unnest(a.question_ids) intersect select unnest(b.question_ids))) n
+       from public.remote_attempts a, public.remote_attempts b where a.id = $1 and b.id = $2`,
+      [attempt, id2],
+    );
+    expect(overlap.n).toBe(0);
     let s = (await stateOf(id2))!;
     while (s.status === "open") s = await answer(id2, s.question!.id, wrong.get(s.question!.id)!);
     expect(Number(s.percent)).toBe(0);
@@ -311,7 +319,84 @@ describe("المحاولة", () => {
       [programId, examId],
     );
     // المسار عشر وحدات، والدخول ٧٥٪ ← أول ثماني. والصالح للمرحلي ستةٌ في ١–٦ (المفتوح والتاسعة خارجه، وواحدٌ مؤرشف).
-    expect(rows[0]).toEqual({ scope_units: 8, available: 5, needed: 3 });
+    // والمطلوب = الأسئلة + حدّ التخطّي (٠٨٦).
+    expect(rows[0]).toEqual({ scope_units: 8, available: 5, needed: 4 });
+  });
+
+  it("**الإعدادات المقفلة بعد البدء** — والمخرج الرجعي بسببٍ مدقَّق", async () => {
+    const change = await as(ADMIN, `update public.exams set pass_percentage = 70 where id = $1`, [examId]);
+    expect(change.error).toMatch(/بدأ الاختبار: تغيير «نسبة الاجتياز»/);
+    expect((await as(ADMIN, `update public.exams set name = 'المرحلي' where id = $1`, [examId])).error).toBeNull();
+    expect((await as(ADMIN, `update public.exams set exam_type = 'oral' where id = $1`, [examId])).error).toMatch(/لا يتغيّران/);
+    expect(
+      (await as(ADMIN, `select public.fn_override_exam_settings($1, '{"pass_percentage": 70}'::jsonb, '')`, [examId])).error,
+    ).toMatch(/اذكر سبب/);
+    const ok = await as(ADMIN, `select public.fn_override_exam_settings($1, '{"pass_percentage": 70}'::jsonb, 'خطأٌ في الإدخال')`, [
+      examId,
+    ]);
+    expect(ok.error).toBeNull();
+    const audit = await one(
+      `select after ->> 'reason' reason, before ->> 'pass_percentage' was from public.audit_log
+       where action = 'exam_settings_changed' and entity_id = $1 order by created_at desc limit 1`,
+      [examId],
+    );
+    expect(audit).toEqual({ reason: "خطأٌ في الإدخال", was: "80.00" });
+    expect(
+      (await as<{ locked: boolean }>(ADMIN, `select locked from public.fn_exam_lock_state($1) where exam_id = $2`, [programId, examId]))
+        .rows[0]!.locked,
+    ).toBe(true);
+    await as(ADMIN, `select public.fn_override_exam_settings($1, '{"pass_percentage": 80}'::jsonb, 'إرجاع التجربة')`, [examId]);
+  });
+
+  it("**المهلة ثابتة، والمنقضية مسلَّمةٌ حكماً، والجواب بعدها مرفوض**", async () => {
+    const exam2 = (
+      await one(
+        `insert into public.exams (program_id, name, exam_type, stage, pass_percentage, question_count, seconds_per_question, max_skips, max_attempts)
+         values ($1, 'تجربة المهلة', 'remote', 'interim', 50, 2, 60, 0, 3) returning id`,
+        [programId],
+      )
+    ).id;
+    const started = await as<{ id: string }>(PLAYER, `select public.fn_start_attempt($1) id`, [exam2]);
+    expect(started.error).toBeNull();
+    const att = started.rows[0]!.id;
+    const deadline = async () => (await one(`select public.fn_attempt_deadline($1) d`, [att])).d as Date | null;
+    expect(await deadline()).toBeNull(); // بلا إغلاق لا مهلة
+
+    await db.query(`update public.exams set closes_at = now() + interval '1 hour' where id = $1`, [exam2]);
+    const d1 = await deadline();
+    let s = (await stateOf(att))!;
+    s = await answer(att, s.question!.id, right.get(s.question!.id)!);
+    expect(await deadline()).toEqual(d1); // لا تتحرك بالإجابة
+
+    // بدأها قبل ساعة وأُغلقت النافذة: انقضت مهلتها.
+    await db.query(`update public.exams set closes_at = now() - interval '1 day' where id = $1`, [exam2]);
+    await db.query(`update public.remote_attempts set started_at = now() - interval '1 hour' where id = $1`, [att]);
+    const best = await one(`select attempts, best_percent from public.fn_exam_best($1, $2)`, [exam2, participantId]);
+    expect(Number(best.best_percent)).toBe(50); // مسلَّمةٌ حكماً بما أُجيب
+    const late = await answer(att, s.question!.id, right.get(s.question!.id)!);
+    expect(late).toMatchObject({ status: "submitted", late: true });
+    expect((await one(`select submitted_at is not null sealed from public.remote_attempts where id = $1`, [att])).sealed).toBe(true);
+  });
+
+  it("**تمديد النافذة لا يُحيي محاولةً مهجورة** — تُختم بالإغلاق القديم", async () => {
+    const exam3 = (
+      await one(
+        `insert into public.exams (program_id, name, exam_type, stage, pass_percentage, question_count, seconds_per_question, max_skips, max_attempts, closes_at)
+         values ($1, 'تجربة التمديد', 'remote', 'interim', 50, 2, 60, 0, 3, now() - interval '1 day') returning id`,
+        [programId],
+      )
+    ).id;
+    const qs = [...right.keys()].slice(0, 2);
+    const att = (
+      await one(
+        `insert into public.remote_attempts (exam_id, participant_id, attempt_no, question_ids, started_at)
+         values ($1, $2, 1, $3::uuid[], now() - interval '2 days') returning id`,
+        [exam3, participantId, qs],
+      )
+    ).id;
+    await db.query(`update public.exams set closes_at = now() + interval '7 days' where id = $1`, [exam3]);
+    const row = await one(`select submitted_at is not null sealed from public.remote_attempts where id = $1`, [att]);
+    expect(row.sealed).toBe(true);
   });
 
   it("**ولا كتابة مباشرة** في المحاولات", async () => {

@@ -267,13 +267,13 @@ async function seed() {
   )).rows;
   await admin.query(
     `insert into public.plan_values (plan_id, day_number, task_field_id, amount, from_sequence, to_sequence, value, repetition)
-     select $1, g, $2::uuid, 3, null::int, null::int, null::numeric, 3 from generate_series(1, 366) g
+     select $1::uuid, g, $2::uuid, 3, null::int, null::int, null::numeric, 3 from generate_series(1, 366) g
      union all
-     select $1, g, $3::uuid, null, greatest(1, 3 * (g - 1) - 5), 3 * (g - 1), null, null from generate_series(2, 366) g
+     select $1::uuid, g, $3::uuid, null, greatest(1, 3 * (g - 1) - 5), 3 * (g - 1), null, null from generate_series(2, 366) g
      union all
-     select $1, g, $4::uuid, null, null, null, 15, null from generate_series(1, 366) g
+     select $1::uuid, g, $4::uuid, null, null, null, 15, null from generate_series(1, 366) g
      union all
-     select $1, g, $5::uuid, null, null, null, 5, null from generate_series(1, 366) g`,
+     select $1::uuid, g, $5::uuid, null, null, null, 5, null from generate_series(1, 366) g`,
     [plan!.id, fieldId("حفظ"), fieldId("مراجعة"), fieldId("تكرار"), fieldId("تلاوة")],
   );
 
@@ -283,8 +283,8 @@ async function seed() {
       [userId(i), `load-${i}@test.local`],
     );
     await admin.query(
-      `insert into public.profiles (user_id, full_name, phone) values ($1, $2, '0500000000')`,
-      [userId(i), `مشارك ${i}`],
+      `insert into public.profiles (user_id, full_name, phone) values ($1, $2, $3)`,
+      [userId(i), `مشارك ${i}`, `+9665${String(i).padStart(8, '0')}`],
     );
   }
   // التحقوا قبل البداية: فأول فتحٍ يُسوّي ٢٨٠ يوماً — أسوأ حالٍ لمن غاب طويلاً.

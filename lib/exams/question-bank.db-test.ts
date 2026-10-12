@@ -218,6 +218,12 @@ describe("الاستعمال", () => {
     expect((await save(MANAGER, single({ usage: "both", answer: "" }))).error).toMatch(/اكتب الجواب/);
   });
 
+  it("**ولا كتابة مباشرة في البنك** — الإدراج من الدالة، والتحديث للأرشفة وحدها", async () => {
+    const q = (await db.query(`select id from public.questions where program_id = $1 and deleted_at is null limit 1`, [programId])).rows[0].id;
+    expect((await as(MANAGER, `update public.questions set question_type = 'single' where id = $1`, [q])).error).toMatch(/permission denied/);
+    expect((await as(MANAGER, `update public.question_options set is_correct = true where question_id = $1`, [q])).error).toMatch(/permission denied/);
+  });
+
   it("**والقيد يحرس الكتابة المباشرة**", async () => {
     const unit = (await db.query(`select id from public.content_units where program_id = $1 and sequence = 1`, [programId])).rows[0].id;
     const { error } = await as(
@@ -225,7 +231,8 @@ describe("الاستعمال", () => {
       `insert into public.questions (program_id, content_unit_id, text, question_type, usage) values ($1, $2, 'سؤال شفهي بلا جواب', 'open', 'oral')`,
       [programId, unit],
     );
-    expect(error).toMatch(/chk_questions_oral_answer/);
+    // الإدراج المباشر سُحب (٠٨٦)، والقيد باقٍ خلفه لمن يكتب من الدالة.
+    expect(error).toMatch(/permission denied|chk_questions_oral_answer/);
   });
 });
 

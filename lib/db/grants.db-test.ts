@@ -51,6 +51,12 @@ beforeAll(async () => {
     `select table_name as table, grantee as role, privilege_type as privilege
      from information_schema.role_table_grants
      where table_schema = 'public'
+       and grantee in ('anon', 'authenticated', 'service_role')
+     union
+     -- منحة العمود منحةٌ تُبلغ بها السياسة (تحديث الأرشفة وحدها مثلاً — الهجرة ٠٨٦).
+     select distinct table_name, grantee, privilege_type
+     from information_schema.column_privileges
+     where table_schema = 'public'
        and grantee in ('anon', 'authenticated', 'service_role')`,
   );
   grants = g.rows;

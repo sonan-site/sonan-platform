@@ -88,3 +88,18 @@
 .enough {
   color: var(--color-success);
 }
+
+.coverageNote {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.lockNote {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-surface);
+}
+
+.lockNote p {
+  margin: 0 0 var(--space-2);
+}

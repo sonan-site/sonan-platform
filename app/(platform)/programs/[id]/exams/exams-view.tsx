@@ -25,6 +25,8 @@ import styles from "./exams.module.css";
 
 export type ExamSettings = {
   id: string;
+  /** بدأ (محاولة · إسناد · حسم) — تغيير درجته رجعيٌّ بسبب. */
+  locked: boolean;
   name: string;
   examType: "remote" | "oral";
   stage: "interim" | "final";
@@ -247,6 +249,17 @@ function ExamForm({
       {exam ? <input type="hidden" name="examId" value={exam.id} /> : null}
       {exam ? <input type="hidden" name="examType" value={exam.examType} /> : null}
 
+      {exam?.locked ? (
+        <div className={styles.lockNote}>
+          <p>
+            <b>بدأ هذا الاختبار.</b> تغيير الاجتياز أو عدد الأسئلة أو الزمن أو المحكّمين أو الشروط يغيّر نتائج قائمة
+            بأثرٍ رجعي. والنافذة والمحاولات والاسم تُعدَّل بلا سبب.
+          </p>
+          <Field id={`${p}reason`} label="سبب التعديل الرجعي" hint="اتركه فارغاً إن لم تغيّر ما ذُكر. يُسجَّل في سجل التدقيق.">
+            <Input id={`${p}reason`} name="overrideReason" />
+          </Field>
+        </div>
+      ) : null}
       <Field id={`${p}name`} label="اسم الاختبار" required error={f?.name}>
         <Input id={`${p}name`} name="name" required defaultValue={exam?.name} />
       </Field>
@@ -492,11 +505,15 @@ function BankStep({
       {coverage.length > 0 ? (
         <div className={styles.coverage}>
           <p className={styles.coverageTitle}>ما يكفي كل مسار — من الوحدات التي يُسأل منها الداخل</p>
+          <p className={styles.coverageNote}>
+            المطلوب أسئلة الاختبار وحدّ تخطّيه. والهدف ضعفه: الإنجاز يُقاس بأيام الخطة، فمن بلغ النسبة قد يكون بلغ
+            وحداتٍ أقل منها — والضعف يُبقي لكلٍّ ما يكفيه، ويُنوّع المحاولة الثانية.
+          </p>
           <ul className={styles.coverageList}>
             {coverage.map((c) => (
               <li key={c.key} className={c.available < c.needed ? styles.short : styles.enough}>
                 {c.examName} · {c.trackName}: {formatNumber(c.available)} صالحاً من أول {formatNumber(c.scopeUnits)} وحدة
-                — المطلوب {formatNumber(c.needed)}
+                — المطلوب {formatNumber(c.needed)} والهدف {formatNumber(c.needed * 2)}
                 {c.available < c.needed ? ` (ينقص ${formatNumber(c.needed - c.available)})` : ""}
               </li>
             ))}

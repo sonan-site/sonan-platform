@@ -34,6 +34,11 @@ describe("حالة المحاولة", () => {
     ).toMatchObject({ status: "submitted", percent: 80, passed: true, passPercentage: 80 });
   });
 
+  it("ورفض الخادم جواباً متأخراً يُحمل إلى الشاشة", () => {
+    expect(parseAttemptState({ status: "submitted", exam: "م", late: true })).toMatchObject({ late: true });
+    expect(parseAttemptState({ status: "submitted", exam: "م" })).not.toHaveProperty("late");
+  });
+
   it("**وغير المتوقَّع يُرفض** لا يُعرض نصفه", () => {
     expect(() => parseAttemptState(null)).toThrow();
     expect(() => parseAttemptState({ status: "open" })).toThrow();
