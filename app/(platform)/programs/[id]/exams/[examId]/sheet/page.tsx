@@ -4,12 +4,14 @@ import { createClient } from "@/lib/db/server";
 import { parseSheet } from "@/lib/exams/sheet";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { z } from "@/lib/validation/z";
-import { SheetView } from "../../../../../judge/sheet-view";
+import { RetroSheet } from "./retro-sheet";
 
 /**
  * إدخال ورقة محكّمٍ ورقية باسمه (`adr/0048`) — البديل عند تعطّل جوالٍ أو شبكة.
  * الورقة نفسها التي يراها المحكّم، والسبب إلزاميٌّ يُسجَّل مع كل سؤال.
  */
+export const maxDuration = 60;
+
 export default async function RetroSheetPage({
   params,
   searchParams,
@@ -44,7 +46,8 @@ export default async function RetroSheetPage({
       <p>
         <Link href={`/programs/${id}/exams/${examId}`}>الاختبار النهائي</Link>
       </p>
-      <SheetView
+      <RetroSheet
+        programId={id}
         sessionId={parsed.data.session}
         participantId={parsed.data.participant}
         judgeId={parsed.data.judge}

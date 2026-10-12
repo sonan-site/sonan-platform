@@ -61,8 +61,15 @@ export async function markQuestion(
   return read(data);
 }
 
-export async function approveSheet(sessionId: string, participantId: string, judgeId: string | null): Promise<Result> {
-  if (!target.safeParse({ sessionId, participantId, judgeId }).success) return { error: "ورقة غير معروفة." };
+export async function approveSheet(
+  sessionId: string,
+  participantId: string,
+  judgeId: string | null,
+  reason: string | null = null,
+): Promise<Result> {
+  if (!target.safeParse({ sessionId, participantId, judgeId }).success || (reason !== null && reason.length > 200)) {
+    return { error: "ورقة غير معروفة." };
+  }
   if ((await getSession()).status !== "active") return { error: "سجّل الدخول أولاً." };
 
   const db = await createClient();
@@ -70,6 +77,7 @@ export async function approveSheet(sessionId: string, participantId: string, jud
     p_session_id: sessionId,
     p_participant_id: participantId,
     p_judge_id: judgeId as string,
+    p_reason: (reason?.trim() || null) as string,
   });
   if (error) return { error: message(error, "تعذّر الاعتماد.") };
   revalidatePath(`/judge/${sessionId}`);

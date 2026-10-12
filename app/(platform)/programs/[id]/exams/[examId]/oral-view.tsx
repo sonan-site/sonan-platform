@@ -13,11 +13,15 @@ import { formatDateTime, formatNumber, now } from "@/lib/format";
 import {
   applySorting,
   archiveSession,
+  computeEligibilityBatch,
   createSession,
-  distribute,
+  distributeBatch,
   moveParticipant,
+  redrawOral,
+  refreshOral,
   reopenEvaluation,
   setJudge,
+  setQualification,
 } from "./actions";
 import styles from "./oral.module.css";
 
@@ -27,10 +31,16 @@ export type EligibilityRow = {
   registrationNo: number | null;
   trackId: string | null;
   status: string;
-  percent: number;
+  /** فارغ = لم يُحسب في اللقطة بعد. */
+  percent: number | null;
   prerequisitePassed: boolean;
   eligible: boolean;
+  decision: boolean | null;
+  decisionSource: string | null;
+  decisionReason: string | null;
 };
+
+export type Snapshot = { total: number; computed: number; oldest: string | null; ready: boolean };
 
 export type EvaluationRow = {
   participantId: string;
@@ -73,6 +83,7 @@ const STATUS_LABEL: Record<string, string> = {
   qualified: "متأهل",
   not_qualified: "غير متأهل",
 };
+const SOURCE_LABEL: Record<string, string> = { auto: "بالشرطين", override: "استثناء", correction: "تصحيح" };
 const SESSION_STATUS = { scheduled: "لم تبدأ", in_progress: "جارية", closed: "أُقفلت" } as const;
 const pct = (n: number) => `${formatNumber(n)}٪`;
 
@@ -83,6 +94,8 @@ export function OralView({
   entryPercentage,
   judgeCount,
   eligibilityAt,
+  sorted,
+  snapshot,
   tracks,
   eligibility,
   sessions,
@@ -96,6 +109,8 @@ export function OralView({
   judgeCount: number;
   /** لحظة احتساب الإنجاز — الحسم قبلها ممنوع. */
   eligibilityAt: string | null;
+  sorted: boolean;
+  snapshot: Snapshot;
   tracks: Track[];
   eligibility: EligibilityRow[];
   sessions: SessionCard[];
@@ -114,6 +129,8 @@ export function OralView({
         examId={examId}
         entryPercentage={entryPercentage}
         eligibilityAt={eligibilityAt}
+        sorted={sorted}
+        snapshot={snapshot}
         rows={eligibility}
         trackName={trackName}
       />
@@ -136,6 +153,8 @@ function SortingStep({
   examId,
   entryPercentage,
   eligibilityAt,
+  sorted,
+  snapshot,
   rows,
   trackName,
 }: {
@@ -143,47 +162,81 @@ function SortingStep({
   examId: string;
   entryPercentage: number | null;
   eligibilityAt: string | null;
+  sorted: boolean;
+  snapshot: Snapshot;
   rows: EligibilityRow[];
   trackName: (id: string | null) => string;
 }) {
   const router = useRouter();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const [confirming, setConfirming] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [correcting, setCorrecting] = useState<EligibilityRow | null>(null);
+  const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
 
   const decided = (r: EligibilityRow) => overrides[r.participantId] ?? r.eligible;
   const qualified = rows.filter(decided).length;
-  const settled = rows.some((r) => r.status === "qualified" || r.status === "not_qualified");
+  const before = eligibilityAt === null || new Date(eligibilityAt) > now();
+
+  /** اللقطة بدفعاتٍ من ٤٠ — حدّ زمن الاستعلام ثماني ثوانٍ — بتقدّمٍ ظاهر. */
+  function compute() {
+    start(async () => {
+      let offset = 0;
+      for (;;) {
+        const r = await computeEligibilityBatch(programId, examId, offset);
+        if (r.error) {
+          reportAction(r);
+          break;
+        }
+        offset += r.computed ?? 0;
+        setProgress(`حُسب ${formatNumber(offset)} من ${formatNumber(r.total ?? 0)}`);
+        if ((r.computed ?? 0) === 0 || offset >= (r.total ?? 0)) break;
+      }
+      await refreshOral(programId, examId);
+      setProgress(null);
+      router.refresh();
+    });
+  }
 
   const columns: Column<EligibilityRow>[] = [
     { key: "name", header: "المشارك", primary: true, render: (r) => r.name },
     { key: "no", header: "رقم التسجيل", align: "end", render: (r) => (r.registrationNo === null ? "—" : formatNumber(r.registrationNo)) },
     { key: "track", header: "المسار", render: (r) => trackName(r.trackId) },
-    { key: "pct", header: "الإنجاز", align: "end", render: (r) => pct(r.percent) },
-    { key: "pre", header: "المرحلي", render: (r) => (r.prerequisitePassed ? "اجتاز" : "لم يجتز") },
+    { key: "pct", header: "الإنجاز", align: "end", render: (r) => (r.percent === null ? "لم يُحسب" : pct(r.percent)) },
+    { key: "pre", header: "المرحلي", render: (r) => (r.percent === null ? "—" : r.prerequisitePassed ? "اجتاز" : "لم يجتز") },
     { key: "status", header: "الحالة الآن", render: (r) => STATUS_LABEL[r.status] ?? r.status },
     {
       key: "decision",
       header: "القرار",
-      render: (r) => (
-        <Select
-          aria-label={`قرار ${r.name}`}
-          value={r.participantId in overrides ? (overrides[r.participantId] ? "yes" : "no") : "auto"}
-          onChange={(e) => {
-            const v = e.target.value;
-            setOverrides((all) => {
-              const next = { ...all };
-              if (v === "auto") delete next[r.participantId];
-              else next[r.participantId] = v === "yes";
-              return next;
-            });
-          }}
-        >
-          <option value="auto">{r.eligible ? "يتأهل (بالشرطين)" : "لا يتأهل (بالشرطين)"}</option>
-          <option value="yes">يتأهل — استثناء</option>
-          <option value="no">لا يتأهل — استثناء</option>
-        </Select>
-      ),
+      render: (r) =>
+        sorted ? (
+          <span className={styles.decision}>
+            {r.decision === null ? "—" : r.decision ? "متأهل" : "غير متأهل"}
+            {r.decisionSource ? ` · ${SOURCE_LABEL[r.decisionSource] ?? r.decisionSource}` : ""}
+            <button type="button" className={styles.link} onClick={() => setCorrecting(r)}>
+              صحّح
+            </button>
+          </span>
+        ) : (
+          <Select
+            aria-label={`قرار ${r.name}`}
+            value={r.participantId in overrides ? (overrides[r.participantId] ? "yes" : "no") : "auto"}
+            onChange={(e) => {
+              const v = e.target.value;
+              setOverrides((all) => {
+                const next = { ...all };
+                if (v === "auto") delete next[r.participantId];
+                else next[r.participantId] = v === "yes";
+                return next;
+              });
+            }}
+          >
+            <option value="auto">{r.eligible ? "يتأهل (بالشرطين)" : "لا يتأهل (بالشرطين)"}</option>
+            <option value="yes">يتأهل — استثناء</option>
+            <option value="no">لا يتأهل — استثناء</option>
+          </Select>
+        ),
     },
   ];
 
@@ -191,15 +244,25 @@ function SortingStep({
     <Step
       n={1}
       title="الفرز"
-      why={`يتأهل من أتمّ ${entryPercentage === null ? "خطته" : pct(entryPercentage)} من خطته واجتاز الاختبار الشرط. والاستثناء الإداري يغلب الحساب ويُسجَّل.`}
-      done={settled}
+      why={`يتأهل من أتمّ ${entryPercentage === null ? "خطته" : pct(entryPercentage)} من خطته واجتاز الاختبار الشرط. والأهلية لقطةٌ تُحسب عند الطلب لا في كل فتح.`}
+      done={sorted}
       state={
         <span>
-          {settled ? "حُسم الفرز — ولك أن تعيد حسمه." : "لم يُحسم بعد."} · {formatNumber(qualified)} من{" "}
-          {formatNumber(rows.length)} يتأهلون بالقرار الحالي
+          {sorted ? "حُسم الفرز — والتصحيح فرديٌّ بسبب." : "لم يُحسم بعد."} · حُسبت الأهلية لـ
+          {formatNumber(snapshot.computed)} من {formatNumber(snapshot.total)}
+          {snapshot.oldest ? ` · أقدمها ${formatDateTime(snapshot.oldest)}` : ""}
         </span>
       }
     >
+      {!sorted ? (
+        <FormActions>
+          <Button pending={pending} onClick={compute}>
+            {snapshot.computed === 0 ? "احسب الأهلية" : "أعد حساب الأهلية"}
+          </Button>
+          {progress ? <span className={styles.muted}>{progress}</span> : null}
+        </FormActions>
+      ) : null}
+
       <DataTable
         columns={columns}
         rows={rows}
@@ -209,12 +272,15 @@ function SortingStep({
         pageSize={Math.max(rows.length, 1)}
         empty={{ title: "لا مشاركين", body: "" }}
       />
-      {eligibilityAt === null ? (
+
+      {sorted ? null : eligibilityAt === null ? (
         <Muted>حدّد في إعدادات الاختبار يوم احتساب الإنجاز — ولا يُحسم الفرز قبله. وما فوق معاينةٌ بإنجاز اليوم.</Muted>
-      ) : new Date(eligibilityAt) > now() ? (
+      ) : before ? (
         <Muted>
-          يُحسم الفرز بعد {formatDateTime(eligibilityAt)}. وما فوق معاينةٌ بإنجاز اليوم — الحسم يُنهي رحلة من لا يتأهل.
+          يُحسم الفرز بعد {formatDateTime(eligibilityAt)}، بلقطةٍ تُحسب بعده. وما فوق معاينة — الحسم يُنهي رحلة من لا يتأهل.
         </Muted>
+      ) : !snapshot.ready ? (
+        <Muted>احسب الأهلية كاملةً بعد لحظة الاحتساب، ثم يُتاح الحسم.</Muted>
       ) : (
         <FormActions>
           <Button variant="primary" disabled={rows.length === 0} onClick={() => setConfirming(true)}>
@@ -222,11 +288,12 @@ function SortingStep({
           </Button>
         </FormActions>
       )}
+
       <Modal open={confirming} title="حسم الفرز" onClose={() => setConfirming(false)}>
         <p>
           يتأهل {formatNumber(qualified)}، ولا يتأهل {formatNumber(rows.length - qualified)}
           {Object.keys(overrides).length > 0 ? `، منهم ${formatNumber(Object.keys(overrides).length)} باستثناء` : ""}. تتغيّر
-          حالاتهم الآن ويُسجَّل القرار.
+          حالاتهم الآن، ولا يُعاد الحسم بعد أول إسناد.
         </p>
         <Button
           variant="primary"
@@ -241,6 +308,32 @@ function SortingStep({
           }
         >
           احسم
+        </Button>
+      </Modal>
+
+      <Modal open={correcting !== null} title="تصحيح الفرز" onClose={() => setCorrecting(null)}>
+        <p>
+          {correcting?.name}: يصير {correcting?.decision ? "غير متأهل — ويُرفع من جلسته إن لم يبدأ تحكيمه" : "متأهلاً — ثم أسنده إلى جلسة"}.
+          ويُسجَّل السبب.
+        </p>
+        <Field id="corrReason" label="السبب" required>
+          <Input id="corrReason" value={reason} onChange={(e) => setReason(e.target.value)} />
+        </Field>
+        <Button
+          variant="primary"
+          pending={pending}
+          disabled={reason.trim().length < 3}
+          onClick={() => {
+            const r = correcting!;
+            start(async () => {
+              reportAction(await setQualification(programId, examId, r.participantId, !r.decision, reason));
+              setCorrecting(null);
+              setReason("");
+              router.refresh();
+            });
+          }}
+        >
+          صحّح
         </Button>
       </Modal>
     </Step>
@@ -274,6 +367,30 @@ function SessionsStep({
       router.refresh();
     });
 
+  const [progress, setProgress] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<{ session: string; judge: string } | null>(null);
+  const [removeReason, setRemoveReason] = useState("");
+
+  /** التوزيع بدفعاتٍ من ٢٥ حتى لا يبقى أحد — والسحب من اللقطة. */
+  function distributeAll() {
+    start(async () => {
+      let done = 0;
+      for (;;) {
+        const r = await distributeBatch(programId, examId);
+        if (r.error) {
+          reportAction(r);
+          break;
+        }
+        done += r.assigned ?? 0;
+        setProgress(`أُسند ${formatNumber(done)} — بقي ${formatNumber(r.remaining ?? 0)}`);
+        if ((r.assigned ?? 0) === 0 || (r.remaining ?? 0) === 0) break;
+      }
+      await refreshOral(programId, examId);
+      setProgress(null);
+      router.refresh();
+    });
+  }
+
   const assigned = sessions.reduce((n, s) => n + s.participants.length, 0);
   const judgeName = (id: string) => candidates.find((c) => c.id === id)?.name ?? "محكّم";
 
@@ -290,9 +407,10 @@ function SessionsStep({
       }
     >
       <FormActions>
-        <Button disabled={busy || sessions.length === 0} onClick={() => run(() => distribute(programId, examId))}>
+        <Button disabled={busy || sessions.length === 0} onClick={distributeAll}>
           وزّع المتأهلين غير المُسنَدين
         </Button>
+        {progress ? <span className={styles.muted}>{progress}</span> : null}
       </FormActions>
 
       {sessions.length === 0 ? <Muted>أنشئ الجلسات أولاً، ثم وزّع المتأهلين عليها.</Muted> : null}
@@ -314,7 +432,11 @@ function SessionsStep({
                     key={j}
                     label={`رفع ${judgeName(j)} من اللجنة`}
                     disabled={busy}
-                    onClick={() => run(() => setJudge(programId, examId, s.id, j, false))}
+                    onClick={() =>
+                      s.evaluations.some((e) => e.judgeId === j && e.evaluated > 0)
+                        ? setRemoving({ session: s.id, judge: j })
+                        : run(() => setJudge(programId, examId, s.id, j, false))
+                    }
                   >
                     {judgeName(j)} ×
                   </ChipButton>
@@ -366,6 +488,16 @@ function SessionsStep({
                           </span>
                         ))}
                       </span>
+                      {evs.every((e) => e.evaluated === 0) ? (
+                        <button
+                          type="button"
+                          className={styles.link}
+                          disabled={busy}
+                          onClick={() => run(() => redrawOral(programId, examId, s.id, p.id))}
+                        >
+                          أعد سحب أسئلته
+                        </button>
+                      ) : null}
                       {others.length > 0 && evs.every((e) => e.evaluated === 0) ? (
                         <Select
                           aria-label={`انقل ${p.name}`}
@@ -417,6 +549,29 @@ function SessionsStep({
         </FormActions>
         <Messages state={state} />
       </StepForm>
+
+      <Modal open={removing !== null} title="إخراج محكّم" onClose={() => setRemoving(null)}>
+        <p>
+          قيّم هذا المحكّم في الجلسة. يُخرج، وتُؤرشف تقييماته غير المعتمدة وحدها — والمعتمد يبقى لمن قيّمه. ويُسجَّل
+          السبب.
+        </p>
+        <Field id="removeReason" label="السبب" required>
+          <Input id="removeReason" value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} placeholder="مرض" />
+        </Field>
+        <Button
+          variant="primary"
+          pending={busy}
+          disabled={removeReason.trim().length < 3}
+          onClick={() => {
+            const r = removing!;
+            setRemoving(null);
+            setRemoveReason("");
+            run(() => setJudge(programId, examId, r.session, r.judge, false, removeReason));
+          }}
+        >
+          أخرِجه
+        </Button>
+      </Modal>
 
       <Modal open={reopening !== null} title="إعادة فتح التقييم" onClose={() => setReopening(null)}>
         <p>يُفتح تقييم {reopening?.row.judgeName} ليعدّله، وتغيب الدرجة النهائية حتى يعتمده ثانية. ويُسجَّل السبب.</p>

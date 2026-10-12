@@ -18,12 +18,15 @@ export function SheetView({
   participantId,
   judgeId,
   initial,
+  onReplace,
 }: {
   sessionId: string;
   participantId: string;
   /** فارغ = المحكّم بنفسه. وإلا فإدخالٌ عنه. */
   judgeId: string | null;
   initial: JudgeSheet;
+  /** للإدارة وحدها: استبدال سؤالٍ لم يقيّمه أحد — يُرجع خطأً أو تُعاد الصفحة. */
+  onReplace?: (questionId: string) => Promise<string | null>;
 }) {
   const [sheet, setSheet] = useState(initial);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +54,13 @@ export function SheetView({
   }
 
   function approve() {
+    if (onBehalf && reason.trim().length < 3) {
+      setConfirming(false);
+      setError("اذكر سبب الاعتماد عن المحكّم أولاً.");
+      return;
+    }
     start(async () => {
-      const r = await approveSheet(sessionId, participantId, judgeId);
+      const r = await approveSheet(sessionId, participantId, judgeId, onBehalf ? reason.trim() : null);
       setConfirming(false);
       if (r.error) setError(r.error);
       else if (r.sheet) {
@@ -111,9 +119,25 @@ export function SheetView({
                     onClick={() => save(q.id, on ? q.marked.filter((x) => x !== c.id) : [...q.marked, c.id])}
                   >
                     {c.label} −{formatNumber(c.value)}
+                    {c.archived ? " (مؤرشف)" : ""}
                   </button>
                 );
               })}
+              {onReplace && !q.evaluated && !sheet.approved ? (
+                <button
+                  type="button"
+                  className={styles.chip}
+                  disabled={pending}
+                  onClick={() =>
+                    start(async () => {
+                      const failed = await onReplace(q.id);
+                      setError(failed);
+                    })
+                  }
+                >
+                  استبدل السؤال
+                </button>
+              ) : null}
               {!q.evaluated ? (
                 <button
                   type="button"

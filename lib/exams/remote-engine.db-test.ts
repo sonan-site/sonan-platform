@@ -86,7 +86,7 @@ beforeAll(async () => {
   await db.query(`insert into public.zz_progress values (0, 0)`);
   await db.query(`grant select on public.zz_progress to authenticated`);
   await db.query(`
-    create or replace function public.fn_progress_at(p_participant_id uuid, p_at timestamptz)
+    create or replace function public.fn_progress_at_unchecked(p_participant_id uuid, p_at timestamptz)
     returns table (done_days int, day_count int, units int, share_size int, percent numeric, reach_sequence int)
     language sql stable security definer set search_path = ''
     as $f$ select 0, 40, z.units, 10, z.pct, null::int from public.zz_progress z $f$`);

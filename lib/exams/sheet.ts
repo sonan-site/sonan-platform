@@ -3,7 +3,8 @@
  * الأسئلة بجوابها للمحكّم، ومعايير الخصم لكل سؤال، وما علّمه هو.
  */
 
-export type SheetCriterion = { id: string; label: string; value: number };
+/** `archived`: مؤرشفٌ بقي ظاهراً لأنه معلَّمٌ عليه — لا خصمٌ خفي (الهجرة ٠٨٧). */
+export type SheetCriterion = { id: string; label: string; value: number; archived: boolean };
 
 export type SheetQuestion = {
   id: string;
@@ -46,7 +47,12 @@ export function parseSheet(raw: unknown): JudgeSheet {
       evaluated: q.evaluated === true,
       marked: Array.isArray(q.marked) ? (q.marked as unknown[]).map(String) : [],
       criteria: Array.isArray(q.criteria)
-        ? (q.criteria as Record<string, unknown>[]).map((c) => ({ id: String(c.id), label: String(c.label ?? ""), value: num(c.value) }))
+        ? (q.criteria as Record<string, unknown>[]).map((c) => ({
+            id: String(c.id),
+            label: String(c.label ?? ""),
+            value: num(c.value),
+            archived: c.archived === true,
+          }))
         : [],
     })),
   };

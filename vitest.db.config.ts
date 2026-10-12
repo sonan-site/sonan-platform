@@ -34,6 +34,9 @@ export default defineConfig({
     include: isLocalDb ? ["**/*.db-test.ts"] : [],
     passWithNoTests: !isLocalDb,
     exclude: ["node_modules/**", ".next/**"],
+    // ملفّاتٌ على قاعدةٍ واحدة تتعاقب: بعضها يستبدل دالّةً داخل معاملته ثم يتراجع،
+    // وملفّان معاً على الدالّة نفسها ينتظر أحدهما الآخر حتى ينقضي الوقت.
+    fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

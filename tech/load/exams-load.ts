@@ -6,6 +6,7 @@ import pg from "pg";
  *   pnpm load:journey -- --seed --users=400   أولاً: برنامجٌ بمشاركين وتقدّم
  *   node tech/load/exams-load.ts --seed       اختباران وبنكٌ بـ١٠٠٠ سؤالٍ عن بعد و٣٠٠ شفهي
  *   node tech/load/exams-load.ts --run        القياس
+ *   node tech/load/exams-load.ts --batches    دفعات الأهلية (٤٠) والتوزيع (٢٥) — حدّ الحيّة ٨ ثوانٍ للطلب
  *   node tech/load/exams-load.ts --clean      يُزيل ما بذره (قبل --clean لقياس الرحلة)
  *
  * **ما يقيسه:** (١) `fn_my_exams` لكل مشارك في أسبوع النافذة — ما تضيفه «رحلتي»
@@ -186,7 +187,39 @@ async function run() {
   say(`الذروة كلها: ${Math.round((performance.now() - t0) / 1000)} ث لـ${PEAK} × ٢٠ سؤالاً.`);
 }
 
+/** دفعات الأهلية والتوزيع كما تُرسلها الشاشة — كل دفعةٍ طلبٌ واحد تحت حدّ الزمن. */
+async function batches() {
+  const pid = await programId();
+  const final = (await admin.query<{ id: string }>(`select id from public.exams where program_id = $1 and exam_type = 'oral'`, [pid])).rows[0]!.id;
+  const compute: number[] = [];
+  for (let offset = 0; ; offset += 40) {
+    const r = await rest<{ computed: number; total: number }>(ADMIN, `select * from public.fn_compute_eligibility('${final}', ${offset}, 40)`);
+    compute.push(r.ms);
+    if (r.rows[0]!.computed === 0 || offset + 40 >= r.rows[0]!.total) break;
+  }
+  report("fn_compute_eligibility (دفعة ٤٠)", compute);
+
+  // الجميع متأهّلٌ باستثناءٍ — ليُقاس التوزيع على ٤٠٠.
+  const everyone = (await admin.query<{ id: string }>(`select id from public.participants where program_id = $1`, [pid])).rows;
+  const overrides = JSON.stringify(Object.fromEntries(everyone.map((r) => [r.id, true])));
+  report("fn_apply_sorting (٤٠٠)", [(await rest(ADMIN, `select * from public.fn_apply_sorting('${final}', '${overrides}'::jsonb)`)).ms]);
+  for (let s = 1; s <= 4; s += 1) {
+    await rest(ADMIN, `insert into public.exam_sessions (exam_id, name, scheduled_at) values ('${final}', 'جلسة ${s}', now() + interval '${s} day')`);
+  }
+  const distribute: number[] = [];
+  for (;;) {
+    const r = await rest<{ assigned: number; remaining: number }>(ADMIN, `select * from public.fn_distribute_participants('${final}', 25)`);
+    distribute.push(r.ms);
+    if (r.rows[0]!.assigned === 0 || r.rows[0]!.remaining === 0) break;
+  }
+  report("fn_distribute_participants (دفعة ٢٥)", distribute);
+}
+
 async function clean() {
+  const pid0 = await programId();
+  await admin.query(`delete from public.session_participants where session_id in (select s.id from public.exam_sessions s join public.exams e on e.id = s.exam_id where e.program_id = $1)`, [pid0]);
+  await admin.query(`delete from public.exam_sessions where exam_id in (select id from public.exams where program_id = $1)`, [pid0]);
+  await admin.query(`delete from public.exam_eligibility where exam_id in (select id from public.exams where program_id = $1)`, [pid0]);
   const pid = await programId();
   await admin.query(`delete from public.remote_answers where attempt_id in (select a.id from public.remote_attempts a join public.exams e on e.id = a.exam_id where e.program_id = $1)`, [pid]);
   await admin.query(`delete from public.remote_attempts where exam_id in (select id from public.exams where program_id = $1)`, [pid]);
@@ -207,6 +240,7 @@ try {
   const mode = process.argv[2];
   if (mode === "--seed") await seed();
   else if (mode === "--run") await run();
+  else if (mode === "--batches") await batches();
   else if (mode === "--clean") await clean();
   else say("استعمل --seed أو --run أو --clean");
 } finally {

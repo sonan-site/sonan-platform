@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -745,6 +745,78 @@ export type Database = {
           },
         ]
       }
+      exam_eligibility: {
+        Row: {
+          computed_at: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: boolean | null
+          decision_reason: string | null
+          decision_source: string | null
+          deleted_at: string | null
+          eligible: boolean
+          exam_id: string
+          id: string
+          participant_id: string
+          percent: number
+          prerequisite_passed: boolean
+          units: number
+          updated_at: string
+        }
+        Insert: {
+          computed_at: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: boolean | null
+          decision_reason?: string | null
+          decision_source?: string | null
+          deleted_at?: string | null
+          eligible: boolean
+          exam_id: string
+          id?: string
+          participant_id: string
+          percent: number
+          prerequisite_passed: boolean
+          units: number
+          updated_at?: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: boolean | null
+          decision_reason?: string | null
+          decision_source?: string | null
+          deleted_at?: string | null
+          eligible?: boolean
+          exam_id?: string
+          id?: string
+          participant_id?: string
+          percent?: number
+          prerequisite_passed?: boolean
+          units?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_eligibility_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_eligibility_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_sessions: {
         Row: {
           closed_at: string | null
@@ -815,6 +887,7 @@ export type Database = {
           program_id: string
           question_count: number
           seconds_per_question: number | null
+          sorted_at: string | null
           stage: Database["public"]["Enums"]["exam_stage"]
           track_id: string | null
           updated_at: string
@@ -838,6 +911,7 @@ export type Database = {
           program_id: string
           question_count: number
           seconds_per_question?: number | null
+          sorted_at?: string | null
           stage: Database["public"]["Enums"]["exam_stage"]
           track_id?: string | null
           updated_at?: string
@@ -861,6 +935,7 @@ export type Database = {
           program_id?: string
           question_count?: number
           seconds_per_question?: number | null
+          sorted_at?: string | null
           stage?: Database["public"]["Enums"]["exam_stage"]
           track_id?: string | null
           updated_at?: string
@@ -2668,6 +2743,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      fn_compute_eligibility: {
+        Args: { p_exam_id: string; p_limit?: number; p_offset: number }
+        Returns: {
+          computed: number
+          total: number
+        }[]
+      }
       fn_count_repetition: {
         Args: {
           p_day: number
@@ -2752,8 +2834,11 @@ export type Database = {
         }[]
       }
       fn_distribute_participants: {
-        Args: { p_exam_id: string }
-        Returns: number
+        Args: { p_exam_id: string; p_limit?: number }
+        Returns: {
+          assigned: number
+          remaining: number
+        }[]
       }
       fn_done_days_at: {
         Args: {
@@ -2778,6 +2863,22 @@ export type Database = {
           p_track_id: string
         }
         Returns: number
+      }
+      fn_eligibility_scope: {
+        Args: { p_exam_id: string }
+        Returns: {
+          n: number
+          participant_id: string
+        }[]
+      }
+      fn_eligibility_status: {
+        Args: { p_exam_id: string }
+        Returns: {
+          computed: number
+          oldest: string
+          ready: boolean
+          total: number
+        }[]
       }
       fn_engine_access: {
         Args: { p_participant_id: string; p_write: boolean }
@@ -2934,6 +3035,7 @@ export type Database = {
         Args: {
           p_judge_id?: string
           p_participant_id: string
+          p_reason?: string
           p_session_id: string
         }
         Returns: Json
@@ -3166,6 +3268,17 @@ export type Database = {
           units: number
         }[]
       }
+      fn_progress_at_unchecked: {
+        Args: { p_at: string; p_participant_id: string }
+        Returns: {
+          day_count: number
+          done_days: number
+          percent: number
+          reach_sequence: number
+          share_size: number
+          units: number
+        }[]
+      }
       fn_public_tracks: {
         Args: { p_program_id: string }
         Returns: {
@@ -3192,6 +3305,10 @@ export type Database = {
         Returns: boolean
       }
       fn_rate_limit_clear: { Args: { p_bucket: string }; Returns: undefined }
+      fn_redraw_oral: {
+        Args: { p_participant_id: string; p_session_id: string }
+        Returns: undefined
+      }
       fn_register: {
         Args: { p_answers?: Json; p_program_id: string; p_track_id: string }
         Returns: string
@@ -3207,6 +3324,14 @@ export type Database = {
           p_judge_id: string
           p_participant_id: string
           p_reason: string
+          p_session_id: string
+        }
+        Returns: undefined
+      }
+      fn_replace_oral_question: {
+        Args: {
+          p_participant_id: string
+          p_question_id: string
           p_session_id: string
         }
         Returns: undefined
@@ -3244,6 +3369,10 @@ export type Database = {
           total: number
         }[]
       }
+      fn_session_judge_count: {
+        Args: { p_session_id: string }
+        Returns: number
+      }
       fn_session_program: { Args: { p_session_id: string }; Returns: string }
       fn_set_engine_setting: {
         Args: {
@@ -3258,8 +3387,22 @@ export type Database = {
         Args: { p_expected?: string[]; p_program_id: string; p_sections: Json }
         Returns: undefined
       }
+      fn_set_qualification: {
+        Args: {
+          p_exam_id: string
+          p_participant_id: string
+          p_qualified: boolean
+          p_reason: string
+        }
+        Returns: undefined
+      }
       fn_set_session_judge: {
-        Args: { p_assign: boolean; p_session_id: string; p_user_id: string }
+        Args: {
+          p_assign: boolean
+          p_reason?: string
+          p_session_id: string
+          p_user_id: string
+        }
         Returns: undefined
       }
       fn_set_unit_labels: {

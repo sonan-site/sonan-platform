@@ -16,7 +16,7 @@ const raw = {
       marked: ["c1"],
       criteria: [
         { id: "c1", label: "تردّد", value: "0.5" },
-        { id: "c2", label: "إبدال", value: "3" },
+        { id: "c2", label: "إبدال", value: "3", archived: true },
       ],
     },
   ],

@@ -10,6 +10,9 @@ import { OralView, type EligibilityRow, type EvaluationRow, type ScoreRow, type 
  * الاختبار الشفهي (`adr/0048`): الفرز، والجلسات بلجانها ومشاركيها وحال
  * تحكيمهم، والدرجات. كل قراءةٍ من دالةٍ تحرس صلاحية `exams.manage`.
  */
+// الحساب بدفعاتٍ في أفعالها، وحدّ الدالة يتّسع لها صراحةً (لا يُترك لافتراض الخطة).
+export const maxDuration = 60;
+
 export default async function OralExamPage({ params }: { params: Promise<{ id: string; examId: string }> }) {
   const { id, examId } = await params;
   if (!z.uuid().safeParse(examId).success) notFound();
@@ -20,14 +23,14 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
   const db = await createClient();
   const { data: exam } = await db
     .from("exams")
-    .select("id, name, exam_type, judge_count, entry_percentage, eligibility_at")
+    .select("id, name, exam_type, judge_count, entry_percentage, eligibility_at, sorted_at")
     .eq("id", examId)
     .eq("program_id", id)
     .is("deleted_at", null)
     .maybeSingle();
   if (!exam || exam.exam_type !== "oral") notFound();
 
-  const [eligibility, sessionsResult, tracksResult, candidates, scores] = await Promise.all([
+  const [eligibility, sessionsResult, tracksResult, candidates, scores, statusResult, decisionsResult] = await Promise.all([
     db.rpc("fn_final_eligibility", { p_exam_id: examId }),
     db
       .from("exam_sessions")
@@ -38,8 +41,23 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
     db.from("tracks").select("id, name").eq("program_id", id).is("deleted_at", null).order("sort_order"),
     db.rpc("fn_exam_judge_candidates", { p_program_id: id }),
     db.rpc("fn_final_scores", { p_exam_id: examId }),
+    // اللقطة لا الحساب الحيّ (ج١): حالها، وقرارات الحسم والتصحيح.
+    db.rpc("fn_eligibility_status", { p_exam_id: examId }),
+    db
+      .from("exam_eligibility")
+      .select("participant_id, decision, decision_source, decision_reason")
+      .eq("exam_id", examId)
+      .is("deleted_at", null),
   ]);
-  if (eligibility.error || sessionsResult.error || tracksResult.error || candidates.error || scores.error) {
+  if (
+    eligibility.error ||
+    sessionsResult.error ||
+    tracksResult.error ||
+    candidates.error ||
+    scores.error ||
+    statusResult.error ||
+    decisionsResult.error
+  ) {
     return <ErrorState body="تعذّر جلب الاختبار النهائي." />;
   }
 
@@ -50,13 +68,18 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
   const names = new Map((eligibility.data ?? []).map((r) => [r.participant_id, r.full_name]));
   for (const s of scores.data ?? []) names.set(s.participant_id, s.full_name);
 
+  const decisions = new Map((decisionsResult.data ?? []).map((d) => [d.participant_id, d]));
+  const status = statusResult.data?.[0];
   const rows: EligibilityRow[] = (eligibility.data ?? []).map((r) => ({
     participantId: r.participant_id,
     name: r.full_name,
     registrationNo: r.registration_no,
     trackId: r.track_id,
     status: r.status,
-    percent: Number(r.percent),
+    percent: r.percent === null ? null : Number(r.percent),
+    decision: decisions.get(r.participant_id)?.decision ?? null,
+    decisionSource: decisions.get(r.participant_id)?.decision_source ?? null,
+    decisionReason: decisions.get(r.participant_id)?.decision_reason ?? null,
     prerequisitePassed: r.prerequisite_passed,
     eligible: r.eligible,
   }));
@@ -108,6 +131,13 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
         entryPercentage={exam.entry_percentage === null ? null : Number(exam.entry_percentage)}
         judgeCount={exam.judge_count ?? 0}
         eligibilityAt={exam.eligibility_at}
+        sorted={exam.sorted_at !== null}
+        snapshot={{
+          total: status?.total ?? 0,
+          computed: status?.computed ?? 0,
+          oldest: status?.oldest ?? null,
+          ready: status?.ready ?? false,
+        }}
         tracks={tracksResult.data ?? []}
         eligibility={rows}
         sessions={sessions}

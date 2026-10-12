@@ -64,8 +64,8 @@ const mark = (judge: string, who: string, q: string, criteria: string[], onBehal
     onBehalf,
     reason,
   ]);
-const approve = (judge: string, who: string, onBehalf: string | null = null) =>
-  as(judge, `select public.fn_judge_approve($1, $2, $3)`, [sessionId, part[who], onBehalf]);
+const approve = (judge: string, who: string, onBehalf: string | null = null, reason: string | null = null) =>
+  as(judge, `select public.fn_judge_approve($1, $2, $3, $4)`, [sessionId, part[who], onBehalf, reason]);
 
 beforeAll(async () => {
   const url = process.env.SUPABASE_DB_URL;
@@ -78,7 +78,7 @@ beforeAll(async () => {
   await db.query(`create table public.zz_state (participant_id uuid primary key, pct numeric, passed boolean)`);
   await db.query(`grant select on public.zz_state to authenticated`);
   await db.query(`
-    create or replace function public.fn_progress_at(p_participant_id uuid, p_at timestamptz)
+    create or replace function public.fn_progress_at_unchecked(p_participant_id uuid, p_at timestamptz)
     returns table (done_days int, day_count int, units int, share_size int, percent numeric, reach_sequence int)
     language sql stable security definer set search_path = ''
     as $f$ select 40, 40, case when z.pct >= 100 then 20 else 10 end, 20, z.pct, null::int
@@ -164,7 +164,12 @@ afterAll(async () => {
 });
 
 describe("الفرز", () => {
-  it("**الأهلية من الشرطين:** الإتمام واجتياز المرحلي", async () => {
+  it("**الأهلية من الشرطين:** الإتمام واجتياز المرحلي — من لقطةٍ تُحسب بدفعات", async () => {
+    // دفعتان من مشاركَين ثم واحد — والحساب يُستأنف من حيث وقف.
+    const first = await as<{ computed: number; total: number }>(ADMIN, `select * from public.fn_compute_eligibility($1, 0, 2)`, [finalId]);
+    expect(first.rows[0]).toEqual({ computed: 2, total: 3 });
+    const rest = await as<{ computed: number }>(ADMIN, `select * from public.fn_compute_eligibility($1, 2, 2)`, [finalId]);
+    expect(rest.rows[0]!.computed).toBe(1);
     const { rows } = await as<{ registration_no: number; eligible: boolean; participant_id: string }>(
       ADMIN,
       `select participant_id, eligible from public.fn_final_eligibility($1)`,
@@ -226,15 +231,15 @@ describe("الجلسات", () => {
   });
 
   it("**التوزيع يُسند المتأهلين بأسئلتهم** ولا يُسند غيرهم", async () => {
-    const { rows } = await as<{ n: number }>(ADMIN, `select public.fn_distribute_participants($1) n`, [finalId]);
-    expect(rows[0]!.n).toBe(2);
+    const { rows } = await as<{ assigned: number; remaining: number }>(ADMIN, `select * from public.fn_distribute_participants($1)`, [finalId]);
+    expect(rows[0]).toEqual({ assigned: 2, remaining: 0 });
     const { rows: sp } = await db.query(
       `select participant_id, cardinality(question_ids) q from public.session_participants where session_id = $1 and deleted_at is null`,
       [sessionId],
     );
     expect(sp.map((r) => r.participant_id).sort()).toEqual([part.A, part.C].sort());
     expect(sp.every((r) => r.q === 3)).toBe(true);
-    expect((await as<{ n: number }>(ADMIN, `select public.fn_distribute_participants($1) n`, [finalId])).rows[0]!.n).toBe(0);
+    expect((await as<{ assigned: number }>(ADMIN, `select * from public.fn_distribute_participants($1)`, [finalId])).rows[0]!.assigned).toBe(0);
   });
 
   it("**المحكّم يرى جلسته** وغيره لا يراها", async () => {
@@ -339,7 +344,7 @@ describe("التحكيم", () => {
         if (judge === J2) await mark(ADMIN, "C", q.id, [], J2, "تعطّل جوال المحكّم");
         else await mark(J1, "C", q.id, []);
       }
-      expect((judge === J2 ? await approve(ADMIN, "C", J2) : await approve(J1, "C")).error).toBeNull();
+      expect((judge === J2 ? await approve(ADMIN, "C", J2, "تعطّل جوال المحكّم") : await approve(J1, "C")).error).toBeNull();
     }
     expect((await one(`select status from public.exam_sessions where id = $1`, [sessionId])).status).toBe("closed");
   });
@@ -371,6 +376,69 @@ describe("التحكيم", () => {
 
   it("**الإعدادات الشفهية تُقفل بعد الإسناد**", async () => {
     expect((await as(ADMIN, `update public.exams set judge_count = 1 where id = $1`, [finalId])).error).toMatch(/بدأ الاختبار/);
+  });
+
+  it("**الاعتماد عن المحكّم بسببٍ إلزامي**", async () => {
+    // C اعتُمد لمحكّمَيه في اختبار الإقفال؛ يكفي فحص الرفض بلا سبب على ورقةٍ قائمة.
+    const { error } = await as(ADMIN, `select public.fn_judge_approve($1, $2, $3, null)`, [sessionId, part.A, J2]);
+    expect(error).toMatch(/اذكر سبب الاعتماد عن المحكّم/);
+  });
+
+  it("**لا إعادة حسمٍ بعد الإسناد — والتصحيح فرديٌّ بسبب**", async () => {
+    const again = await as(ADMIN, `select * from public.fn_apply_sorting($1, '{}'::jsonb)`, [finalId]);
+    expect(again.error).toMatch(/لا يُعاد الحسم/);
+    const noReason = await as(ADMIN, `select public.fn_set_qualification($1, $2, true, '')`, [finalId, part.B]);
+    expect(noReason.error).toMatch(/اذكر سبب التصحيح/);
+    const ok = await as(ADMIN, `select public.fn_set_qualification($1, $2, true, 'اعتراضٌ قُبل')`, [finalId, part.B]);
+    expect(ok.error).toBeNull();
+    const row = await one(`select decision, decision_source, decision_reason from public.exam_eligibility where exam_id = $1 and participant_id = $2`, [
+      finalId,
+      part.B,
+    ]);
+    expect(row).toEqual({ decision: true, decision_source: "correction", decision_reason: "اعتراضٌ قُبل" });
+    // ومن قُيِّم لا يُصحَّح.
+    expect((await as(ADMIN, `select public.fn_set_qualification($1, $2, false, 'خطأ')`, [finalId, part.A])).error).toMatch(/بدأ تحكيمه/);
+  });
+
+  it("**السحب الشفهي الناقص يُرفض باسم صاحبه، وإعادة السحب والاستبدال لمن لم يُقيَّم**", async () => {
+    // B صار متأهلاً بالتصحيح؛ لقطته ١٠٠٪ = ٢٠ وحدة، والبنك الشفهي خمسة أسئلة والمطلوب ٣.
+    const moved = await as(ADMIN, `select public.fn_move_participant($1, $2)`, [sessionId, part.B]);
+    expect(moved.error).toBeNull();
+    const before = (await one(`select question_ids from public.session_participants where session_id = $1 and participant_id = $2 and deleted_at is null`, [sessionId, part.B])).question_ids as string[];
+    expect((await as(ADMIN, `select public.fn_replace_oral_question($1, $2, $3)`, [sessionId, part.B, before[0]])).error).toBeNull();
+    const after = (await one(`select question_ids from public.session_participants where session_id = $1 and participant_id = $2 and deleted_at is null`, [sessionId, part.B])).question_ids as string[];
+    expect(after).not.toContain(before[0]);
+    expect(after.slice(1)).toEqual(before.slice(1));
+    expect((await as(ADMIN, `select public.fn_redraw_oral($1, $2)`, [sessionId, part.B])).error).toBeNull();
+    // الشفهي يُطلب منه أكثر مما في البنك: يُرفض باسمه.
+    await as(ADMIN, `select public.fn_override_exam_settings($1, '{"question_count": 9}'::jsonb, 'تجربة النقص')`, [finalId]);
+    const short = await as(ADMIN, `select public.fn_redraw_oral($1, $2)`, [sessionId, part.B]);
+    expect(short.error).toMatch(/أسئلة الشفهي لا تكفي حساب \d+ \(الأول\): \d+ من 9/);
+    await as(ADMIN, `select public.fn_override_exam_settings($1, '{"question_count": 3}'::jsonb, 'إرجاع')`, [finalId]);
+  });
+
+  it("**اللجنة لا تتجاوز عددها، وإخراج المحكّم بسببٍ يُبقي معتمَده**", async () => {
+    // اللجنة J1 وJ2 = judge_count ٢: الثالث يُرفض.
+    await db.query(`insert into public.user_roles (user_id, role_id) select $1, role_id from public.user_roles where user_id = $2 limit 1`, [NOJ, J1]);
+    expect((await as(ADMIN, `select public.fn_set_session_judge($1, $2, true)`, [sessionId, NOJ])).error).toMatch(/اكتملت اللجنة/);
+    // J2 قيّم A واعتمد: إخراجه بلا سبب يُرفض، وبسببٍ يُبقي درجة A.
+    expect((await as(ADMIN, `select public.fn_set_session_judge($1, $2, false)`, [sessionId, J2])).error).toMatch(/اذكر سبب إخراجه/);
+    expect((await as(ADMIN, `select public.fn_set_session_judge($1, $2, false, 'مرض')`, [sessionId, J2])).error).toBeNull();
+    const a = await as<{ participant_id: string; percent: string | null }>(ADMIN, `select participant_id, percent from public.fn_final_scores($1)`, [finalId]);
+    expect(a.rows.find((r) => r.participant_id === part.A)!.percent).not.toBeNull();
+  });
+
+  it("**وقت الحسم لا يُكتب إلا من الحسم** — إفراغه يفتح ما أقفله", async () => {
+    const { error } = await as(ADMIN, `update public.exams set sorted_at = null where id = $1`, [finalId]);
+    expect(error).toMatch(/لا يُكتب إلا من الحسم/);
+  });
+
+  it("**لا تقييم زائد بعد اكتمال العدد من غيره**", async () => {
+    // A اعتمده J1 وJ2 (العدد ٢)؛ أُخرج J2 فيما سبق، ويُضاف بديلٌ يحاول تقييمه.
+    await as(ADMIN, `select public.fn_set_session_judge($1, $2, true)`, [sessionId, NOJ]);
+    const q = (await one(`select question_ids[1] q from public.session_participants where session_id = $1 and participant_id = $2 and deleted_at is null`, [sessionId, part.A])).q;
+    const { error } = await as(NOJ, `select public.fn_judge_mark($1, $2, $3, '{}'::uuid[])`, [sessionId, part.A, q]);
+    expect(error).toMatch(/اكتمل تقييم هذا المشارك|لست محكّماً/);
   });
 
   it("**ولا كتابة مباشرة** في التقييمات", async () => {

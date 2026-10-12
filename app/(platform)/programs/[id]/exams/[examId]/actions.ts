@@ -101,26 +101,121 @@ export async function setJudge(
   sessionId: string,
   userId: string,
   assign: boolean,
+  reason: string | null = null,
 ): Promise<FormState> {
-  if (!ids({ programId, examId, sessionId, userId })) return { error: "محكّم غير معروف." };
+  if (!ids({ programId, examId, sessionId, userId }) || (reason !== null && reason.length > 200)) {
+    return { error: "محكّم غير معروف." };
+  }
   const denied = await guard(programId);
   if (denied) return denied;
   const db = await createClient();
-  const { error } = await db.rpc("fn_set_session_judge", { p_session_id: sessionId, p_user_id: userId, p_assign: assign });
+  const { error } = await db.rpc("fn_set_session_judge", {
+    p_session_id: sessionId,
+    p_user_id: userId,
+    p_assign: assign,
+    p_reason: (reason?.trim() || null) as string,
+  });
   if (error) return { error: message(error, "تعذّر تعديل اللجنة.") };
   path(programId, examId);
   return EMPTY_FORM_STATE;
 }
 
-export async function distribute(programId: string, examId: string): Promise<FormState> {
+/**
+ * دفعةٌ من التوزيع (٢٥ — السحب أثقل من الأهلية) — حدّ زمن الاستعلام في القاعدة ثماني ثوانٍ، والشاشة تكرّر
+ * حتى لا يبقى أحد. والسحب يقرأ وحدات اللقطة فلا يُعيد حساب الإنجاز.
+ */
+export async function distributeBatch(
+  programId: string,
+  examId: string,
+): Promise<FormState & { assigned?: number; remaining?: number }> {
   if (!ids({ programId, examId })) return { error: "اختبار غير معروف." };
   const denied = await guard(programId);
   if (denied) return denied;
   const db = await createClient();
-  const { data, error } = await db.rpc("fn_distribute_participants", { p_exam_id: examId });
+  const { data, error } = await db.rpc("fn_distribute_participants", { p_exam_id: examId, p_limit: 25 });
   if (error) return { error: message(error, "تعذّر التوزيع.") };
+  const r = data?.[0];
+  return { assigned: r?.assigned ?? 0, remaining: r?.remaining ?? 0 };
+}
+
+/** دفعةٌ من لقطة الأهلية (٤٠ من `offset`). */
+export async function computeEligibilityBatch(
+  programId: string,
+  examId: string,
+  offset: number,
+): Promise<FormState & { computed?: number; total?: number }> {
+  if (!ids({ programId, examId }) || !Number.isInteger(offset) || offset < 0) return { error: "دفعة غير صالحة." };
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { data, error } = await db.rpc("fn_compute_eligibility", { p_exam_id: examId, p_offset: offset, p_limit: 40 });
+  if (error) return { error: message(error, "تعذّر حساب الأهلية.") };
+  const r = data?.[0];
+  return { computed: r?.computed ?? 0, total: r?.total ?? 0 };
+}
+
+/** نهاية دفعاتٍ — تُحدَّث الصفحة مرّةً بعدها لا بعد كل دفعة. */
+export async function refreshOral(programId: string, examId: string): Promise<FormState> {
+  if (!ids({ programId, examId })) return { error: "اختبار غير معروف." };
+  const denied = await guard(programId);
+  if (denied) return denied;
   path(programId, examId);
-  return { notice: data ? `أُسند ${data} مشاركاً إلى الجلسات.` : "لا متأهلين ينتظرون الإسناد." };
+  return EMPTY_FORM_STATE;
+}
+
+/** تصحيحٌ فردي بعد الحسم بسبب. */
+export async function setQualification(
+  programId: string,
+  examId: string,
+  participantId: string,
+  qualified: boolean,
+  reason: string,
+): Promise<FormState> {
+  if (!ids({ programId, examId, participantId }) || reason.trim().length < 3 || reason.length > 200) {
+    return { error: "اذكر سبب التصحيح." };
+  }
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { error } = await db.rpc("fn_set_qualification", {
+    p_exam_id: examId,
+    p_participant_id: participantId,
+    p_qualified: qualified,
+    p_reason: reason.trim(),
+  });
+  if (error) return { error: message(error, "تعذّر التصحيح.") };
+  path(programId, examId);
+  return { notice: qualified ? "صار متأهلاً — أسنده إلى جلسة." : "صار غير متأهل، ورُفع من جلسته." };
+}
+
+export async function redrawOral(programId: string, examId: string, sessionId: string, participantId: string): Promise<FormState> {
+  if (!ids({ programId, examId, sessionId, participantId })) return { error: "إسناد غير صالح." };
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { error } = await db.rpc("fn_redraw_oral", { p_session_id: sessionId, p_participant_id: participantId });
+  if (error) return { error: message(error, "تعذّرت إعادة السحب.") };
+  path(programId, examId);
+  return { notice: "أُعيد سحب أسئلته." };
+}
+
+export async function replaceOralQuestion(
+  programId: string,
+  sessionId: string,
+  participantId: string,
+  questionId: string,
+): Promise<FormState> {
+  if (!ids({ programId, sessionId, participantId, questionId })) return { error: "سؤال غير معروف." };
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { error } = await db.rpc("fn_replace_oral_question", {
+    p_session_id: sessionId,
+    p_participant_id: participantId,
+    p_question_id: questionId,
+  });
+  if (error) return { error: message(error, "تعذّر الاستبدال.") };
+  return { notice: "استُبدل السؤال." };
 }
 
 export async function moveParticipant(
