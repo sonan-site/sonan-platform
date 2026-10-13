@@ -761,6 +761,7 @@ export type Database = {
           participant_id: string
           percent: number
           prerequisite_passed: boolean
+          track_id: string | null
           units: number
           updated_at: string
         }
@@ -779,6 +780,7 @@ export type Database = {
           participant_id: string
           percent: number
           prerequisite_passed: boolean
+          track_id?: string | null
           units: number
           updated_at?: string
         }
@@ -797,6 +799,7 @@ export type Database = {
           participant_id?: string
           percent?: number
           prerequisite_passed?: boolean
+          track_id?: string | null
           units?: number
           updated_at?: string
         }
@@ -813,6 +816,106 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_eligibility_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_results: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          exam_id: string
+          full_name: string
+          id: string
+          outcome: string
+          participant_id: string
+          percent: number | null
+          place: number | null
+          prize_label: string | null
+          prize_value: string | null
+          registration_no: number | null
+          tiebreak_id: string | null
+          track_id: string
+          track_result_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          exam_id: string
+          full_name: string
+          id?: string
+          outcome: string
+          participant_id: string
+          percent?: number | null
+          place?: number | null
+          prize_label?: string | null
+          prize_value?: string | null
+          registration_no?: number | null
+          tiebreak_id?: string | null
+          track_id: string
+          track_result_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          exam_id?: string
+          full_name?: string
+          id?: string
+          outcome?: string
+          participant_id?: string
+          percent?: number | null
+          place?: number | null
+          prize_label?: string | null
+          prize_value?: string | null
+          registration_no?: number | null
+          tiebreak_id?: string | null
+          track_id?: string
+          track_result_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_results_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_results_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_results_track_result_id_fkey"
+            columns: ["track_result_id"]
+            isOneToOne: false
+            referencedRelation: "exam_track_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_exam_results_tiebreak"
+            columns: ["tiebreak_id"]
+            isOneToOne: false
+            referencedRelation: "exam_tiebreaks"
             referencedColumns: ["id"]
           },
         ]
@@ -863,6 +966,142 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_tiebreaks: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          exam_id: string
+          id: string
+          ordered_ids: string[]
+          participant_ids: string[]
+          percent: number
+          raw_scores: string
+          reason: string
+          recorded_by: string
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          exam_id: string
+          id?: string
+          ordered_ids: string[]
+          participant_ids: string[]
+          percent: number
+          raw_scores?: string
+          reason: string
+          recorded_by: string
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          exam_id?: string
+          id?: string
+          ordered_ids?: string[]
+          participant_ids?: string[]
+          percent?: number
+          raw_scores?: string
+          reason?: string
+          recorded_by?: string
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_tiebreaks_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_tiebreaks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_track_results: {
+        Row: {
+          approved_at: string
+          approved_by: string
+          award_percentage: number
+          created_at: string
+          deleted_at: string | null
+          exam_id: string
+          id: string
+          pass_percentage: number
+          places: Json
+          prizes_block_id: string | null
+          published_at: string | null
+          published_by: string | null
+          track_id: string
+          updated_at: string
+          withdraw_reason: string | null
+        }
+        Insert: {
+          approved_at?: string
+          approved_by: string
+          award_percentage: number
+          created_at?: string
+          deleted_at?: string | null
+          exam_id: string
+          id?: string
+          pass_percentage: number
+          places?: Json
+          prizes_block_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          track_id: string
+          updated_at?: string
+          withdraw_reason?: string | null
+        }
+        Update: {
+          approved_at?: string
+          approved_by?: string
+          award_percentage?: number
+          created_at?: string
+          deleted_at?: string | null
+          exam_id?: string
+          id?: string
+          pass_percentage?: number
+          places?: Json
+          prizes_block_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          track_id?: string
+          updated_at?: string
+          withdraw_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_track_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_track_results_prizes_block_id_fkey"
+            columns: ["prizes_block_id"]
+            isOneToOne: false
+            referencedRelation: "page_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_track_results_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
             referencedColumns: ["id"]
           },
         ]
@@ -2290,6 +2529,9 @@ export type Database = {
       }
       session_participants: {
         Row: {
+          absent_at: string | null
+          absent_by: string | null
+          absent_reason: string | null
           created_at: string
           deleted_at: string | null
           id: string
@@ -2300,6 +2542,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          absent_at?: string | null
+          absent_by?: string | null
+          absent_reason?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -2310,6 +2555,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          absent_at?: string | null
+          absent_by?: string | null
+          absent_reason?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -2685,6 +2933,10 @@ export type Database = {
           qualified: number
         }[]
       }
+      fn_approve_track_results: {
+        Args: { p_exam_id: string; p_track_id: string }
+        Returns: number
+      }
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_attempt_deadline: { Args: { p_attempt_id: string }; Returns: string }
@@ -2733,6 +2985,10 @@ export type Database = {
         Returns: boolean
       }
       fn_close_my_account: { Args: never; Returns: undefined }
+      fn_close_session_if_complete: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
       fn_complete_day_at: {
         Args: {
           p_at: string
@@ -2963,6 +3219,22 @@ export type Database = {
           track_id: string
         }[]
       }
+      fn_export_results: {
+        Args: { p_exam_id: string }
+        Returns: {
+          full_name: string
+          guardian_phone: string
+          outcome: string
+          percent: number
+          phone: string
+          place: number
+          prize_label: string
+          prize_value: string
+          published: boolean
+          registration_no: number
+          track_name: string
+        }[]
+      }
       fn_final_eligibility: {
         Args: { p_exam_id: string }
         Returns: {
@@ -2977,8 +3249,9 @@ export type Database = {
         }[]
       }
       fn_final_scores: {
-        Args: { p_exam_id: string }
+        Args: { p_exam_id: string; p_track_id?: string }
         Returns: {
+          absent: boolean
           approved: number
           final_score: number
           full_name: string
@@ -3054,6 +3327,7 @@ export type Database = {
       fn_judge_session: {
         Args: { p_judge_id?: string; p_session_id: string }
         Returns: {
+          absent: boolean
           approved: boolean
           evaluated: number
           full_name: string
@@ -3086,6 +3360,15 @@ export type Database = {
         Returns: Json
       }
       fn_local_now: { Args: { p_at?: string }; Returns: string }
+      fn_mark_absent: {
+        Args: {
+          p_absent: boolean
+          p_participant_id: string
+          p_reason: string
+          p_session_id: string
+        }
+        Returns: undefined
+      }
       fn_mark_field: {
         Args: { p_day: number; p_field_id: string; p_participant_id: string }
         Returns: Json
@@ -3141,6 +3424,24 @@ export type Database = {
           question_count: number
           seconds_per_question: number
           stage: Database["public"]["Enums"]["exam_stage"]
+        }[]
+      }
+      fn_my_final: {
+        Args: { p_participant_id: string }
+        Returns: {
+          absent: boolean
+          exam_id: string
+          exam_name: string
+          location: string
+          outcome: string
+          percent: number
+          place: number
+          prize_label: string
+          prize_value: string
+          published: boolean
+          qualified: boolean
+          scheduled_at: string
+          session_name: string
         }[]
       }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }
@@ -3290,6 +3591,10 @@ export type Database = {
           units: number
         }[]
       }
+      fn_publish_results: {
+        Args: { p_exam_id: string; p_track_id?: string }
+        Returns: number
+      }
       fn_purge_account: { Args: { p_user_id: string }; Returns: undefined }
       fn_quick_setup: {
         Args: {
@@ -3305,6 +3610,17 @@ export type Database = {
         Returns: boolean
       }
       fn_rate_limit_clear: { Args: { p_bucket: string }; Returns: undefined }
+      fn_record_tiebreak: {
+        Args: {
+          p_exam_id: string
+          p_ordered: string[]
+          p_percent: number
+          p_raw?: string
+          p_reason: string
+          p_track_id: string
+        }
+        Returns: string
+      }
       fn_redraw_oral: {
         Args: { p_participant_id: string; p_session_id: string }
         Returns: undefined
@@ -3339,6 +3655,32 @@ export type Database = {
       fn_restore_plan_version: {
         Args: { p_version_id: string }
         Returns: number
+      }
+      fn_results_lock_key: {
+        Args: { p_exam_id: string; p_track_id: string }
+        Returns: number
+      }
+      fn_results_locked: {
+        Args: { p_exam_id: string; p_participant_id: string }
+        Returns: boolean
+      }
+      fn_results_overview: {
+        Args: { p_exam_id: string }
+        Returns: {
+          absent: number
+          approved_at: string
+          changed_prizes: boolean
+          pending: number
+          places: number
+          prizes_problem: string
+          published_at: string
+          qualified: number
+          scored: number
+          ties: number
+          track_id: string
+          track_name: string
+          unassigned: number
+        }[]
       }
       fn_role_is_system: { Args: { p_role_id: string }; Returns: boolean }
       fn_save_plan: {
@@ -3421,6 +3763,27 @@ export type Database = {
         Args: { p_attempt_id: string; p_question_id: string }
         Returns: Json
       }
+      fn_standings_unchecked: {
+        Args: { p_exam_id: string; p_track_id: string }
+        Returns: {
+          approved: number
+          assigned: boolean
+          base_rank: number
+          candidate: boolean
+          full_name: string
+          needs_tiebreak: boolean
+          outcome: string
+          participant_id: string
+          percent: number
+          place: number
+          prize_label: string
+          prize_value: string
+          registration_no: number
+          session_name: string
+          tie_size: number
+          tiebreak_id: string
+        }[]
+      }
       fn_start_attempt: { Args: { p_exam_id: string }; Returns: string }
       fn_track_has_plan: { Args: { p_track_id: string }; Returns: boolean }
       fn_track_ordinal_of: {
@@ -3436,7 +3799,36 @@ export type Database = {
         }[]
       }
       fn_track_plan: { Args: { p_track_id: string }; Returns: string }
+      fn_track_prizes: {
+        Args: { p_exam_id: string; p_track_id: string }
+        Returns: {
+          block_id: string
+          places: Json
+          problem: string
+        }[]
+      }
       fn_track_program_id: { Args: { p_track_id: string }; Returns: string }
+      fn_track_standings: {
+        Args: { p_exam_id: string; p_track_id: string }
+        Returns: {
+          approved: number
+          assigned: boolean
+          base_rank: number
+          candidate: boolean
+          full_name: string
+          needs_tiebreak: boolean
+          outcome: string
+          participant_id: string
+          percent: number
+          place: number
+          prize_label: string
+          prize_value: string
+          registration_no: number
+          session_name: string
+          tie_size: number
+          tiebreak_id: string
+        }[]
+      }
       fn_track_unit_at: {
         Args: { p_ordinal: number; p_track_id: string }
         Returns: number
@@ -3463,8 +3855,16 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_unpublish_results: {
+        Args: { p_exam_id: string; p_reason: string; p_track_id: string }
+        Returns: undefined
+      }
       fn_withdraw_participation: {
         Args: { p_participant_id: string }
+        Returns: undefined
+      }
+      fn_withdraw_track_results: {
+        Args: { p_exam_id: string; p_reason: string; p_track_id: string }
         Returns: undefined
       }
       fn_write_audit: {

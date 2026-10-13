@@ -34,7 +34,7 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
     db.rpc("fn_final_eligibility", { p_exam_id: examId }),
     db
       .from("exam_sessions")
-      .select("id, name, scheduled_at, location, status, session_judges(user_id, deleted_at), session_participants(participant_id, sort_order, deleted_at)")
+      .select("id, name, scheduled_at, location, status, session_judges(user_id, deleted_at), session_participants(participant_id, sort_order, deleted_at, absent_at, absent_reason)")
       .eq("exam_id", examId)
       .is("deleted_at", null)
       .order("scheduled_at"),
@@ -94,7 +94,12 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
     participants: (s.session_participants ?? [])
       .filter((p) => p.deleted_at === null)
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((p) => ({ id: p.participant_id, name: names.get(p.participant_id) ?? "—", order: p.sort_order })),
+      .map((p) => ({
+        id: p.participant_id,
+        name: names.get(p.participant_id) ?? "—",
+        order: p.sort_order,
+        absentReason: p.absent_at === null ? null : (p.absent_reason ?? ""),
+      })),
     evaluations: (evaluations[i]!.data ?? []).map(
       (e): EvaluationRow => ({
         participantId: e.participant_id,
@@ -114,6 +119,7 @@ export default async function OralExamPage({ params }: { params: Promise<{ id: s
     registrationNo: s.registration_no,
     trackId: s.track_id,
     session: s.session_name,
+    absent: s.absent,
     judges: s.judges,
     approved: s.approved,
     percent: s.percent === null ? null : Number(s.percent),

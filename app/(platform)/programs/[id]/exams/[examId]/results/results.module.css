@@ -1,0 +1,77 @@
+/* نتائج النهائي: الترتيب والتعادل والاعتماد والنشر — adr/0048 هـ */
+
+.alert {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.blockers {
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.tie {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.export {
+  align-self: center;
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+}
+
+.order {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-5);
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.arrows {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.arrow {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.arrow:active {
+  background: var(--color-surface-sunken);
+}
+
+.arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

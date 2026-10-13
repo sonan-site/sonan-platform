@@ -310,7 +310,7 @@ describe("التحكيم", () => {
     const a = after.rows.find((r) => r.participant_id === part.A)!;
     // J1: 6 − 0.5 (بعد التصحيح صار الأول بلا خصم: 6 − 1.5 = 4.5) · J2: 6 − 1 = 5 → المتوسط 4.75
     expect(Number(a.final_score)).toBe(4.75);
-    expect(Number(a.percent)).toBe(79.2);
+    expect(Number(a.percent)).toBe(79.17); // منزلتان (الدفعة د)
   });
 
   it("**الإدخال عن المحكّم بسببٍ يُسجَّل** — والمحكّم لا يُدخل عن زميله", async () => {

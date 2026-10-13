@@ -27,7 +27,18 @@ export default async function JudgeSessionPage({ params }: { params: Promise<{ s
         <EmptyState kind="no-data" title="لا مشاركين بعد" body="يظهرون هنا حين تُسندهم الإدارة إلى الجلسة." />
       ) : (
         <ol className={styles.list}>
-          {rows.map((r) => (
+          {rows.map((r) =>
+            // الغائب لا يُحكَّم (الدفعة د) — يظهر ليعرف المحكّم سبب غيابه عن القائمة.
+            r.absent ? (
+              <li key={r.participant_id}>
+                <span className={styles.item}>
+                  <span className={styles.itemName}>
+                    {formatNumber(r.sort_order)}. {r.full_name}
+                  </span>
+                  <span className={styles.muted}>غاب — لا يُحكَّم</span>
+                </span>
+              </li>
+            ) : (
             <li key={r.participant_id}>
               <Link
                 href={`/judge/${sessionId}/${r.participant_id}`}
@@ -49,7 +60,8 @@ export default async function JudgeSessionPage({ params }: { params: Promise<{ s
                 </span>
               </Link>
             </li>
-          ))}
+            ),
+          )}
         </ol>
       )}
     </div>

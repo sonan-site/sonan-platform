@@ -162,7 +162,8 @@ export function ParticipantsView({
       header: "الحالة",
       align: "center",
       render: (p) =>
-        canWrite ? (
+        // حالات المسابقة تُكتب من الفرز والنشر وحدهما (الدفعة د) — فتُعرض ولا تُعدَّل هنا.
+        canWrite && (p.status === "registered" || p.status === "memorizing") ? (
           <Select
             aria-label="حالة المشارك"
             value={p.status}
@@ -175,7 +176,9 @@ export function ParticipantsView({
             }
           >
             {/* الحالات المسموحة تتبع نمط البرنامج — والقاعدة ترفض ما عداها. */}
-            {statusesOf(kind).map((value) => (
+            {statusesOf(kind)
+              .filter((value) => value === "registered" || value === "memorizing")
+              .map((value) => (
               <option key={value} value={value}>
                 {PARTICIPANT_STATUS_LABEL[value]}
               </option>

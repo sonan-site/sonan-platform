@@ -57,6 +57,8 @@ export const PERMISSIONS = {
   // طبقة المسابقة (adr/0048): البنك والجلسات والإدخال، وشاشة المحكّم لجلساته وحدها.
   "exams.manage": { section: "exams", label: "إدارة الاختبارات وبنك الأسئلة" },
   "exams.judge": { section: "exams", label: "التحكيم في الجلسات المسندة" },
+  // نشر نتائج النهائي يوم الحفل — مستقلٌّ عن إدارتها (الدفعة د).
+  "exams.publish": { section: "exams", label: "نشر نتائج الاختبارات وسحب نشرها" },
 } as const satisfies Record<string, Entry>;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

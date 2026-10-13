@@ -258,3 +258,29 @@ export async function reopenEvaluation(
   path(programId, examId);
   return { notice: "أُعيد فتح التقييم للمحكّم." };
 }
+
+/** غيابٌ عن الجلسة بسبب (د٥) — أو إلغاؤه. والتعويض نقله لجلسةٍ أخرى. */
+export async function markAbsent(
+  programId: string,
+  examId: string,
+  sessionId: string,
+  participantId: string,
+  absent: boolean,
+  reason: string,
+): Promise<FormState> {
+  if (!ids({ programId, examId, sessionId, participantId }) || reason.trim().length < 3 || reason.length > 200) {
+    return { error: "اذكر السبب." };
+  }
+  const denied = await guard(programId);
+  if (denied) return denied;
+  const db = await createClient();
+  const { error } = await db.rpc("fn_mark_absent", {
+    p_session_id: sessionId,
+    p_participant_id: participantId,
+    p_absent: absent,
+    p_reason: reason.trim(),
+  });
+  if (error) return { error: message(error, "تعذّر تسجيل الغياب.") };
+  path(programId, examId);
+  return { notice: absent ? "سُجّل غيابه — يُعوَّض بنقله لجلسةٍ أخرى قبل اعتماد مساره." : "أُلغي غيابه." };
+}

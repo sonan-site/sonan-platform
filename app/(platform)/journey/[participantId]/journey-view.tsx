@@ -8,6 +8,7 @@ import { Button } from "@/components/shared/form";
 import { formatClock, formatDateBoth, formatHijri, formatNumber, formatPercent, formatTime } from "@/lib/format";
 import { commitmentLabel, daysText, type CommitmentStatus, type JourneyState, type Pace } from "@/lib/participants/journey";
 import { countRepetition, markField, openNextDay, undoMark } from "../actions";
+import { FinalCard, type JourneyFinal } from "./final-card";
 import styles from "./journey.module.css";
 
 /** سطرٌ من نطاق الواجب: نصّه، وأوائل طرفيه إن كُتبت في المادة. */
@@ -81,6 +82,7 @@ export function JourneyView({
   priorDays,
   exams,
   examsUnavailable,
+  finals,
 }: {
   participantId: string;
   /** جاء من التسجيل للتوّ. */
@@ -105,6 +107,8 @@ export function JourneyView({
   exams: JourneyExam[];
   /** تعذّر جلب الاختبارات — تُخفى بطاقتها ويُقال ذلك في سطر. */
   examsUnavailable: boolean;
+  /** النهائي: التأهّل والجلسة، والنتيجة بعد نشرها. */
+  finals: JourneyFinal[];
 }) {
   const router = useRouter();
   const [message, setMessage] = useState<{ error?: string; notice?: string }>({});
@@ -188,6 +192,9 @@ export function JourneyView({
       {examsUnavailable ? <p className={styles.muted}>تعذّر جلب اختباراتك الآن — أعد فتح الصفحة لتظهر.</p> : null}
       {exams.map((exam) => (
         <ExamCard key={exam.id} participantId={participantId} exam={exam} />
+      ))}
+      {finals.map((f) => (
+        <FinalCard key={f.examId} final={f} />
       ))}
 
       {state.carried ? (

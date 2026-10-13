@@ -17,6 +17,7 @@ import {
 } from "@/lib/participants/journey";
 import { countedText, spanParts, type TrackShare } from "@/lib/plans/engine";
 import { withStarts, type Material } from "@/lib/programs/material";
+import { FinalCard, toFinals } from "./final-card";
 import { JourneyView, type ArchiveRow, type TaskRow } from "./journey-view";
 
 export default async function JourneyDayPage({
@@ -79,8 +80,20 @@ export default async function JourneyDayPage({
     return bail("لم يُحدَّد مسارك", "تواصل مع إدارة البرنامج ليُحدَّد مسارك، وبعدها يظهر واجبك هنا.");
   }
   // من انتهت رحلته لا يُرصد له شيء، فيُقال له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
+  // النهائي: تأهّله وجلسته، ونتيجته بعد نشرها (الدفعة د). تعذّره يُخفي بطاقته ولا يُسقط الصفحة.
+  const finalResult = await db.rpc("fn_my_final", { p_participant_id: participantId });
+  const finals = toFinals(finalResult.data ?? []);
+
+  // من انتهت رحلته يرى نتيجته أولاً — ثم المخرج.
   if (!followsPlan(participant.status)) {
-    return bail("انتهت رحلتك في هذا البرنامج", "سجلّك محفوظ. تابع إعلانات الجمعية للدورة القادمة.");
+    return (
+      <>
+        {finals.map((f) => (
+          <FinalCard key={f.examId} final={f} />
+        ))}
+        {bail("انتهت رحلتك في هذا البرنامج", "سجلّك محفوظ. تابع إعلانات الجمعية للدورة القادمة.")}
+      </>
+    );
   }
 
   // ══ الحال — وقراءتها تسوّي ما مضى أولاً، فالأرشيف بعدها كاملٌ إلى الآن (adr/0041) ══
@@ -221,6 +234,7 @@ export default async function JourneyDayPage({
       priorDays={priorDays}
       // الاختبار ميزةٌ ثانوية في يوم الحفظ: تعذّرها يُخفي بطاقتها ولا يُسقط الرحلة.
       examsUnavailable={examsResult.error !== null}
+      finals={finals}
       exams={(examsResult.data ?? []).map((e) => ({
         id: e.exam_id,
         name: e.name,

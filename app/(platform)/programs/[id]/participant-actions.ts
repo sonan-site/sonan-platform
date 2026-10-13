@@ -415,7 +415,8 @@ export async function setParticipantStatus(
     .select("id");
   if (error) {
     return {
-      error: error.code === "23514" ? "هذه الحالة خاصة ببرامج المسابقة." : "تعذّر تغيير الحالة.",
+      // رسالة الحارس كما هي: نمط البرنامج، أو حالات المسابقة التي يكتبها الفرز والنشر وحدهما.
+      error: error.code === "23514" && /[؀-ۿ]/.test(error.message) ? `${error.message}.` : "تعذّر تغيير الحالة.",
     };
   }
   if (!data?.length) return { error: "تعذّر تغيير الحالة." };

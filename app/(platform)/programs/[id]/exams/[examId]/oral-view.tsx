@@ -16,6 +16,7 @@ import {
   computeEligibilityBatch,
   createSession,
   distributeBatch,
+  markAbsent,
   moveParticipant,
   redrawOral,
   refreshOral,
@@ -59,7 +60,8 @@ export type SessionCard = {
   location: string;
   status: "scheduled" | "in_progress" | "closed";
   judges: string[];
-  participants: { id: string; name: string; order: number }[];
+  /** `absentReason` فارغ = حاضر. */
+  participants: { id: string; name: string; order: number; absentReason: string | null }[];
   evaluations: EvaluationRow[];
 };
 
@@ -69,6 +71,7 @@ export type ScoreRow = {
   registrationNo: number | null;
   trackId: string | null;
   session: string;
+  absent: boolean;
   judges: number;
   approved: number;
   percent: number | null;
@@ -141,7 +144,7 @@ export function OralView({
         sessions={sessions}
         candidates={candidates}
       />
-      <ScoresStep scores={scores} trackName={trackName} />
+      <ScoresStep programId={programId} examId={examId} scores={scores} trackName={trackName} />
     </>
   );
 }
@@ -370,6 +373,8 @@ function SessionsStep({
   const [progress, setProgress] = useState<string | null>(null);
   const [removing, setRemoving] = useState<{ session: string; judge: string } | null>(null);
   const [removeReason, setRemoveReason] = useState("");
+  const [absence, setAbsence] = useState<{ session: string; id: string; name: string; absent: boolean } | null>(null);
+  const [absenceReason, setAbsenceReason] = useState("");
 
   /** التوزيع بدفعاتٍ من ٢٥ حتى لا يبقى أحد — والسحب من اللقطة. */
   function distributeAll() {
@@ -467,7 +472,10 @@ function SessionsStep({
                   const evs = s.evaluations.filter((e) => e.participantId === p.id);
                   return (
                     <li key={p.id} className={styles.person}>
-                      <span className={styles.personName}>{p.name}</span>
+                      <span className={styles.personName}>
+                        {p.name}
+                        {p.absentReason !== null ? <span className={styles.pending}> — غاب: {p.absentReason}</span> : null}
+                      </span>
                       <span className={styles.evals}>
                         {evs.map((e) => (
                           <span key={e.judgeId} className={e.approved ? styles.ok : styles.pending}>
@@ -488,7 +496,7 @@ function SessionsStep({
                           </span>
                         ))}
                       </span>
-                      {evs.every((e) => e.evaluated === 0) ? (
+                      {evs.every((e) => e.evaluated === 0) && p.absentReason === null ? (
                         <button
                           type="button"
                           className={styles.link}
@@ -496,6 +504,16 @@ function SessionsStep({
                           onClick={() => run(() => redrawOral(programId, examId, s.id, p.id))}
                         >
                           أعد سحب أسئلته
+                        </button>
+                      ) : null}
+                      {evs.length === 0 ? (
+                        <button
+                          type="button"
+                          className={styles.link}
+                          disabled={busy}
+                          onClick={() => setAbsence({ session: s.id, id: p.id, name: p.name, absent: p.absentReason === null })}
+                        >
+                          {p.absentReason === null ? "سجّل غيابه" : "ألغِ غيابه"}
                         </button>
                       ) : null}
                       {others.length > 0 && evs.every((e) => e.evaluated === 0) ? (
@@ -573,6 +591,31 @@ function SessionsStep({
         </Button>
       </Modal>
 
+      <Modal open={absence !== null} title={absence?.absent ? "تسجيل غياب" : "إلغاء الغياب"} onClose={() => setAbsence(null)}>
+        <p>
+          {absence?.absent
+            ? `${absence?.name}: لا يُحكَّم، ونتيجته «غاب» إن لم يُعوَّض. والتعويض نقله لجلسةٍ أخرى قبل اعتماد مساره.`
+            : `${absence?.name}: يعود حاضراً فيُحكَّم في جلسته.`}{" "}
+          ويُسجَّل السبب.
+        </p>
+        <Field id="absenceReason" label="السبب" required>
+          <Input id="absenceReason" value={absenceReason} onChange={(e) => setAbsenceReason(e.target.value)} />
+        </Field>
+        <Button
+          variant="primary"
+          pending={busy}
+          disabled={absenceReason.trim().length < 3}
+          onClick={() => {
+            const a = absence!;
+            setAbsence(null);
+            setAbsenceReason("");
+            run(() => markAbsent(programId, examId, a.session, a.id, a.absent, absenceReason));
+          }}
+        >
+          {absence?.absent ? "سجّل الغياب" : "ألغِ الغياب"}
+        </Button>
+      </Modal>
+
       <Modal open={reopening !== null} title="إعادة فتح التقييم" onClose={() => setReopening(null)}>
         <p>يُفتح تقييم {reopening?.row.judgeName} ليعدّله، وتغيب الدرجة النهائية حتى يعتمده ثانية. ويُسجَّل السبب.</p>
         <Field id="reopenReason" label="السبب" required>
@@ -598,21 +641,31 @@ function SessionsStep({
 
 // ══ ٣ · الدرجات ══
 
-function ScoresStep({ scores, trackName }: { scores: ScoreRow[]; trackName: (id: string | null) => string }) {
-  const complete = scores.filter((s) => s.percent !== null).length;
+function ScoresStep({
+  programId,
+  examId,
+  scores,
+  trackName,
+}: {
+  programId: string;
+  examId: string;
+  scores: ScoreRow[];
+  trackName: (id: string | null) => string;
+}) {
+  const complete = scores.filter((s) => s.percent !== null || s.absent).length;
   const columns: Column<ScoreRow>[] = [
     { key: "name", header: "المشارك", primary: true, render: (r) => r.name },
     { key: "no", header: "رقم التسجيل", align: "end", render: (r) => (r.registrationNo === null ? "—" : formatNumber(r.registrationNo)) },
     { key: "track", header: "المسار", render: (r) => trackName(r.trackId) },
     { key: "session", header: "الجلسة", render: (r) => r.session },
     { key: "approved", header: "اعتمد", align: "end", render: (r) => `${formatNumber(r.approved)} من ${formatNumber(r.judges)}` },
-    { key: "pct", header: "الدرجة", align: "end", render: (r) => (r.percent === null ? "بانتظار اللجنة" : pct(r.percent)) },
+    { key: "pct", header: "الدرجة", align: "end", render: (r) => (r.absent ? "غاب" : r.percent === null ? "بانتظار اللجنة" : pct(r.percent)) },
   ];
   return (
     <Step
       n={3}
       title="الدرجات"
-      why="الدرجة متوسط محكّمي اللجنة، ولا تظهر حتى يعتمدوا جميعاً."
+      why="الدرجة متوسط محكّمي اللجنة بمنزلتين، ولا تظهر حتى يعتمدوا جميعاً."
       done={scores.length > 0 && complete === scores.length}
       state={
         <span>
@@ -629,6 +682,9 @@ function ScoresStep({ scores, trackName }: { scores: ScoreRow[]; trackName: (id:
         pageSize={Math.max(scores.length, 1)}
         empty={{ title: "لا درجات بعد", body: "تظهر حين يُسند المشاركون ويبدأ التحكيم." }}
       />
+      <p>
+        <Link href={`/programs/${programId}/exams/${examId}/results`}>النتائج والجوائز: الترتيب والتعادل والاعتماد والنشر</Link>
+      </p>
     </Step>
   );
 }
