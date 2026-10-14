@@ -172,6 +172,82 @@ export function pace(s: JourneyState): Pace {
   return { tone: "on", text: "في موعدك" };
 }
 
+// ── شاشة اليوم (خطة واجهة الطالب، المرحلة أ) ──
+
+const minutesOf = (hhmm: string): number => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+};
+
+/** الدقائق الباقية حتى وقت نهاية الرصد — صفرٌ إن انقضى. `clock` و`deadline` بصيغة `HH:MM`. */
+export function minutesLeft(clock: string, deadline: string): number {
+  return Math.max(0, minutesOf(deadline) - minutesOf(clock));
+}
+
+/** «٦س ١٢د» · «٤٠د» — للعدّ التنازلي في رأس اليوم. */
+export function leftText(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${formatNumber(h)}س ${formatNumber(m)}د` : `${formatNumber(m)}د`;
+}
+
+/** «يومٌ واحد» · «يومان» · «٣ أيام» · «١١ يوماً» — فاعلاً: «بقي يومان». */
+export function daysLeftText(count: number): string {
+  if (count === 1) return "يومٌ واحد";
+  if (count === 2) return "يومان";
+  return daysText(count);
+}
+
+/** مجروراً بعد حرف: «بعد يومٍ واحد» · «بعد يومين» · «بعد ٣ أيام» · «بعد ١١ يوماً». */
+export function afterDaysText(count: number): string {
+  if (count === 1) return "يومٍ واحد";
+  if (count === 2) return "يومين";
+  return daysText(count);
+}
+
+/** «مرة» · «مرتان» · «٣ مرات» · «١٥ مرةً» — عدد التكرار. */
+export function timesText(count: number): string {
+  if (count === 1) return "مرة واحدة";
+  if (count === 2) return "مرتان";
+  const rest = count % 100;
+  if (rest >= 3 && rest <= 10) return `${formatNumber(count)} مرات`;
+  return `${formatNumber(count)} مرةً`;
+}
+
+/** الأيام حتى يوم البداية من اليوم التقويمي (`YYYY-MM-DD` كلاهما) — صفرٌ إن حلّ. */
+export function daysUntil(today: string, start: string): number {
+  const ms = Date.parse(`${start}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`);
+  return Number.isFinite(ms) ? Math.max(0, Math.round(ms / 86_400_000)) : 0;
+}
+
+type StepLike = { isRequired: boolean; markedAt: string | null };
+
+/** الخطوة الحالية: أول إلزاميٍّ لم يُرصد، وإلا أول ما لم يُرصد. */
+export function primaryIndex(steps: StepLike[]): number {
+  const req = steps.findIndex((s) => s.isRequired && s.markedAt === null);
+  return req >= 0 ? req : steps.findIndex((s) => s.markedAt === null);
+}
+
+/**
+ * الإتمام التلقائي يُطلَق على **انتقالٍ بزيادة أكّده ردّ القاعدة** — لا على العدّ المتفائل،
+ * ولا عند التحميل أو بعد التراجع (فالعدد يبقى مكتملاً بعد التراجع: `fn_undo_mark` لا يصفّره).
+ */
+export function autoCompletes(input: {
+  delta: 1 | -1;
+  confirmed: number;
+  repetition: number | null;
+  inflight: number;
+  marked: boolean;
+}): boolean {
+  return (
+    input.delta === 1 &&
+    input.repetition !== null &&
+    input.confirmed >= input.repetition &&
+    input.inflight === 0 &&
+    !input.marked
+  );
+}
+
 // ── الأرشيف ──
 
 export type CommitmentStatus = "completed" | "exempt" | "stumbled";

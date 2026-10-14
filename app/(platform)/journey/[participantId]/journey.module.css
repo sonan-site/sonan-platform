@@ -1,19 +1,11 @@
-/* رحلة المشارك — الرصد والعدّاد والأرشيف (adr/0036 · 0037 · 0041). للجوال أولاً. */
+/* رحلة المشارك — شاشة اليوم (خطة واجهة الطالب، المرحلة أ · adr/0036 · 0037 · 0041). للجوال أولاً. */
 
 .shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   max-inline-size: 34rem;
-}
-
-.back {
-  font-size: var(--text-sm);
-}
-
-.ok {
-  color: var(--color-success);
-}
-
-.warn {
-  color: var(--color-warning);
+  margin-inline: auto;
 }
 
 .muted {
@@ -22,173 +14,597 @@
   color: var(--color-text-muted);
 }
 
-.note {
-  margin-block-end: var(--space-4);
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.error,
+.notice,
+.joined,
+.carried {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  line-height: 1.7;
 }
 
 .error {
-  margin-block-end: var(--space-4);
   color: var(--color-danger);
+  background: var(--color-danger-surface);
 }
 
-.cardError {
-  margin: var(--space-2) 0 0;
-  font-size: var(--text-sm);
-  color: var(--color-danger);
+.notice {
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
 }
 
-.joined,
-.done,
-.banner,
-.alert {
-  margin-block-end: var(--space-5);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-}
-
-.joined,
-.done {
+.joined {
   color: var(--color-success);
   background: var(--color-success-surface);
 }
 
-.done {
+.carried {
   display: flex;
-  flex-direction: column;
+  gap: var(--space-2);
   align-items: flex-start;
-  gap: var(--space-3);
-}
-
-.done p {
-  margin: 0;
-}
-
-.banner {
-  color: var(--color-info);
-  background: var(--color-info-surface);
-}
-
-.alert {
   color: var(--color-warning);
   background: var(--color-warning-surface);
 }
 
-/* ══ الإحصاءات ══ */
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-  gap: var(--space-3);
-  margin: 0 0 var(--space-5);
+.carried svg {
+  flex: none;
+  margin-block-start: var(--space-1);
 }
 
-.stats div {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-sunken);
-}
+/* ══ رأس اليوم ══ */
 
-.stats dt {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.stats dd {
-  margin: 0;
-  font-weight: var(--weight-bold);
-}
-
-/* ══ اليوم وواجباته ══ */
-
-.dayHead {
+.hero {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-block-end: var(--space-4);
-}
-
-.task {
-  margin-block-end: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
   padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
 }
 
-.taskDone {
-  border-color: var(--color-success);
-}
-
-.taskHead {
+.heroNav {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-block-end: var(--space-2);
 }
 
-.tag {
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  background: var(--color-surface-sunken);
-}
-
-.line {
-  margin-block-end: var(--space-2);
-}
-
-.line p {
+.heroTitle {
+  flex: 1;
   margin: 0;
+  text-align: center;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  text-wrap: balance;
 }
 
-/* العدّاد: زرّان كبيران للإبهام، والعدد بينهما. */
-.counter {
+.heroTag {
+  margin-inline-start: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  vertical-align: middle;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  background: color-mix(in srgb, var(--color-text-on-brand) 16%, transparent);
+}
+
+.heroLine {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-block: var(--space-3);
-}
-
-.counter button {
-  min-inline-size: 3rem;
-  min-block-size: 3rem;
   justify-content: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: color-mix(in srgb, var(--color-text-on-brand) 14%, transparent);
+  cursor: pointer;
 }
 
-.counter output {
+.nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.nav:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.bar {
+  block-size: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-text-on-brand) 22%, transparent);
+}
+
+.bar span {
+  display: block;
+  block-size: 100%;
+  background: var(--color-accent);
+  transition: inline-size var(--motion-base) var(--ease-out);
+}
+
+.paceOk {
+  color: var(--color-success);
+}
+
+.hero .paceOk {
+  color: inherit;
+}
+
+.paceBehind {
+  color: var(--color-warning);
+}
+
+.hero .paceBehind {
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
+/* ══ الخطوات: بنيةٌ واحدة وارتفاعٌ واحد = الزرّ الرئيسي ══ */
+
+.stepsTitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-base, 1rem);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  block-size: 3.875rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+  text-align: start;
+}
+
+button.step {
+  cursor: pointer;
+}
+
+button.step:active {
+  transform: scale(0.99);
+}
+
+.stepNow {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.stepIdle .stepText b {
+  color: var(--color-text-muted);
+}
+
+.stepNum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 50%;
   font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.stepNow .stepNum {
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+}
+
+.stepText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.stepText b {
+  font-weight: var(--weight-bold);
+  line-height: 1.3;
+}
+
+.stepText span {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.stepDone {
+  border-color: var(--color-success-surface);
+  background: var(--color-success-surface);
+}
+
+.stepDone .stepNum {
+  border-color: var(--color-success);
+  color: var(--color-surface);
+  background: var(--color-success);
+}
+
+.stepDone .stepText b,
+.stepDone .stepText span {
+  color: var(--color-success);
+}
+
+.chip {
+  flex: none;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  background: var(--color-surface);
+}
+
+.eye,
+.undo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 2.125rem;
+  block-size: 2.125rem;
+  border-radius: 50%;
+}
+
+.eye {
+  color: var(--color-brand);
+  background: var(--color-bg);
+}
+
+.undo {
+  border: 0;
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 14%, transparent);
+  cursor: pointer;
+}
+
+.undo:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.undo:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* ══ إتمام اليوم · يوم الراحة ══ */
+
+.complete,
+.rest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
-.counter output strong {
-  font-size: var(--text-lg);
+.complete {
+  background: var(--color-success-surface);
 }
 
-.taskFoot {
+.rest {
+  border: 1px dashed var(--color-border);
+}
+
+.completeBadge,
+.restIcon {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
-  margin-block-start: var(--space-3);
+  justify-content: center;
+  inline-size: 3.75rem;
+  block-size: 3.75rem;
+  border-radius: 50%;
 }
 
-.taskFoot > span {
+.completeBadge {
+  color: var(--color-surface);
+  background: var(--color-success);
+}
+
+.restIcon {
+  color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.completeTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+/* ══ تفاصيل الخطوة ══ */
+
+.detailHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.backLink {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  padding: var(--space-2) 0;
+  border: 0;
+  color: var(--color-text-muted);
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.detailTitle {
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-xl);
+}
+
+.passage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.passage p {
+  margin: 0;
+}
+
+.passageText {
+  font-weight: var(--weight-bold);
+}
+
+.quote {
+  font-family: var(--font-quote, var(--font-sans));
+  line-height: 1.7;
+}
+
+.ringArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-2);
+}
+
+.ring {
+  position: relative;
+  inline-size: 9.75rem;
+  block-size: 9.75rem;
+}
+
+.ring > svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.ringTrack,
+.ringFill {
+  fill: none;
+  stroke-width: 4;
+}
+
+.ringTrack {
+  stroke: var(--color-border);
+}
+
+.ringFill {
+  stroke: var(--color-accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--motion-base) var(--ease-out);
+}
+
+.ringTap {
+  position: absolute;
+  inset: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ringTap:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.ringTap:disabled {
+  cursor: default;
+}
+
+.ringTap output {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ringTap b {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+}
+
+.ringTap small {
+  font-size: var(--text-sm);
+}
+
+/* دائرة الإنقاص: أسفل يسار العدّاد، منفصلةٌ عنه. */
+.ringMinus {
+  position: absolute;
+  inset-block-end: 0.5rem;
+  inset-inline-end: -2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.875rem;
+  block-size: 2.875rem;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.ringMinus {
+  touch-action: manipulation;
+}
+
+.ringMinus:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ringMinus:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+/* ══ الزرّ الرئيسي: ثابتٌ في الأسفل فوق شريط التنقّل ══ */
+
+.dock {
+  position: sticky;
+  inset-block-end: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  z-index: 5;
+  margin-block-start: var(--space-2);
+}
+
+.dockError {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  background: var(--color-danger-surface);
+}
+
+.dockBar {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr 3.25rem;
+  align-items: stretch;
+  block-size: 3.875rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
+}
+
+.dockIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dockFailed {
+  color: var(--color-accent);
+}
+
+.dockMain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.dockMain:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.dockMain:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text-on-brand) 10%, transparent);
+}
+
+.dockMsg {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: default;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 1024px) {
+  .dock {
+    inset-block-end: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
 }
 
 /* ══ الأرشيف ══ */
 
 .archive {
-  margin-block-start: var(--space-6);
+  margin-block-start: var(--space-4);
 }
 
 .archive summary {
@@ -215,7 +631,6 @@
 .exam {
   display: grid;
   gap: var(--space-2);
-  margin-block: var(--space-4);
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);

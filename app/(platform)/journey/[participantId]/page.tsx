@@ -73,6 +73,7 @@ export default async function JourneyDayPage({
       programName={program.name}
       programSlug={program.slug}
       contact={program.contact}
+      registrationNo={formatRegistrationNo(program.registration_prefix, participant.registration_no)}
     />
   );
 
@@ -235,6 +236,7 @@ export default async function JourneyDayPage({
       // الاختبار ميزةٌ ثانوية في يوم الحفظ: تعذّرها يُخفي بطاقتها ولا يُسقط الرحلة.
       examsUnavailable={examsResult.error !== null}
       finals={finals}
+      serverClock={clock}
       exams={(examsResult.data ?? []).map((e) => ({
         id: e.exam_id,
         name: e.name,

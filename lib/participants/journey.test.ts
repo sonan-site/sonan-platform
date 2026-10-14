@@ -1,14 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { formatNumber } from "@/lib/format";
 import {
   canMark,
+  afterDaysText,
+  autoCompletes,
   canUndo,
   commitmentLabel,
+  daysLeftText,
   daysText,
+  daysUntil,
   defaultDay,
   followsPlan,
+  leftText,
+  minutesLeft,
   pace,
   parseJourneyState,
+  primaryIndex,
   resolveDay,
+  timesText,
   type JourneyState,
 } from "./journey";
 
@@ -149,5 +158,52 @@ describe("صيغ", () => {
   it("الحالات التي تتبع الخطة", () => {
     expect(followsPlan("memorizing")).toBe(true);
     expect(followsPlan("withdrawn")).toBe(false);
+  });
+});
+
+describe("شاشة اليوم", () => {
+  it("**الوقت الباقي** حتى نهاية الرصد، وصفرٌ بعده", () => {
+    expect(minutesLeft("17:48", "23:59")).toBe(371);
+    expect(minutesLeft("23:59", "23:59")).toBe(0);
+    expect(minutesLeft("23:59", "22:00")).toBe(0);
+    expect(leftText(371)).toBe(`${formatNumber(6)}س ${formatNumber(11)}د`);
+    expect(leftText(40)).toBe(`${formatNumber(40)}د`);
+  });
+
+  it("**الأيام حتى البداية** — وصفرٌ يومها وبعدها", () => {
+    expect(daysUntil("2026-10-14", "2026-10-23")).toBe(9);
+    expect(daysUntil("2026-10-23", "2026-10-23")).toBe(0);
+    expect(daysUntil("2026-10-25", "2026-10-23")).toBe(0);
+    expect(daysLeftText(1)).toBe("يومٌ واحد");
+    expect(daysLeftText(2)).toBe("يومان");
+  });
+
+  it("**الخطوة الحالية:** أول إلزاميٍّ لم يُرصد", () => {
+    const s = (isRequired: boolean, marked: boolean) => ({ isRequired, markedAt: marked ? "t" : null });
+    expect(primaryIndex([s(true, true), s(true, false), s(true, false)])).toBe(1);
+    expect(primaryIndex([s(false, false), s(true, false)])).toBe(1);
+    expect(primaryIndex([s(true, true), s(false, false)])).toBe(1);
+    expect(primaryIndex([s(true, true)])).toBe(-1);
+  });
+
+  it("**الإتمام التلقائي** على زيادةٍ أكّدتها القاعدة وحدها", () => {
+    const base = { delta: 1 as const, confirmed: 15, repetition: 15, inflight: 0, marked: false };
+    expect(autoCompletes(base)).toBe(true);
+    expect(autoCompletes({ ...base, delta: -1 })).toBe(false); // الإنقاص لا يُتمّ
+    expect(autoCompletes({ ...base, confirmed: 14 })).toBe(false); // ما لم تؤكّده القاعدة
+    expect(autoCompletes({ ...base, inflight: 1 })).toBe(false); // ضغطةٌ معلّقة بعد
+    expect(autoCompletes({ ...base, marked: true })).toBe(false);
+    expect(autoCompletes({ ...base, repetition: null })).toBe(false);
+  });
+});
+
+describe("صيغ العدد في شاشة اليوم", () => {
+  it("**بعد الأيام** مجرورةً، **والتكرار** بتمييزه", () => {
+    expect(afterDaysText(1)).toBe("يومٍ واحد");
+    expect(afterDaysText(2)).toBe("يومين");
+    expect(afterDaysText(9)).toBe(`${formatNumber(9)} أيام`);
+    expect(timesText(2)).toBe("مرتان");
+    expect(timesText(5)).toBe(`${formatNumber(5)} مرات`);
+    expect(timesText(15)).toBe(`${formatNumber(15)} مرةً`);
   });
 });
