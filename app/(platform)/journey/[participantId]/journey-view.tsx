@@ -4,7 +4,7 @@ import { Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { formatClock, formatDateBoth, formatHijri, formatNumber, formatPercent, formatTime, now, toTimeInput } from "@/lib/format";
+import { formatClock, formatDate, formatDateBoth, formatHijri, formatNumber, formatPercent, formatTime, now, toTimeInput } from "@/lib/format";
 import {
   afterDaysText,
   autoCompletes,
@@ -429,7 +429,7 @@ export function JourneyView({
   let dock: React.ReactNode;
   if (state.stage === "not_started") {
     dock = (
-      <DockMessage icon={<Lock size={18} aria-hidden />}>يُفتح {formatDateBoth(state.startDate)}</DockMessage>
+      <DockMessage icon={<Lock size={18} aria-hidden />}>يُفتح {formatDate(state.startDate)}</DockMessage>
     );
   } else if (resting) {
     dock = <DockButton onClick={() => setAdvance(true)}>تقدّم</DockButton>;
@@ -440,9 +440,10 @@ export function JourneyView({
       </DockButton>
     );
   } else if (atNext && state.stage === "limit") {
-    dock = <DockMessage>بلغتَ حدّك اليومي — يُفتح اليوم {formatNumber(state.currentDay)} غداً</DockMessage>;
+    dock = <DockMessage>بلغتَ حدّك · يُفتح اليوم {formatNumber(state.currentDay)} غداً</DockMessage>;
   } else if (atNext && state.stage === "finished") {
-    dock = <DockMessage>بارك الله في حفظك</DockMessage>;
+    // بطاقة الإتمام تقول ما يُقال — فلا زرّ يكرّره.
+    dock = null;
   } else if (markable && prim) {
     const c = counts[prim.fieldId] ?? 0;
     dock =
@@ -485,9 +486,9 @@ export function JourneyView({
           </div>
           <p className={styles.heroLine}>
             <span>
-              {programName} · {trackName} · {daysText(state.dayCount)}
+              {trackName} · {daysText(state.dayCount)}
             </span>
-            {registrationNo ? <b dir="ltr">{registrationNo}</b> : null}
+            {registrationNo ? <b dir="ltr" className={styles.nowrap}>{registrationNo}</b> : null}
           </p>
         </section>
       ) : (
