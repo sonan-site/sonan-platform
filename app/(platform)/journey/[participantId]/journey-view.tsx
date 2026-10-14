@@ -572,7 +572,7 @@ export function JourneyView({
       {resting ? (
         <section className={styles.rest} aria-label="يوم راحة">
           <span className={styles.restIcon}>
-            <Hourglass size={28} aria-hidden style={{ transform: "rotate(90deg)" }} />
+            <Hourglass size={28} aria-hidden />
           </span>
           <p className={styles.completeTitle}>يوم راحة</p>
           <p className={styles.muted}>وإن شئت تقدّم في خطتك</p>
