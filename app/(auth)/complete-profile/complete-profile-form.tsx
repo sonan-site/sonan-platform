@@ -23,6 +23,10 @@ export function CompleteProfileForm({
   return (
     <>
       <h1 className={styles.title}>أكمل حسابك</h1>
+      <p className={styles.lede}>
+        بياناتك تُكتب مرةً واحدة وتُستعمل في كل برنامج تسجّل فيه. وما تطلبه مسابقةٌ بعينها — كرقم الهوية — يُطلب
+        في صفحة تسجيلها.
+      </p>
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 

@@ -1,12 +1,12 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { safeNext } from "@/lib/auth/safe-next";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { clearRateLimit, withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";
-import { isSessionMode, MODE_COOKIE, type SessionMode } from "@/lib/auth/mode";
+import { isSessionMode, type SessionMode } from "@/lib/auth/mode";
+import { writeMode } from "@/lib/auth/mode-cookie";
 import { signInSchema } from "@/lib/validation/auth";
 
 /**
@@ -39,12 +39,7 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
 
   const raw = form.get("mode");
   const mode: SessionMode = isSessionMode(raw) ? raw : "participant";
-  (await cookies()).set(MODE_COOKIE, mode, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  await writeMode(mode);
 
   redirect(safeNext(form.get("next")));
 }

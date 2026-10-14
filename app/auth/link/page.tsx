@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { EmptyState } from "@/components/shared/states";
 import { parseLinkFragment } from "@/lib/auth/link-fragment";
-import { safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_LANDING, safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/browser";
 
 /**
@@ -21,13 +21,16 @@ export default function AuthLinkPage() {
     const next = safeNext(new URLSearchParams(window.location.search).get("next"));
     const link = parseLinkFragment(window.location.hash);
     window.history.replaceState(null, "", window.location.pathname);
+    // الوجهة تبقى مع الخطأ (رحلة التسجيل ت٣).
+    const fail = (code: string) =>
+      router.replace(`/sign-in?error=${code}${next !== DEFAULT_LANDING ? `&next=${encodeURIComponent(next)}` : ""}`);
 
     if (link.kind === "none") {
-      router.replace("/sign-in?error=invalid-link");
+      fail("invalid-link");
       return;
     }
     if (link.kind === "error") {
-      router.replace(`/sign-in?error=${link.expired ? "expired-link" : "invalid-link"}`);
+      fail(link.expired ? "expired-link" : "invalid-link");
       return;
     }
 
@@ -35,7 +38,7 @@ export default function AuthLinkPage() {
       .auth.setSession({ access_token: link.accessToken, refresh_token: link.refreshToken })
       .then(({ error }) => {
         if (error) {
-          router.replace("/sign-in?error=expired-link");
+          fail("expired-link");
           return;
         }
         router.replace(next);

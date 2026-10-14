@@ -134,7 +134,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
             {data.faq.length > 0 ? <a href="#faq">الأسئلة الشائعة</a> : null}
           </div>
           <div className={styles.topActions}>
-            <Link href={signedIn ? "/dashboard" : "/sign-in"} className={styles.signIn}>
+            <Link href={signedIn ? "/dashboard" : `/sign-in?next=${encodeURIComponent(registerHref)}`} className={styles.signIn}>
               {signedIn ? "لوحتي" : "تسجيل الدخول"}
             </Link>
             {open ? (
@@ -241,7 +241,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
                 </h2>
                 <p>اضغط على المسار لعرض جوائز مراكزه.</p>
               </div>
-              <CampaignTracks tracks={tracks} unitLabel={data.unitLabel} />
+              <CampaignTracks tracks={tracks} unitLabel={data.unitLabel} registerHref={registerHref} open={open} />
             </div>
           </section>
         ) : null}

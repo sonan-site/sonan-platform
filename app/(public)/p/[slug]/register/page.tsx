@@ -4,21 +4,26 @@ import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
+import { NeedsForm, type NeedCode } from "./needs-form";
 import { RegisterForm, type QuestionRow, type TrackOption } from "./register-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function RegisterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ track?: string }>;
 }) {
   const { slug } = await params;
+  // المسار المختار في الواجهة يُحمل في الرابط ويبقى معه في كل باب (رحلة التسجيل ت١).
+  const wantedTrack = /^[0-9a-f-]{36}$/.test((await searchParams).track ?? "") ? (await searchParams).track! : null;
 
   // التسجيل يشترط حساباً. الزائر يُنشئه أولاً — ومن له حساب يجد رابط الدخول
   // في الصفحة نفسها. والوجهة تُحفظ فيعود بعدها إلى حيث كان.
   const session = await getSession();
-  const back = encodeURIComponent(`/p/${slug}/register`);
+  const back = encodeURIComponent(`/p/${slug}/register${wantedTrack ? `?track=${wantedTrack}` : ""}`);
   // الناقص (دخل بـ Google ولم يكتب جواله) يُستكمل ثم يعود — لا يُعاد إلى إنشاء حساب له.
   if (session.status === "incomplete") redirect(`/complete-profile?next=${back}`);
   if (session.status !== "active") redirect(`/sign-up?next=${back}`);
@@ -68,14 +73,29 @@ export default async function RegisterPage({
 
   // الأهلية (`adr/0047`): الموانع كلها تُعرض قبل النموذج — من الدالة نفسها
   // التي يرفض بها التسجيل، فلا يختلف المعروض عن المفروض.
-  const { data: blockers } = await db.rpc("fn_registration_blockers", { p_program_id: program.id });
-  if (blockers && blockers.length > 0) {
+  // ما يُستكمل يُطلب هنا، وما لا يُستكمل يُقال بلا إحالة (رحلة التسجيل ت٦) — والرموز من الدالة
+  // نفسها التي يرفض بها التسجيل.
+  const { data: needs, error: needsError } = await db.rpc("fn_registration_needs", { p_program_id: program.id });
+  if (needsError) return <ErrorState body="تعذّر التحقق من شروط التسجيل. أعد تحميل الصفحة." />;
+  const fixable = new Set<NeedCode>(["saudi_phone", "grandfather_name", "national_id", "guardian_phone"]);
+  const hard = (needs ?? []).filter((n) => !fixable.has(n.code as NeedCode));
+  if (hard.length > 0) {
     return (
       <EmptyState
         kind="no-data"
-        title="قبل أن تسجّل"
-        body={blockers.join(" · ")}
-        action={<Link href="/account">افتح حسابي</Link>}
+        title="لا يتاح لك التسجيل في هذه المسابقة"
+        body={hard.map((n) => n.message).join(" · ")}
+        action={<Link href={`/p/${slug}`}>صفحة المسابقة</Link>}
+      />
+    );
+  }
+  if ((needs ?? []).length > 0) {
+    return (
+      <NeedsForm
+        programName={program.name}
+        slug={slug}
+        track={wantedTrack ?? ""}
+        needs={(needs ?? []).map((n) => n.code as NeedCode)}
       />
     );
   }
@@ -107,9 +127,14 @@ export default async function RegisterPage({
     trackId: q.track_id,
   }));
 
+  // يُقبل المسار إن كان من مسارات البرنامج وفيه مقعد — وإلا يُترك الاختيار للطالب.
+  const initialTrack = tracks.find((t) => t.id === wantedTrack && t.remaining !== 0)?.id ?? "";
+
   return (
     <RegisterForm
       programId={program.id}
+      programName={program.name}
+      initialTrack={initialTrack}
       slug={slug}
       participantLabel={program.participant_label}
       tracks={tracks}

@@ -96,7 +96,7 @@ function SignInForm() {
       </ActionForm>
 
       <div className={styles.links}>
-        <Link href="/recover">نسيت كلمة المرور</Link>
+        <Link href={params.get("next") ? `/recover?next=${encodeURIComponent(params.get("next")!)}` : "/recover"}>نسيت كلمة المرور</Link>
         <Link
           href={`/sign-up?next=${encodeURIComponent(params.get("next") ?? DEFAULT_LANDING)}`}
         >

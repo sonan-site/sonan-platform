@@ -28,7 +28,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
           <BookOpen size={20} aria-hidden />
           منصة سنن
         </Link>
-        <Link href={signedIn ? "/dashboard" : "/sign-in"} className={styles.signIn}>
+        <Link href={signedIn ? "/dashboard" : path && path !== "/" ? `/sign-in?next=${encodeURIComponent(path)}` : "/sign-in"} className={styles.signIn}>
           {signedIn ? "لوحتي" : "تسجيل الدخول"}
         </Link>
       </header>

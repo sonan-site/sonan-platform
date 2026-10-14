@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { parseConfirmLink } from "@/lib/auth/confirm-link";
+import { DEFAULT_LANDING, safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 
 /**
@@ -12,6 +13,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const failure = (code: "invalid-link" | "expired-link") => {
     const target = new URL("/sign-in", request.nextUrl.origin);
     target.searchParams.set("error", code);
+    // الوجهة تبقى مع الخطأ (رحلة التسجيل ت٣).
+    const next = safeNext(request.nextUrl.searchParams.get("next"));
+    if (next !== DEFAULT_LANDING) target.searchParams.set("next", next);
     return NextResponse.redirect(target);
   };
 

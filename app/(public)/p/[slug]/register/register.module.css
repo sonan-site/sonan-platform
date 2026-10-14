@@ -1,0 +1,299 @@
+/* صفحة التسجيل بخطوات — رحلة التسجيل ت٨. للجوال أولاً، ولا تجاوز أفقي. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  inline-size: 100%;
+  max-inline-size: 36rem;
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.lede,
+.muted {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ══ الخطوات ══ */
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.steps li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.stepDot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.stepDone {
+  color: var(--color-success);
+}
+
+.stepDone .stepDot {
+  border-color: var(--color-success);
+  color: var(--color-surface);
+  background: var(--color-success);
+}
+
+/* ══ النموذج ══ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-inline-size: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.sectionTitle {
+  margin: 0;
+  padding: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.req {
+  color: var(--color-danger);
+}
+
+/* المسارات: اختيارٌ حقيقي (radio) في بطاقة — يعمل بلا سكربت ومع قارئ الشاشة. */
+.tracks {
+  display: grid;
+  gap: var(--space-3);
+  inline-size: 100%;
+}
+
+.track {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.track:has(input:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.track:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.trackFull {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.trackBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.seats {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar {
+  display: block;
+  block-size: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-border);
+}
+
+.bar i {
+  display: block;
+  block-size: 100%;
+  background: var(--color-accent);
+}
+
+.radio,
+.check {
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: var(--space-1) 0 0;
+  accent-color: var(--color-brand);
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.question legend,
+.question label {
+  padding: 0;
+  font-weight: var(--weight-bold);
+  line-height: 1.6;
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.choiceOpt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.choiceOpt:has(input:checked) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.choiceOpt .radio {
+  margin: 0;
+}
+
+/* الإقرار: نصّه هو تسميته — لا «أقرّ بما سبق» مكرّرة. */
+.consent {
+  inline-size: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  line-height: 1.7;
+  cursor: pointer;
+}
+
+.consent:has(input:checked) {
+  border-color: var(--color-success);
+  background: var(--color-success-surface);
+}
+
+.error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  background: var(--color-danger-surface);
+}
+
+/* الزرّ الرئيسي — بأسلوب شاشة اليوم وارتفاعه. */
+.submit {
+  inline-size: 100%;
+  block-size: 3.875rem;
+  border: 0;
+  border-radius: var(--radius-lg);
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
+  font: inherit;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.submit:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.stepNow {
+  color: var(--color-text);
+  font-weight: var(--weight-bold);
+}
+
+.stepNow .stepDot {
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+}
+
+.fieldError {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+}
+
+.notice {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+}

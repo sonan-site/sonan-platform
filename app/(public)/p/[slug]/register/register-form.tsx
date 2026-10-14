@@ -1,11 +1,13 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useActionState, useState } from "react";
-import { Button, Field, FormActions, Select, Textarea } from "@/components/shared/form";
+import { ActionForm } from "@/components/shared/action-form";
+import { Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { registerInProgram } from "./actions";
-import { ActionForm } from "@/components/shared/action-form";
+import styles from "./register.module.css";
 
 export type QuestionRow = {
   id: string;
@@ -25,124 +27,179 @@ export type TrackOption = {
   remaining: number | null;
 };
 
-const ERR = { color: "var(--color-danger)" } as const;
-const CONSENT = { display: "flex", alignItems: "center", gap: "var(--space-3)" } as const;
-const NOTE = {
-  fontSize: "var(--text-sm)",
-  color: "var(--color-text-muted)",
-  marginBlockEnd: "var(--space-6)",
-} as const;
-// `<h1>` عارٍ يرث leading المتن، وهو رخوٌ على مقاسه (ق-١٦).
-// سطريٌّ اتّباعاً لنمط الملف القائم — وموضعه `.module.css` حين يُنقل إليه.
-const H1 = { lineHeight: "var(--leading-tight)" } as const;
-
+/**
+ * صفحة التسجيل بخطوات (رحلة التسجيل ت٨): ترويسة المسابقة · مؤشّر الخطوات · بطاقات
+ * المسارات · الأسئلة · الإقرارات كلٌّ في سطره · زرٌّ رئيسي.
+ *
+ * **أسماء الحقول وقيمها كما كانت حرفياً** — `trackId` و`q:<id>` و«أقرّ» و«نعم/لا» —
+ * فـ`fn_register` تحكم بها كما حكمت، والشكل وحده تغيّر.
+ */
 export function RegisterForm({
   programId,
+  programName,
+  initialTrack,
   slug,
   participantLabel,
   tracks,
   questions,
 }: {
   programId: string;
+  programName: string;
+  /** المسار المحمول من الواجهة (`?track`) إن كان صالحاً — وإلا فارغ. */
+  initialTrack: string;
   slug: string;
   participantLabel: string;
   tracks: TrackOption[];
   questions: QuestionRow[];
 }) {
   const [state, action, pending] = useActionState(registerInProgram, EMPTY_FORM_STATE);
-  // **لا مسار مختارٌ سلفاً:** كان الأول يُختار عن المسجِّل، وتتبعه أسئلة قبوله.
-  const [trackId, setTrackId] = useState<string>("");
+  const [trackId, setTrackId] = useState<string>(initialTrack);
 
-  // السؤال العام يظهر دائماً، والخاص بمسار يظهر عند اختياره — فلا يُطالَب
-  // المسجِّل بسؤال لا يخصّه.
+  // السؤال العام يظهر دائماً، والخاص بمسار يظهر عند اختياره.
   const visible = questions.filter((q) => q.trackId === null || q.trackId === trackId);
+  const asked = visible.filter((q) => q.kind !== "consent");
+  const consents = visible.filter((q) => q.kind === "consent");
+
+  const steps = [
+    { label: "الحساب", done: true },
+    { label: "بياناتك", done: true },
+    { label: "مسارك", done: tracks.length === 0 || trackId !== "" },
+    { label: "الإقرار", done: false },
+  ];
 
   return (
-    <>
-      <h1 style={H1}>التسجيل</h1>
-      <p style={NOTE}>
-        أكمل الأسئلة الإلزامية ليكتمل تسجيلك بصفة {participantLabel} — القبول فوري بلا
-        مراجعة.
-      </p>
+    <div className={styles.page}>
+      <header className={styles.head}>
+        <p className={styles.eyebrow}>{programName}</p>
+        <h1 className={styles.title}>التسجيل</h1>
+        <p className={styles.lede}>
+          أكمل ما يلي ليكتمل تسجيلك بصفة {participantLabel} — القبول فوريٌّ بلا مراجعة.
+        </p>
+      </header>
 
-      {state.error ? <p style={ERR}>{state.error}</p> : null}
+      <ol className={styles.steps} aria-label="خطوات التسجيل">
+        {steps.map((s, i) => (
+          <li
+            key={s.label}
+            className={s.done ? styles.stepDone : i === steps.findIndex((x) => !x.done) ? styles.stepNow : undefined}
+          >
+            <span className={styles.stepDot}>{s.done ? <Check size={13} aria-hidden /> : formatNumber(i + 1)}</span>
+            {s.label}
+          </li>
+        ))}
+      </ol>
 
-      <ActionForm action={action} state={state} style={{ maxInlineSize: "34rem" }}>
+      <ActionForm action={action} state={state} className={styles.form}>
         <input type="hidden" name="programId" value={programId} />
         <input type="hidden" name="slug" value={slug} />
 
         {tracks.length > 0 ? (
-          <Field id="trackId" label="المسار" required>
-            <Select
-              id="trackId"
-              name="trackId"
-              required
-              value={trackId}
-              onChange={(e) => setTrackId(e.target.value)}
-            >
-              <option value="" disabled>
-                اختر مسارك
-              </option>
-              {tracks.map((t) => (
-                // المكتمل يُعرض معطَّلاً لا يُخفى: يعرف المسجِّل أنه كان ولم يبقَ فيه مقعد.
-                <option key={t.id} value={t.id} disabled={t.remaining === 0}>
-                  {t.name}
-                  {t.remaining === null
-                    ? ""
-                    : t.remaining === 0
-                      ? " — اكتملت المقاعد"
-                      : ` — متبقٍّ ${formatNumber(t.remaining)} من ${formatNumber(t.capacity ?? 0)}`}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <fieldset className={styles.section}>
+            <legend className={styles.sectionTitle}>اختر مسارك</legend>
+            <div className={styles.tracks}>
+              {tracks.map((t) => {
+                const full = t.remaining === 0;
+                const used =
+                  t.capacity && t.remaining !== null ? ((t.capacity - t.remaining) / t.capacity) * 100 : 0;
+                return (
+                  <label key={t.id} className={`${styles.track} ${full ? styles.trackFull : ""}`}>
+                    <input
+                      type="radio"
+                      name="trackId"
+                      value={t.id}
+                      required
+                      disabled={full}
+                      checked={trackId === t.id}
+                      onChange={() => setTrackId(t.id)}
+                      className={styles.radio}
+                    />
+                    <span className={styles.trackBody}>
+                      <b>{t.name}</b>
+                      {t.description ? <span className={styles.muted}>{t.description}</span> : null}
+                      {t.capacity !== null ? (
+                        <>
+                          <span className={styles.seats}>
+                            {full
+                              ? "اكتملت المقاعد"
+                              : `متبقٍّ ${formatNumber(t.remaining ?? 0)} من ${formatNumber(t.capacity)}`}
+                          </span>
+                          <span className={styles.bar} aria-hidden>
+                            <i style={{ inlineSize: `${used}%` }} />
+                          </span>
+                        </>
+                      ) : null}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         ) : null}
 
-        {visible.map((q) => {
-          const id = `q:${q.id}`;
-          /*
-           * **الشكل عرضٌ لا قاعدة:** `fn_register` تشترط جواباً غير فارغ
-           * للإلزامي مهما كان الشكل — فالإقرار يُرسل «أقرّ» والاختيار «نعم»
-           * أو «لا»، والمكتوب نصّه. ولا قاعدة ثانية في القاعدة.
-           */
-          if (q.kind === "consent") {
-            return (
-              <Field key={q.id} id={id} label={q.question} required={q.required} span="full">
-                <span style={CONSENT}>
-                  <input id={id} name={id} type="checkbox" value="أقرّ" required={q.required} />
-                  <label htmlFor={id}>أقرّ بما سبق</label>
-                </span>
-              </Field>
-            );
-          }
+        {asked.length > 0 ? (
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>أسئلة القبول</h2>
+            {asked.map((q) => {
+              const id = `q:${q.id}`;
+              if (q.kind === "choice") {
+                return (
+                  <fieldset key={q.id} className={styles.question}>
+                    <legend>
+                      {q.question}
+                      {q.required ? <span className={styles.req}> *</span> : null}
+                    </legend>
+                    <div className={styles.choice}>
+                      {["نعم", "لا"].map((v) => (
+                        <label key={v} className={styles.choiceOpt}>
+                          <input type="radio" name={id} value={v} required={q.required} className={styles.radio} />
+                          {v}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                );
+              }
+              return (
+                <div key={q.id} className={styles.question}>
+                  <label htmlFor={id}>
+                    {q.question}
+                    {q.required ? <span className={styles.req}> *</span> : null}
+                  </label>
+                  <Textarea id={id} name={id} rows={2} required={q.required} />
+                </div>
+              );
+            })}
+          </section>
+        ) : null}
 
-          if (q.kind === "choice") {
-            return (
-              <Field key={q.id} id={id} label={q.question} required={q.required}>
-                <Select id={id} name={id} defaultValue="" required={q.required}>
-                  <option value="" disabled>
-                    اختر
-                  </option>
-                  <option value="نعم">نعم</option>
-                  <option value="لا">لا</option>
-                </Select>
-              </Field>
-            );
-          }
+        {consents.length > 0 ? (
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>الإقرار</h2>
+            {consents.map((q) => {
+              const id = `q:${q.id}`;
+              return (
+                <label key={q.id} htmlFor={id} className={styles.consent}>
+                  <input id={id} name={id} type="checkbox" value="أقرّ" required={q.required} className={styles.check} />
+                  <span>
+                    {q.question}
+                    {q.required ? <span className={styles.req}> *</span> : null}
+                  </span>
+                </label>
+              );
+            })}
+          </section>
+        ) : null}
 
-          return (
-            <Field key={q.id} id={id} label={q.question} required={q.required} span="full">
-              <Textarea id={id} name={id} rows={2} required={q.required} />
-            </Field>
-          );
-        })}
+        {state.error ? (
+          <p role="alert" className={styles.error}>
+            {state.error}
+          </p>
+        ) : null}
 
-        <FormActions>
-          <Button type="submit" variant="primary" pending={pending}>
-            إتمام التسجيل
-          </Button>
-        </FormActions>
+        <button type="submit" className={styles.submit} disabled={pending} aria-busy={pending}>
+          {pending ? "يُسجَّل…" : "أتمم التسجيل"}
+        </button>
       </ActionForm>
-    </>
+    </div>
   );
 }

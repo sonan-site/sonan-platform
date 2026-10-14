@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { formatNumber } from "@/lib/format";
 import styles from "./campaign.module.css";
@@ -20,8 +21,21 @@ export type CampaignTrack = {
  * بطاقات المسارات وجوائز المختار منها. المقاعد من `fn_public_tracks`، والجوائز
  * من عنصر «الجوائز» المنسوب إلى مساره (`adr/0045`) — لا رقمٌ مكتوبٌ مرّتين.
  */
-export function CampaignTracks({ tracks, unitLabel }: { tracks: CampaignTrack[]; unitLabel: string }) {
-  const [selected, setSelected] = useState(tracks[0]?.id ?? null);
+export function CampaignTracks({
+  tracks,
+  unitLabel,
+  registerHref,
+  open,
+}: {
+  tracks: CampaignTrack[];
+  unitLabel: string;
+  /** صفحة التسجيل — والمسار المختار يُحمل إليها (رحلة التسجيل ت١). */
+  registerHref: string;
+  /** التسجيل مفتوح — وإلا لا زرّ تسجيل. */
+  open: boolean;
+}) {
+  // المختار أولاً أول مسارٍ فيه مقعد — لا مكتملٌ يُعرض كأنه المتاح.
+  const [selected, setSelected] = useState((tracks.find((t) => t.remaining !== 0) ?? tracks[0])?.id ?? null);
   const current = tracks.find((t) => t.id === selected) ?? null;
   const smallest = Math.min(...tracks.map((t) => t.units));
 
@@ -69,6 +83,12 @@ export function CampaignTracks({ tracks, unitLabel }: { tracks: CampaignTrack[];
           );
         })}
       </div>
+
+      {open && current && current.remaining !== 0 ? (
+        <Link href={`${registerHref}?track=${current.id}`} className={styles.trackGo}>
+          سجّل في {current.name}
+        </Link>
+      ) : null}
 
       {current && current.prizes.length > 0 ? (
         <div className={styles.prizes} aria-live="polite">

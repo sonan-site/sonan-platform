@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
@@ -10,6 +11,7 @@ import { ActionForm } from "@/components/shared/action-form";
 
 export default function RecoverPage() {
   const [state, action, pending] = useActionState(requestRecovery, EMPTY_FORM_STATE);
+  const next = useSearchParams().get("next") ?? "";
 
   return (
     <>
@@ -20,6 +22,7 @@ export default function RecoverPage() {
       {state.notice ? <p className={styles.notice}>{state.notice}</p> : null}
 
       <ActionForm action={action} state={state}>
+        <input type="hidden" name="next" value={next} />
         <Field id="email" label="البريد الإلكتروني" required error={state.fieldErrors?.["email"]}>
           <Input
             id="email"

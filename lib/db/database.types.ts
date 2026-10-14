@@ -3633,6 +3633,13 @@ export type Database = {
         Args: { p_program_id: string }
         Returns: string[]
       }
+      fn_registration_needs: {
+        Args: { p_program_id: string }
+        Returns: {
+          code: string
+          message: string
+        }[]
+      }
       fn_registration_state: { Args: { p_program_id: string }; Returns: string }
       fn_remove_custom_plan: { Args: { p_plan_id: string }; Returns: undefined }
       fn_reopen_evaluation: {

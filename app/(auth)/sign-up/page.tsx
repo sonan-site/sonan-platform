@@ -7,7 +7,7 @@ import { Modal } from "@/components/shared/modal";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { GoogleButton } from "@/components/shared/google-button";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
-import { safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_LANDING, safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/browser";
 import { signUpSchema } from "@/lib/validation/auth";
 import styles from "../layout.module.css";
@@ -129,7 +129,7 @@ function SignUpForm() {
           <p className={styles.modalText}>
             لم تصلك رسالة؟ قد يكون لك حساب بهذا البريد.{" "}
             <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>ادخل</Link> أو{" "}
-            <Link href="/recover">استرجع كلمة المرور</Link>.
+            <Link href={next !== DEFAULT_LANDING ? `/recover?next=${encodeURIComponent(next)}` : "/recover"}>استرجع كلمة المرور</Link>.
           </p>
         ) : null}
       </Modal>

@@ -165,6 +165,35 @@ describe("موانع التسجيل", () => {
     expect(await blockers(MINOR)).toEqual([]);
   });
 
+  it("**الموانع برموزها** (رحلة التسجيل ت٦) — والرسائل بلا إحالة إلى «حسابي»، ومصدرها واحد", async () => {
+    const codes = async (uid: string) =>
+      (await as<{ code: string; message: string }>(uid, `select * from public.fn_registration_needs($1)`, [programId])).rows;
+    expect((await codes(WOMAN)).map((r) => r.code)).toContain("gender");
+    expect((await codes(CHILD)).map((r) => r.code)).toContain("age");
+    const abroad = await codes(ABROAD);
+    expect(abroad.map((r) => r.code)).toEqual(expect.arrayContaining(["saudi_phone", "national_id"]));
+    expect(abroad.map((r) => r.message).join(" ")).not.toMatch(/حسابي/);
+    // الدالة القديمة تقرأ من الجديدة: الرسائل نفسها بترتيبها.
+    expect(await blockers(ABROAD)).toEqual(abroad.map((r) => r.message));
+    expect(await codes(ADULT)).toEqual([]);
+  });
+
+  it("**تحديث جوال الوليّ وحده لا يمسّ الرقم المثبَّت** (المراجعة ح١)", async () => {
+    // رقمٌ مثبَّت وجوال وليّ ناقص — ثم يُرسل الجوال وحده بمسار صفحة التسجيل (upsert بالأعمدة المرسلة).
+    await db.query(`update public.profile_identities set guardian_phone = null where user_id = $1`, [MINOR]);
+    const before = (await db.query(`select national_id from public.profile_identities where user_id = $1`, [MINOR])).rows[0]?.national_id;
+    expect(before).not.toBeNull();
+    const { error } = await as(
+      MINOR,
+      `insert into public.profile_identities (user_id, guardian_phone) values ($1, '+966509990006')
+       on conflict (user_id) do update set guardian_phone = excluded.guardian_phone`,
+      [MINOR],
+    );
+    expect(error).toBeNull();
+    const after = (await db.query(`select national_id from public.profile_identities where user_id = $1`, [MINOR])).rows[0]?.national_id;
+    expect(after).toBe(before);
+  });
+
   it("**fn_register يرفض بالمانع** — لا يُكتفى بعرضه", async () => {
     const { error } = await register(WOMAN, goodAnswers());
     expect(error).toMatch(/للذكور/);

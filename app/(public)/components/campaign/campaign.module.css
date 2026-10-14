@@ -1161,3 +1161,21 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* «سجّل في {المسار}» — المختار يُحمل إلى التسجيل (رحلة التسجيل ت١). */
+.trackGo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 3.25rem;
+  margin-block-start: var(--space-4);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+}
+
+.trackGo:active {
+  transform: scale(0.98);
+}

@@ -149,6 +149,10 @@ export async function updateMyIdentity(_prev: FormState, form: FormData): Promis
 
   const session = await getSession();
   if (session.status !== "active") return { error: "انتهت جلستك. سجّل الدخول من جديد." };
+  // يحدّ كشف «الرقم مستعمل» برسالة التكرار — الدلو نفسه الذي في صفحة التسجيل.
+  if (!(await withinRateLimit("auth.register", `identity:${session.userId}`))) {
+    return { error: "محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة." };
+  }
 
   const db = await createClient();
   const { error } = await db

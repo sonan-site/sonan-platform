@@ -1,8 +1,8 @@
-import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { accountState, COMPLETENESS_COLUMNS } from "@/lib/auth/account-state";
-import { isSessionMode, MODE_COOKIE } from "@/lib/auth/mode";
-import { safeNext } from "@/lib/auth/safe-next";
+import { isSessionMode } from "@/lib/auth/mode";
+import { writeMode } from "@/lib/auth/mode-cookie";
+import { DEFAULT_LANDING, safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 
 /**
@@ -16,6 +16,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const target = request.nextUrl.clone();
   target.search = "";
+  // الوجهة تبقى مع الخطأ — فمن أعاد المحاولة عاد إلى حيث كان (رحلة التسجيل ت٣).
+  const keepNext = () => {
+    if (next !== DEFAULT_LANDING) target.searchParams.set("next", next);
+  };
 
   if (!code) {
     target.pathname = "/sign-in";
@@ -34,6 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     } else {
       target.searchParams.set("error", "invalid-link");
     }
+    keepNext();
     return NextResponse.redirect(target);
   }
 
@@ -42,18 +47,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // الباب الذي بدأ الدخول يكتب وضع الجلسة (`adr/0032`).
   const mode = request.nextUrl.searchParams.get("mode");
-  if (!error && isSessionMode(mode)) {
-    (await cookies()).set(MODE_COOKIE, mode, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
+  if (!error && isSessionMode(mode)) await writeMode(mode);
 
   if (error) {
     target.pathname = "/sign-in";
     target.searchParams.set("error", "expired-link");
+    keepNext();
     return NextResponse.redirect(target);
   }
 

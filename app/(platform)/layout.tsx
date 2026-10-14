@@ -1,10 +1,11 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppLayout } from "@/components/shared/app-layout";
 import { EmptyState } from "@/components/shared/states";
 import { visibleNavigation } from "@/config/navigation";
 import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
+import { safeNext } from "@/lib/auth/safe-next";
 import { getSession } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth/sign-out";
 import { switchMode } from "@/lib/auth/switch-mode";
@@ -15,7 +16,12 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   const session = await getSession();
 
   // الحساب الناقص لا تُفتح له شاشة قبل اسمه وجواله (`adr/0025`).
-  if (session.status === "incomplete") redirect("/complete-profile");
+  // وبوجهته: يعود بعد الإكمال إلى الصفحة التي قصدها (رحلة التسجيل ت٥) — والترويسة
+  // من الوسيط تمرّ بحارس الوجهة كأي مُدخَل.
+  if (session.status === "incomplete") {
+    const here = safeNext((await headers()).get("x-pathname"));
+    redirect(`/complete-profile?next=${encodeURIComponent(here)}`);
+  }
 
   // الموقوف يُقال له ذلك مرّة، بدل صفحاتٍ تقول كلٌّ منها «سجّل الدخول» وهو داخل.
   if (session.status === "suspended") {

@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { gateFor } from "./mode";
+import { gateRedirect } from "@/lib/auth/gate";
 
 /**
  * بوّابة المصادقة — **وظيفتها تجديد الجلسة والتحويل، لا الإنفاذ التفصيلي**.
@@ -53,21 +53,9 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_EXACT.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
-  if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    // **الباب بحسب الوجهة** (`adr/0032`): من قصد شاشة عمل يُردّ إلى بوابة الإدارة.
-    url.pathname = gateFor(path);
-    url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
-  }
-
-  const isAuthScreen = ["/sign-in", "/sign-up", "/recover", "/admin"].includes(path);
-  if (user && isAuthScreen) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  // **الباب بحسب الوجهة** (`adr/0032`)، والوجهة لا تضيع في الطريق (رحلة التسجيل ت٢ — `lib/auth/gate.ts`).
+  const to = gateRedirect({ path, search: request.nextUrl.search, signedIn: Boolean(user), isPublic });
+  if (to) return NextResponse.redirect(new URL(to, request.nextUrl.origin));
 
   return response;
 }

@@ -1,8 +1,10 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
-import { DEFAULT_LANDING } from "@/lib/auth/safe-next";
+import { NEXT_COOKIE } from "@/lib/auth/next-cookie";
+import { safeNext } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/db/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
 
@@ -45,6 +47,10 @@ export async function setPassword(_prev: FormState, form: FormData): Promise<For
     }
   }
 
-  redirect(DEFAULT_LANDING);
+  // الوجهة المؤجَّلة من الاستعادة تمرّ بحارسها هنا ثانيةً، ثم تُمحى (المراجعة م١).
+  const jar = await cookies();
+  const next = safeNext(jar.get(NEXT_COOKIE)?.value);
+  jar.delete(NEXT_COOKIE);
+  redirect(next);
 }
 
