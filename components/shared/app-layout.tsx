@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowRight,
   BookOpen,
   CalendarCheck,
   ChartNoAxesColumn,
@@ -64,6 +65,9 @@ const ICON_SIZE = 20;
  * مشاركاته. **بنمطٍ محدّد:** شاشة اليوم وصفحاتها الشقيقة وحدها — لا الاختبار الموقوت
  * (`/exam/*`) فتنقله ضغطةٌ خاطئة أثناء محاولته (المراجعة ح٣).
  */
+/** صفحات الطالب خارج رحلته التي يحمل رأسها الرجوعَ إليها بدل الشعار (ملاحظات الجوال ٢ · ٣). */
+const STUDENT_BACK_PAGES: ReadonlySet<string> = new Set(["/account"]);
+
 const JOURNEY_PATH = /^\/journey\/([0-9a-f-]{36})(?:\/(plan|progress))?\/?$/;
 
 export function journeyTabs(pathname: string): { href: string; label: string; icon: LucideIcon; current: boolean }[] | null {
@@ -145,10 +149,20 @@ export function AppLayout({
       <div className={`${styles.shell} ${styles.shellBare} ${studentTabs ? styles.shellTabs : ""}`}>
         <div className={`${styles.main} ${styles.mainBare}`}>
           <header className={styles.header}>
-            <Link href="/journey" className={styles.headerBrand}>
-              <BookOpen size={ICON_SIZE} aria-hidden />
-              {brand}
-            </Link>
+            {/* قائمةٌ صريحة لا «كل ما خارج رحلته» — فلا يظهر الرجوع في الاختبار الموقوت (مراجعة الخطة ١). */}
+            {!STUDENT_BACK_PAGES.has(pathname) ? (
+              <Link href="/journey" className={styles.headerBrand}>
+                <BookOpen size={ICON_SIZE} aria-hidden />
+                {brand}
+              </Link>
+            ) : (
+              // خارج رحلته («حسابي» مثلاً): الرأس يحمل الرجوع إليها — لا رابطٌ نصّيٌّ فوق العنوان
+              // (ملاحظات الجوال ٢ · ٣).
+              <Link href="/journey" className={styles.headerBack}>
+                <ArrowRight size={ICON_SIZE} aria-hidden />
+                رحلتي
+              </Link>
+            )}
             {studentTabs ? (
               // عائمٌ دون 1024px، وتبويباتٌ في الرأس فوقه (`adr/0049` · `adr/0050`).
               <nav className={styles.studentTabs} aria-label="رحلتي">

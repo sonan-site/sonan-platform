@@ -138,6 +138,9 @@
   /* ردّ فعل الضغط (ق-١٤) — والسطح الكبير يتحرّك أقلّ:
      ٣٪ على بطاقة عرضها ٣٠٠px حركةٌ مطّاطية، وعلى زرّ ٤٤px حركةٌ بالكاد تُرى. */
   --press-scale: 0.97;
+  /* خطّ حقول الكتابة: 14px، و16px على اللمس — Safari على الآيفون يكبّر الصفحة عند التركيز في حقلٍ
+     أصغر ولا يعيدها (ملاحظات الجوال ٢ · ١). كل حقلٍ — input وselect وtextarea — يأخذه من هنا. */
+  --text-control: var(--text-sm);
   --press-scale-large: 0.99;
 
   /* ══ مقاسات التخطيط — §١١.٣ ══ */
@@ -314,6 +317,23 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * حقول الكتابة 16px على الأجهزة اللمسية: Safari على الآيفون يكبّر الصفحة عند التركيز في حقلٍ
+ * أصغر ولا يعيدها، فتخرج الهوامش عن الشاشة (ملاحظات الجوال ٢ · ١). شبكة أمانٍ لكل حقلٍ خارج
+ * مكوّنات النماذج المشتركة — وتلك تضبطه في form.module.css بالقيمة نفسها.
+ */
+@media (any-pointer: coarse) {
+  :root {
+    --text-control: var(--text-base);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: var(--text-control);
+  }
 }
 
 /* بؤرة لوحة المفاتيح ظاهرة دائماً — لا يُلغى المخطط بلا بديل */

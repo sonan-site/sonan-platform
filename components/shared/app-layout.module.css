@@ -381,3 +381,24 @@
     margin-inline: 0;
   }
 }
+
+/* الرجوع إلى «رحلتي» في رأس الطالب خارج رحلته (ملاحظات الجوال ٢ · ٣). */
+.headerBack {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.headerBack:hover {
+  background: var(--color-accent-subtle);
+}
+
+.headerBack:active {
+  transform: scale(var(--press-scale));
+}

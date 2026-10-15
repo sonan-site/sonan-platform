@@ -8,8 +8,9 @@ import { PhoneField, ProfileFields, type ProfileValues } from "@/components/shar
 import { Card, Cards, Messages, Muted, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Modal } from "@/components/shared/modal";
 import { SessionTools } from "@/components/shared/session-tools";
-import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatNumber } from "@/lib/format";
+import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
+import { formatDate, formatNumber } from "@/lib/format";
+import { COUNTRIES, formatPhone } from "@/lib/profile/phone";
 import { PARTICIPANT_STATUS_LABEL, type ParticipantStatus } from "@/lib/programs/kinds";
 import {
   changePassword,
@@ -19,6 +20,12 @@ import {
   withdrawParticipation,
 } from "./actions";
 import { PasswordInput } from "@/components/shared/password-input";
+import { ReadSection } from "./read-section";
+
+type Section = "profile" | "identity" | "password";
+
+const GENDER: Record<string, string> = { male: "ذكر", female: "أنثى" };
+const countryName = (code: string) => COUNTRIES.find((c) => c.code === code)?.name ?? code;
 
 export type Participation = {
   id: string;
@@ -46,8 +53,8 @@ export function AccountView({
   hasPassword: boolean;
   hasGoogle: boolean;
   isStaff: boolean;
-  /** باب الوضع للفتات: «رحلتي» للطالب و«لوحة المتابعة» للإدارة (ملاحظات الجوال م٨). */
-  home: { href: string; label: string };
+  /** فتات الإدارة إلى «لوحة المتابعة» — والطالب بلا فتات: رجوعه في رأسه (ملاحظات الجوال ٢ · ٣). */
+  home: { href: string; label: string } | null;
   participations: Participation[];
   available: AvailableProgram[];
 }) {
@@ -56,6 +63,33 @@ export function AccountView({
   const [idState, idAction, idPending] = useActionState(updateMyIdentity, EMPTY_FORM_STATE);
   const [closeState, closeAction, closePending] = useActionState(closeMyAccount, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
+
+  /**
+   * القسم المفتوح للتعديل، وحالُ إجرائه لحظة فتحه. يبقى مفتوحاً ما لم يأتِ ردٌّ جديد، أو جاء
+   * بخطأ (فيبقى ما كُتب)؛ ويُغلق بنجاحه في التصيير نفسه الذي يحمل القيم الجديدة — بلا تأثيرٍ
+   * ولا ومضةٍ للقديم (مراجعة الخطة ٥). والإغلاق يُفكّ النموذج، فيعود بقيمه الحيّة عند فتحه.
+   */
+  const [open, setOpen] = useState<{ section: Section; at: FormState } | null>(null);
+  const isOpen = (s: Section, st: FormState) =>
+    open?.section === s && (st === open.at || Boolean(st.error) || Boolean(st.fieldErrors));
+  const lastNotice = (s: Section, st: FormState) =>
+    open?.section === s && st !== open.at && !isOpen(s, st) ? st.notice : undefined;
+  // أخطاء محاولةٍ سابقة لا تعود حمراء عند إعادة الفتح — النموذج يبدأ نظيفاً (مراجعة التنفيذ ١).
+  const fresh = (st: FormState): FormState => (st !== open?.at ? st : EMPTY_FORM_STATE);
+  const saving = profilePending || idPending || pwPending;
+  // التركيز يتبع القسم: إلى أول حقلٍ عند الفتح، وإلى زرّ القسم عند الإلغاء (مراجعة التنفيذ ٤).
+  const focusSoon = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.focus());
+  const edit = (section: Section, st: FormState, first: string) => {
+    setOpen({ section, at: st });
+    focusSoon(first);
+  };
+  const cancel = (section: Section) => {
+    setOpen(null);
+    focusSoon(`edit-${section}`);
+  };
+  const fullName = [profile.firstName, profile.fatherName, profile.grandfatherName, profile.familyName]
+    .filter(Boolean)
+    .join(" ");
   const [leaving, setLeaving] = useState<Participation | null>(null);
 
   const methods = [hasPassword ? "البريد وكلمة المرور" : null, hasGoogle ? "حساب Google" : null]
@@ -65,7 +99,7 @@ export function AccountView({
   return (
     <>
       <PageHead
-        crumbs={[home]}
+        crumbs={home ? [home] : []}
         title="حسابي"
         lede="بياناتك، وكلمة مرورك، والبرامج التي سجّلت فيها والمتاحة للتسجيل."
       />
@@ -75,24 +109,45 @@ export function AccountView({
       <Step
         n={1}
         title="بياناتي"
-        why="اسمك وجوالك وبياناتك كما تراها إدارة البرنامج. عدّل ما شئت ثم احفظ."
+        why="اسمك وجوالك وبياناتك كما تراها إدارة البرنامج."
         done
         state={<span>{email}</span>}
       >
-        <p>
-          <Muted>طريقة الدخول: {methods || "—"}</Muted>
-        </p>
-        <StepForm title="بياناتي" action={profileAction} state={profileState}>
-          <ProfileFields values={profile} errors={profileState.fieldErrors} />
-          <FormActions>
-            <Button type="submit" variant="primary" pending={profilePending}>
-              احفظ
-            </Button>
-          </FormActions>
-          <Messages state={profileState} />
-        </StepForm>
+        {/* `Muted` فقرةٌ بنفسها — ولفّها بفقرةٍ يُفسد التطابق بين الخادم والمتصفح. */}
+        <Muted>طريقة الدخول: {methods || "—"}</Muted>
+        {isOpen("profile", profileState) ? (
+          <StepForm title="بياناتي" action={profileAction} state={profileState}>
+            <ProfileFields values={profile} errors={fresh(profileState).fieldErrors} />
+            <FormActions>
+              <Button type="submit" variant="primary" pending={profilePending}>
+                احفظ
+              </Button>
+              <Button onClick={() => cancel("profile")} disabled={profilePending}>
+                إلغاء
+              </Button>
+            </FormActions>
+            <Messages state={fresh(profileState)} />
+          </StepForm>
+        ) : (
+          <ReadSection
+            title="بياناتي"
+            editId="edit-profile"
+            disabled={saving}
+            onEdit={() => edit("profile", profileState, "firstName")}
+            notice={lastNotice("profile", profileState)}
+            rows={[
+              ["الاسم", fullName],
+              ["الجنس", GENDER[profile.gender] ?? ""],
+              ["تاريخ الميلاد", profile.birthDate ? formatDate(profile.birthDate) : ""],
+              ["الجنسية", profile.nationality ? countryName(profile.nationality) : ""],
+              ["الجوال", profile.phone ? <bdi dir="ltr">{formatPhone(profile.phone)}</bdi> : ""],
+              ["جوال إضافي", profile.phoneSecondary ? <bdi dir="ltr">{formatPhone(profile.phoneSecondary)}</bdi> : ""],
+            ]}
+          />
+        )}
 
         {/* هويتي (`adr/0047`) — تُشترط عند التسجيل في برنامجٍ يطلبها، ولا يراها كاملةً غير صاحبها. */}
+        {isOpen("identity", idState) ? (
         <StepForm title="هويتي" action={idAction} state={idState}>
           <Muted>
             تطلبها بعض البرامج عند التسجيل. لا يراها كاملةً غيرك، وإدارة البرنامج تراها مقنّعة.
@@ -101,7 +156,7 @@ export function AccountView({
             id="nationalId"
             label="رقم الهوية أو الإقامة"
             hint={identity.nationalId ? "مثبَّت — لتصحيحه تواصل مع إدارة البرنامج" : "عشرة أرقام يبدأ بـ1 أو 2"}
-            error={idState.fieldErrors?.["nationalId"]}
+            error={fresh(idState).fieldErrors?.["nationalId"]}
           >
             <Input
               id="nationalId"
@@ -111,7 +166,7 @@ export function AccountView({
               latin
               defaultValue={identity.nationalId ?? ""}
               readOnly={Boolean(identity.nationalId)}
-              invalid={Boolean(idState.fieldErrors?.["nationalId"])}
+              invalid={Boolean(fresh(idState).fieldErrors?.["nationalId"])}
             />
           </Field>
           <PhoneField
@@ -119,16 +174,35 @@ export function AccountView({
             label="جوال وليّ الأمر"
             hint="مطلوبٌ لمن هم دون الثامنة عشرة"
             value={identity.guardianPhone}
-            error={idState.fieldErrors?.["guardianPhone"]}
+            error={fresh(idState).fieldErrors?.["guardianPhone"]}
             countryName="guardianPhoneCountry"
           />
           <FormActions>
             <Button type="submit" variant="primary" pending={idPending}>
               احفظ الهوية
             </Button>
+            <Button onClick={() => cancel("identity")} disabled={idPending}>
+              إلغاء
+            </Button>
           </FormActions>
-          <Messages state={idState} />
+          <Messages state={fresh(idState)} />
         </StepForm>
+        ) : (
+          <ReadSection
+            title="هويتي"
+            editId="edit-identity"
+            disabled={saving}
+            onEdit={() => edit("identity", idState, identity.nationalId ? "guardianPhone" : "nationalId")}
+            notice={lastNotice("identity", idState)}
+            rows={[
+              // كاملاً لصاحبه وحده — والإدارة تراه مقنّعاً (`adr/0047`).
+              ["رقم الهوية أو الإقامة", identity.nationalId ? <bdi dir="ltr">{identity.nationalId}</bdi> : ""],
+              ["جوال وليّ الأمر", identity.guardianPhone ? <bdi dir="ltr">{formatPhone(identity.guardianPhone)}</bdi> : ""],
+            ]}
+          >
+            {identity.nationalId ? <Muted>الرقم مثبَّت — لتصحيحه تواصل مع إدارة البرنامج.</Muted> : null}
+          </ReadSection>
+        )}
       </Step>
 
       {/* ══ ٢ · كلمة المرور ══ */}
@@ -143,9 +217,10 @@ export function AccountView({
         done
         state={<span>{hasPassword ? "لحسابك كلمة مرور" : "بلا كلمة مرور"}</span>}
       >
+        {isOpen("password", pwState) ? (
         <StepForm title={hasPassword ? "كلمة مرور جديدة" : "كلمة المرور"} action={pwAction} state={pwState}>
           {hasPassword ? (
-            <Field id="current" label="كلمة المرور الحالية" required error={pwState.fieldErrors?.["current"]}>
+            <Field id="current" label="كلمة المرور الحالية" required error={fresh(pwState).fieldErrors?.["current"]}>
               <PasswordInput id="current" name="current" autoComplete="current-password" required />
             </Field>
           ) : null}
@@ -154,20 +229,34 @@ export function AccountView({
             label="الجديدة"
             required
             hint="8 أحرف فأكثر"
-            error={pwState.fieldErrors?.["password"]}
+            error={fresh(pwState).fieldErrors?.["password"]}
           >
             <PasswordInput id="password" name="password" autoComplete="new-password" required />
           </Field>
-          <Field id="confirm" label="تأكيدها" required error={pwState.fieldErrors?.["confirm"]}>
+          <Field id="confirm" label="تأكيدها" required error={fresh(pwState).fieldErrors?.["confirm"]}>
             <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required />
           </Field>
           <FormActions>
             <Button type="submit" variant="primary" pending={pwPending}>
               احفظ
             </Button>
+            <Button onClick={() => cancel("password")} disabled={pwPending}>
+              إلغاء
+            </Button>
           </FormActions>
-          <Messages state={pwState} />
+          <Messages state={fresh(pwState)} />
         </StepForm>
+        ) : (
+          <ReadSection
+            title="كلمة المرور"
+            editLabel={hasPassword ? "تغيير" : "إضافة"}
+            editId="edit-password"
+            disabled={saving}
+            onEdit={() => edit("password", pwState, hasPassword ? "current" : "password")}
+            notice={lastNotice("password", pwState)}
+            rows={[["الحال", hasPassword ? "لحسابك كلمة مرور" : "بلا كلمة مرور — تدخل بـ Google"]]}
+          />
+        )}
       </Step>
 
       {/* ══ ٣ · برامجي ══ */}

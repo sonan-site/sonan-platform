@@ -90,6 +90,8 @@ export async function changePassword(_prev: FormState, form: FormData): Promise<
     };
   }
 
+  // تُقرأ حال كلمة المرور من جديد — فـ«إضافة» تصير «تغيير» ويُطلب فيها الحالية (د-٩ · مراجعة الخطة ٢).
+  revalidatePath("/account");
   return { notice: hasPassword ? "تغيّرت كلمة المرور." : "أُضيفت كلمة المرور. تستطيع الدخول بها أو بـ Google." };
 }
 

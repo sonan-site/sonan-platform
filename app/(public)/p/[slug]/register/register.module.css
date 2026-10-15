@@ -8,6 +8,8 @@
   max-inline-size: 36rem;
   min-inline-size: 0;
   margin-inline: auto;
+  /* نصٌّ بلا فواصل (رابطٌ أو رقمٌ طويل في سؤالٍ يكتبه المدير) يُكسَر ولا يوسّع الصفحة. */
+  overflow-wrap: anywhere;
 }
 
 .head {
@@ -70,6 +72,7 @@
 /* المسارات: اختيارٌ حقيقي (radio) في بطاقة — يعمل بلا سكربت ومع قارئ الشاشة. */
 .tracks {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   inline-size: 100%;
 }
@@ -81,8 +84,13 @@
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  min-inline-size: 0;
   background: var(--color-surface);
   cursor: pointer;
+}
+
+.consent > span {
+  min-inline-size: 0;
 }
 
 .track:has(input:checked) {
@@ -155,7 +163,7 @@
 
 .choice {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
 }
 

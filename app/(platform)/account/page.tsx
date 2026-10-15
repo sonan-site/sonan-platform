@@ -95,7 +95,7 @@ export default async function AccountPage() {
       isStaff={session.permissions.size > 0}
       home={
         resolveMode((await cookies()).get(MODE_COOKIE)?.value, session.permissions.size > 0) === "participant"
-          ? { href: "/journey", label: "رحلتي" }
+          ? null
           : { href: "/dashboard", label: "لوحة المتابعة" }
       }
       participations={participations}
