@@ -16,6 +16,7 @@ const USER = "00000000-0000-4000-8000-000000000da1";
 const PARTS = {
   first_name: "إبراهيم",
   father_name: "محمد",
+  grandfather_name: "عبدالله",
   family_name: "الحسين",
   gender: "male",
   birth_date: "1990-01-01",
@@ -93,7 +94,10 @@ describe("«المكتمل» في القاعدة = نظيره في TypeScript", 
   const cases: [string, Partial<ProfileCompleteness>][] = [
     ["مكتمل", {}],
     ["بلا اسم أول", { first_name: null }],
+    ["**المكتمل مكتملٌ في الطرفين** (فلا ينجح التكافؤ بفشلهما معاً)", {}],
     ["بلا أب", { father_name: null }],
+    ["**بلا جد** (الهجرة ٠٩٠)", { grandfather_name: null }],
+    ["جدٌّ فراغٌ مقصوص ← ناقص في الطرفين", { grandfather_name: "  " }],
     ["بلا عائلة", { family_name: null }],
     ["بلا جنس", { gender: null }],
     ["بلا ميلاد", { birth_date: null }],
@@ -116,6 +120,7 @@ describe("«المكتمل» في القاعدة = نظيره في TypeScript", 
         ...(row as unknown as Omit<ProfileCompleteness, "deleted_at">),
       });
       expect(rows[0]!.complete).toBe(ts);
+      expect(ts).toBe(Object.keys(change).length === 0);
     });
   }
 });

@@ -40,12 +40,14 @@ export async function completeProfile(_prev: FormState, form: FormData): Promise
   const db = await createClient();
   const { data: existing } = await db
     .from("profiles")
-    .select("id")
+    .select("id, terms_version")
     .eq("user_id", session.userId)
     .maybeSingle();
 
-  // الإقرار: متى وعلى أي نسخة — والنسخة الحالية شرط الاكتمال (الهجرة ٠٤٠).
-  const row = { ...parsed.data, terms_accepted_at: nowIso(), terms_version: TERMS_VERSION };
+  // الإقرار: متى وعلى أي نسخة — والنسخة الحالية شرط الاكتمال (الهجرة ٠٤٠). ومن قبِل النسخة
+  // الحالية سلفاً (عاد لنقصِ بيانةٍ وحدها) لا يُمحى تاريخ قبوله (ملاحظات الجوال م٤).
+  const accepted = existing?.terms_version === TERMS_VERSION;
+  const row = accepted ? parsed.data : { ...parsed.data, terms_accepted_at: nowIso(), terms_version: TERMS_VERSION };
 
   // `full_name` يُحسب من الأجزاء بمشغّل القاعدة؛ القيمة المرسلة هنا لا تُحفظ.
   const { error } = existing

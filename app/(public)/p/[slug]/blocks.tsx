@@ -87,7 +87,7 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
                       <span className={left === 0 ? styles.cardFull : styles.cardSeats}>
                         {left === 0
                           ? "اكتملت المقاعد"
-                          : `متبقٍ ${formatNumber(left)} من ${formatNumber(t.capacity ?? 0)} مقعداً`}
+                          : `المتبقي ${formatNumber(left)} من ${formatNumber(t.capacity ?? 0)} مقعداً`}
                       </span>
                     ) : null}
                   </div>

@@ -1,11 +1,10 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useActionState } from "react";
 import { ActionForm } from "@/components/shared/action-form";
+import { RegisterSteps } from "@/components/shared/register-steps";
 import { Field, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatNumber } from "@/lib/format";
 import { completeForRegistration } from "./actions";
 import styles from "./register.module.css";
 
@@ -38,20 +37,7 @@ export function NeedsForm({
         <p className={styles.lede}>تطلب هذه المسابقة بياناتٍ لم تُكتب في حسابك بعد. اكتبها هنا مرةً واحدة، ثم تختار مسارك.</p>
       </header>
 
-      <ol className={styles.steps} aria-label="خطوات التسجيل">
-        <li className={styles.stepDone}>
-          <span className={styles.stepDot}>
-            <Check size={13} aria-hidden />
-          </span>
-          الحساب
-        </li>
-        {["بياناتك", "مسارك", "الإقرار"].map((label, i) => (
-          <li key={label} className={i === 0 ? styles.stepNow : undefined}>
-            <span className={styles.stepDot}>{formatNumber(i + 2)}</span>
-            {label}
-          </li>
-        ))}
-      </ol>
+      <RegisterSteps done={1} />
 
       <ActionForm action={action} state={state} className={styles.form}>
         <input type="hidden" name="slug" value={slug} />
@@ -77,7 +63,7 @@ export function NeedsForm({
             <Field id="nationalId" label="رقم الهوية أو الإقامة" required hint="لا يُغيَّر بعد حفظه — تأكّد منه" error={err("nationalId")}>
               <Input id="nationalId" name="nationalId" required inputMode="numeric" latin autoComplete="off" invalid={Boolean(err("nationalId"))} aria-describedby={err("nationalId") ? "nationalId-error" : undefined} />
             </Field>
-            <Field id="nationalIdConfirm" label="أعد كتابة الرقم" required error={err("nationalIdConfirm")}>
+            <Field id="nationalIdConfirm" label="أعد كتابة رقم الهوية" required error={err("nationalIdConfirm")}>
               <Input id="nationalIdConfirm" name="nationalIdConfirm" required inputMode="numeric" latin autoComplete="off" invalid={Boolean(err("nationalIdConfirm"))} aria-describedby={err("nationalIdConfirm") ? "nationalIdConfirm-error" : undefined} />
             </Field>
             </>

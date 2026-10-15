@@ -6,6 +6,7 @@ const complete: ProfileCompleteness = {
   deleted_at: null,
   first_name: "إبراهيم",
   father_name: "محمد",
+  grandfather_name: "عبدالله",
   family_name: "الحسين",
   gender: "male",
   birth_date: "1990-01-01",
@@ -31,7 +32,7 @@ describe("حالة الحساب", () => {
   });
 
   it("**ملفٌ قائم تنقصه بيانة إلزامية ← ناقص** — الحسابات القديمة تُستكمل مرة", () => {
-    for (const key of ["first_name", "father_name", "family_name", "gender", "birth_date", "nationality"] as const) {
+    for (const key of ["first_name", "father_name", "grandfather_name", "family_name", "gender", "birth_date", "nationality"] as const) {
       expect(accountState({ ...complete, [key]: null }), key).toBe("incomplete");
     }
   });

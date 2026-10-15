@@ -44,8 +44,8 @@ export function ProfileFields({
         </Field>
       </div>
       <div className={styles.pair}>
-        <Field id="grandfatherName" label="اسم الجد" hint="اختياري هنا — وتطلبه بعض المسابقات" error={errors?.["grandfatherName"]}>
-          <Input id="grandfatherName" name="grandfatherName" defaultValue={values.grandfatherName} />
+        <Field id="grandfatherName" label="اسم الجد" required error={errors?.["grandfatherName"]}>
+          <Input id="grandfatherName" name="grandfatherName" defaultValue={values.grandfatherName} required />
         </Field>
         <Field id="familyName" label="اسم العائلة" required error={errors?.["familyName"]}>
           <Input

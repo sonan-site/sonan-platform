@@ -72,7 +72,7 @@ export function CampaignTracks({
                   <span className={styles.seats}>
                     {full
                       ? "اكتملت المقاعد"
-                      : `متبقٍّ ${formatNumber(t.remaining ?? 0)} من ${formatNumber(t.capacity)} مقعداً`}
+                      : `المتبقي ${formatNumber(t.remaining ?? 0)} من ${formatNumber(t.capacity)} مقعداً`}
                   </span>
                   <span className={styles.bar} aria-hidden>
                     <i style={{ inlineSize: `${used}%` }} />

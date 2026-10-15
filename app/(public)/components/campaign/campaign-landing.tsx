@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check, Plus } from "lucide-react";
 import { formatHijri } from "@/lib/format";
-import { parseBlockContent, type BlockContent, type BlockType } from "@/lib/programs/blocks";
+import { parseBlockContent, pickGuide, type BlockContent, type BlockType } from "@/lib/programs/blocks";
 import { groupFaq } from "@/lib/programs/faq";
 import type { PublicProgram } from "@/lib/programs/public-page-server";
 import { scheduleRangeLabel, scheduleStatus } from "@/lib/programs/schedule";
@@ -61,7 +61,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
   const terms = blocks.terms?.[0];
   const registration = blocks.registration?.[0];
   const faqBlock = blocks.faq?.[0];
-  const guide = (blocks.cta ?? []).find((c) => c.buttonHref);
+  const guide = pickGuide(blocks.cta ?? []);
   const invites = blocks.free_text ?? [];
   const prizesBlocks = blocks.prizes ?? [];
 

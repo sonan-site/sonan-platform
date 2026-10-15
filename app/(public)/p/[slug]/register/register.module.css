@@ -36,48 +36,6 @@
   color: var(--color-text-muted);
 }
 
-/* ══ الخطوات ══ */
-
-.steps {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.steps li {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  text-align: center;
-}
-
-.stepDot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: 1.75rem;
-  block-size: 1.75rem;
-  border: 1.5px solid var(--color-border);
-  border-radius: 50%;
-  background: var(--color-surface);
-}
-
-.stepDone {
-  color: var(--color-success);
-}
-
-.stepDone .stepDot {
-  border-color: var(--color-success);
-  color: var(--color-surface);
-  background: var(--color-success);
-}
-
 /* ══ النموذج ══ */
 
 .form {
@@ -282,17 +240,6 @@ a.submit {
   transform: scale(0.99);
 }
 
-.stepNow {
-  color: var(--color-text);
-  font-weight: var(--weight-bold);
-}
-
-.stepNow .stepDot {
-  border-color: var(--color-accent);
-  color: var(--color-text-on-accent);
-  background: var(--color-accent);
-}
-
 .fieldError {
   margin: 0;
   font-size: var(--text-sm);
@@ -339,4 +286,15 @@ a.submit {
 .backLink {
   align-self: center;
   font-size: var(--text-sm);
+}
+
+/* رابط دليل المشارك في قسم الإقرار — يُفتح في نافذة فلا يضيع المُدخَل (أ٥). */
+.guide {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-2);
+  min-block-size: 2.75rem;
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
 }

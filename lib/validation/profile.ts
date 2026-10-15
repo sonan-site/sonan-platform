@@ -19,14 +19,6 @@ const namePart = (label: string) =>
     .max(40, `${label} لا يزيد عن 40 حرفاً`)
     .regex(NAME, `${label} بالحروف فقط`);
 
-const optionalNamePart = (label: string) =>
-  z
-    .string()
-    .trim()
-    .transform((v) => (v === "" ? null : v))
-    .nullable()
-    .refine((v) => v === null || (v.length >= 2 && v.length <= 40 && NAME.test(v)), `${label} بالحروف فقط`);
-
 function ageOn(birth: Date, at: Date): number {
   let age = at.getUTCFullYear() - birth.getUTCFullYear();
   const beforeBirthday =
@@ -40,7 +32,7 @@ export const profileSchema = z
   .object({
     firstName: namePart("الاسم الأول"),
     fatherName: namePart("اسم الأب"),
-    grandfatherName: optionalNamePart("اسم الجد"),
+    grandfatherName: namePart("اسم الجد"),
     familyName: namePart("اسم العائلة"),
     gender: z.enum(["male", "female"], { message: "اختر الجنس" }),
     birthDate: z

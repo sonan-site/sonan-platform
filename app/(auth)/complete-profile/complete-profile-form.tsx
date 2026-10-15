@@ -8,6 +8,7 @@ import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import styles from "../layout.module.css";
 import { completeProfile } from "./actions";
 import { ActionForm } from "@/components/shared/action-form";
+import { isRegisterPath, RegisterSteps } from "@/components/shared/register-steps";
 
 export function CompleteProfileForm({
   email,
@@ -22,6 +23,11 @@ export function CompleteProfileForm({
 
   return (
     <>
+      {isRegisterPath(next) ? (
+        <div className={styles.steps}>
+          <RegisterSteps done={1} />
+        </div>
+      ) : null}
       <h1 className={styles.title}>أكمل حسابك</h1>
       <p className={styles.lede}>
         بياناتك تُكتب مرةً واحدة وتُستعمل في كل برنامج تسجّل فيه. وما تطلبه مسابقةٌ بعينها — كرقم الهوية — يُطلب

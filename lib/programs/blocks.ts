@@ -168,12 +168,27 @@ const termsContent = z.object({
   items: z.array(text(300)).max(BLOCK_ROWS.terms).default([]),
 });
 
+/** صفحةٌ تُفتح: `http(s)` أو مسارٌ داخلي — لا `//نطاق` ولا `/\نطاق` (يقرؤهما المتصفح نطاقاً). */
+const isPageHref = (v: string): boolean => /^https?:\/\/\S+$/i.test(v) || /^\/(?![\\/])/.test(v);
+
+/** رابطٌ يُعرض للزائر: صفحةٌ أو بريدٌ أو هاتف — لا `javascript:` (ملاحظات الجوال ح٣). */
+export const isSafeHref = (v: string): boolean => v === "" || isPageHref(v) || /^(mailto|tel):\S+$/i.test(v);
+
 const ctaContent = z.object({
   heading: text().default(""),
   text: z.string().trim().min(2, "النص مطلوب"),
   buttonLabel: text(40).default(""),
-  buttonHref: text(300).default(""),
+  buttonHref: text(300).default("").refine(isSafeHref, "الرابط يبدأ بـ https:// أو بـ / لصفحةٍ في المنصة"),
 });
+
+/**
+ * دليل المشارك: أول عنصر دعوةٍ له رابط — ما تعرضه الواجهة «دليلاً» تحت الشروط، وما يربطه
+ * إقرار التسجيل (ملاحظات الجوال أ٥). مصدرٌ واحد للموضعين.
+ */
+export function pickGuide<T extends { buttonHref: string }>(ctas: readonly T[]): T | undefined {
+  // الدليل صفحةٌ تُقرأ — فدعوةٌ إلى بريدٍ أو هاتف لا تُعرض «دليلاً».
+  return ctas.find((c) => isPageHref(c.buttonHref));
+}
 
 export const BLOCK_SCHEMAS = {
   header: headerContent,

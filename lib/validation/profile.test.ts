@@ -4,7 +4,7 @@ import { profileSchema } from "./profile";
 const valid = {
   firstName: "إبراهيم",
   fatherName: "محمد",
-  grandfatherName: "",
+  grandfatherName: "عبدالله",
   familyName: "الحسين",
   gender: "male",
   birthDate: "1995-05-20",
@@ -23,14 +23,15 @@ describe("بيانات الحساب", () => {
     const parsed = profileSchema.parse(valid);
     expect(parsed).toMatchObject({
       first_name: "إبراهيم",
-      grandfather_name: null,
+      grandfather_name: "عبدالله",
       phone: "+966501234567",
       phone_secondary: null,
     });
   });
 
-  it("الاسم الرباعي: الجد اختياري، والثلاثة الأخرى إلزامية", () => {
-    expect(profileSchema.parse({ ...valid, grandfatherName: "عبدالله" }).grandfather_name).toBe("عبدالله");
+  it("**الاسم الرباعي إلزاميٌّ كلّه** (ملاحظات الجوال أ٤)", () => {
+    expect(errorsOf({ ...valid, grandfatherName: "" })).toHaveProperty("grandfatherName");
+    expect(errorsOf({ ...valid, grandfatherName: "   " })).toHaveProperty("grandfatherName");
     expect(errorsOf({ ...valid, fatherName: "" })).toHaveProperty("fatherName");
     expect(errorsOf({ ...valid, familyName: "1234" })).toHaveProperty("familyName");
   });

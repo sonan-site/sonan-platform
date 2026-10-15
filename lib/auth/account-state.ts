@@ -17,6 +17,8 @@ export type ProfileCompleteness = {
   deleted_at: string | null;
   first_name: string | null;
   father_name: string | null;
+  /** شرطٌ منذ الهجرة ٠٩٠ — الاسم الرباعي للجميع (ملاحظات الجوال أ٤). */
+  grandfather_name: string | null;
   family_name: string | null;
   gender: string | null;
   birth_date: string | null;
@@ -28,7 +30,7 @@ export type ProfileCompleteness = {
 
 /** الأعمدة التي تقرؤها الجلسة لتحكم بالاكتمال. */
 export const COMPLETENESS_COLUMNS =
-  "deleted_at, first_name, father_name, family_name, gender, birth_date, nationality, phone, terms_version";
+  "deleted_at, first_name, father_name, grandfather_name, family_name, gender, birth_date, nationality, phone, terms_version";
 
 const E164 = /^\+[1-9][0-9]{7,14}$/;
 
@@ -36,6 +38,7 @@ export function isProfileComplete(p: ProfileCompleteness): boolean {
   return Boolean(
     p.first_name &&
       p.father_name &&
+      p.grandfather_name?.trim() &&
       p.family_name &&
       p.gender &&
       p.birth_date &&

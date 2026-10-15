@@ -976,6 +976,10 @@
   font-size: var(--text-xs);
 }
 
+.footLinks a {
+  text-decoration: none;
+}
+
 /* ══ تغيّر الحجم ══ */
 @media (max-width: 1020px) {
   .heroGrid {

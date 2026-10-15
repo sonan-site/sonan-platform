@@ -218,3 +218,8 @@
 .modalText a {
   color: var(--color-accent-hover);
 }
+
+/* مؤشّر خطوات التسجيل فوق «أكمل حسابك» لمن جاء من التسجيل (ملاحظات الجوال أ١). */
+.steps {
+  margin-block-end: var(--space-5);
+}

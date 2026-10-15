@@ -1,8 +1,9 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 import { useActionState, useState } from "react";
 import { ActionForm } from "@/components/shared/action-form";
+import { RegisterSteps } from "@/components/shared/register-steps";
 import { Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
@@ -35,6 +36,7 @@ export type TrackOption = {
  * فـ`fn_register` تحكم بها كما حكمت، والشكل وحده تغيّر.
  */
 export function RegisterForm({
+  guide,
   programId,
   programName,
   initialTrack,
@@ -43,6 +45,8 @@ export function RegisterForm({
   tracks,
   questions,
 }: {
+  /** رابط دليل المشارك — فارغ إن لم يُضبط في عناصر الصفحة (ملاحظات الجوال أ٥). */
+  guide: { href: string; label: string } | null;
   programId: string;
   programName: string;
   /** المسار المحمول من الواجهة (`?track`) إن كان صالحاً — وإلا فارغ. */
@@ -60,12 +64,7 @@ export function RegisterForm({
   const asked = visible.filter((q) => q.kind !== "consent");
   const consents = visible.filter((q) => q.kind === "consent");
 
-  const steps = [
-    { label: "الحساب", done: true },
-    { label: "بياناتك", done: true },
-    { label: "مسارك", done: tracks.length === 0 || trackId !== "" },
-    { label: "الإقرار", done: false },
-  ];
+  const stepsDone = tracks.length === 0 || trackId !== "" ? 3 : 2;
 
   return (
     <div className={styles.page}>
@@ -77,17 +76,7 @@ export function RegisterForm({
         </p>
       </header>
 
-      <ol className={styles.steps} aria-label="خطوات التسجيل">
-        {steps.map((s, i) => (
-          <li
-            key={s.label}
-            className={s.done ? styles.stepDone : i === steps.findIndex((x) => !x.done) ? styles.stepNow : undefined}
-          >
-            <span className={styles.stepDot}>{s.done ? <Check size={13} aria-hidden /> : formatNumber(i + 1)}</span>
-            {s.label}
-          </li>
-        ))}
-      </ol>
+      <RegisterSteps done={stepsDone} />
 
       <ActionForm action={action} state={state} className={styles.form}>
         <input type="hidden" name="programId" value={programId} />
@@ -121,7 +110,7 @@ export function RegisterForm({
                           <span className={styles.seats}>
                             {full
                               ? "اكتملت المقاعد"
-                              : `متبقٍّ ${formatNumber(t.remaining ?? 0)} من ${formatNumber(t.capacity)}`}
+                              : `المتبقي ${formatNumber(t.remaining ?? 0)} من ${formatNumber(t.capacity)}`}
                           </span>
                           <span className={styles.bar} aria-hidden>
                             <i style={{ inlineSize: `${used}%` }} />
@@ -175,6 +164,13 @@ export function RegisterForm({
         {consents.length > 0 ? (
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>الإقرار</h2>
+            {guide ? (
+              <a href={guide.href} target="_blank" rel="noopener noreferrer" className={styles.guide}>
+                <BookOpen size={18} aria-hidden />
+                {guide.label}
+                <ExternalLink size={14} aria-hidden />
+              </a>
+            ) : null}
             {consents.map((q) => {
               const id = `q:${q.id}`;
               return (

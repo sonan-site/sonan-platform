@@ -341,7 +341,12 @@ export function BlockFields({
               defaultValue={text(values["buttonLabel"])}
             />
           </Field>
-          <Field id={id("buttonHref")} label="وجهة الزر">
+          <Field
+            id={id("buttonHref")}
+            label="وجهة الزر"
+            hint="https://… أو /مسار في المنصة — والدعوة الأولى ذات الرابط هي «دليل المشارك»"
+            error={err("buttonHref")}
+          >
             <Input
               id={id("buttonHref")}
               name="buttonHref"

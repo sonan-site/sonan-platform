@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
+import { parseBlockContent, pickGuide } from "@/lib/programs/blocks";
 import { formatRegistrationNo, REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { NeedsForm, type NeedCode } from "./needs-form";
 import { RegisterForm, type QuestionRow, type TrackOption } from "./register-form";
@@ -155,8 +156,24 @@ export default async function RegisterPage({
   // يُقبل المسار إن كان من مسارات البرنامج وفيه مقعد — وإلا يُترك الاختيار للطالب.
   const initialTrack = tracks.find((t) => t.id === wantedTrack && t.remaining !== 0)?.id ?? "";
 
+  // دليل المشارك في قسم الإقرار — من عنصر الدعوة نفسه الذي تعرضه الواجهة (أ٥). تعذّره يُخفي الرابط وحده.
+  const { data: ctaRows } = await db
+    .from("page_blocks")
+    .select("content")
+    .eq("program_id", program.id)
+    .eq("block_type", "cta")
+    .is("deleted_at", null)
+    .order("sort_order")
+    .order("created_at");
+  const ctas = (ctaRows ?? []).flatMap((r) => {
+    const parsed = parseBlockContent("cta", r.content);
+    return parsed.ok ? [parsed.content as { buttonHref: string; buttonLabel: string; heading: string }] : [];
+  });
+  const guide = pickGuide(ctas);
+
   return (
     <RegisterForm
+      guide={guide ? { href: guide.buttonHref, label: guide.buttonLabel || "اقرأ دليل المشارك" } : null}
       programId={program.id}
       programName={program.name}
       initialTrack={initialTrack}
