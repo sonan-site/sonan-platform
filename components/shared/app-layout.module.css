@@ -291,3 +291,93 @@
     align-items: center;
   }
 }
+
+/* ══ تبويبات الطالب (adr/0050) — في الرأس على سطح المكتب، وعائمةً دون 1024px ══ */
+.studentTabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-inline: auto;
+}
+
+.studentTab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.studentTab:hover {
+  color: var(--color-text);
+}
+
+.studentTab[aria-current="page"] {
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  background: var(--color-accent-subtle);
+}
+
+.studentTab:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 1023px) {
+  /* عائمٌ فوق المحتوى: مرفوعٌ عن الحافة، بحوافّ مستديرة وظلٍّ وخلفيةٍ شفيفة — ثابتٌ لا يختفي بالتمرير. */
+  .studentTabs {
+    position: fixed;
+    z-index: 30;
+    inset-inline: var(--space-4);
+    inset-block-end: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    block-size: var(--student-tabs-height);
+    margin: 0;
+    padding: var(--space-1);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    box-shadow:
+      0 10px 28px color-mix(in srgb, var(--color-text) 16%, transparent),
+      0 2px 6px color-mix(in srgb, var(--color-text) 8%, transparent);
+  }
+
+  .studentTab {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-1);
+    padding-inline: 0;
+    font-size: var(--text-xs);
+  }
+
+  /* ما يشغله الشريط أسفل الشاشة — يرثه زرّ اليوم اللاصق والتنبيه فيرتفعان فوقه. */
+  .shell.shellBare.shellTabs {
+    --student-tabs-height: 4rem;
+    --chrome-block-end: calc(var(--student-tabs-height) + var(--space-3));
+  }
+
+  .shellTabs .contentBare {
+    padding-block-end: calc(var(--chrome-block-end) + env(safe-area-inset-bottom) + var(--space-8));
+  }
+}
+
+/* الرأس بثلاثة أعمدة في وضع الطالب ذي التبويبات على سطح المكتب — فتتوسّط التبويبات (المراجعة م٣). */
+@media (min-width: 1024px) {
+  .shellTabs .header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .shellTabs .headerEnd {
+    justify-self: end;
+    margin-inline-start: 0;
+  }
+
+  .shellTabs .studentTabs {
+    margin-inline: 0;
+  }
+}

@@ -1,0 +1,291 @@
+/* «الخطة» — الأيام أسبوعاً أسبوعاً كما في النموذج المعتمد (الإصدار ٢٧). للجوال أولاً. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  inline-size: 100%;
+  max-inline-size: 40rem;
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.summaryTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+.muted,
+.foot {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.pace {
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+  background: var(--color-success-surface);
+}
+
+.paceBehind {
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
+.bar {
+  display: block;
+  block-size: 0.375rem;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.bar i {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+/* ══ المرشّحات ══ */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 2.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.filter[aria-current="page"] {
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+/* ══ الأسابيع ══ */
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.weekHead {
+  position: sticky;
+  inset-block-start: var(--header-height);
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  padding-block: var(--space-2);
+  font-size: var(--text-sm);
+  background: var(--color-bg);
+}
+
+.weekHead span {
+  font-weight: normal;
+  color: var(--color-text-muted);
+}
+
+.days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row,
+.rowHead,
+.milestone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 3.5rem;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* اليوم القادم يتوسّع في مكانه — فالحاوية عمود، ورأسها هو الصفّ. */
+details.row {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+}
+
+.rowHead {
+  cursor: pointer;
+  list-style: none;
+}
+
+.rowHead::-webkit-details-marker {
+  display: none;
+}
+
+a.row:hover,
+.rowHead:hover {
+  background: var(--color-surface);
+}
+
+a.row:active,
+.rowHead:active {
+  transform: scale(0.99);
+}
+
+.rowNow {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+.milestone {
+  border-style: dashed;
+  border-color: var(--color-border);
+  background: var(--color-bg);
+}
+
+.dot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 50%;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.milestone .dot {
+  border-style: dashed;
+  color: var(--color-accent);
+}
+
+.dot.done,
+.dot.recovered {
+  border-color: var(--color-success);
+  color: var(--color-surface);
+  background: var(--color-success);
+}
+
+.dot.slipped,
+.dot.overdue {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
+.dot.now {
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+}
+
+.text b {
+  font-size: var(--text-sm);
+}
+
+.text span {
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.state {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-block: 0 var(--space-3);
+  padding-inline: calc(var(--space-8) + var(--space-3)) var(--space-3);
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.rep {
+  color: var(--color-text-muted);
+}
+
+.empty {
+  margin: 0;
+  padding-block: var(--space-8);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* إشارة التوسّع: اليوم القادم يتوسّع هنا، والماضي يفتح شاشة اليوم. */
+.chev {
+  flex: none;
+  color: var(--color-text-muted);
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+details[open] .chev {
+  transform: rotate(180deg);
+}

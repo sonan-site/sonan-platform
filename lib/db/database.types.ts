@@ -3386,6 +3386,14 @@ export type Database = {
         Args: { p_participant_id: string; p_session_id: string }
         Returns: undefined
       }
+      fn_my_calendar: {
+        Args: { p_from: string; p_participant_id: string; p_to: string }
+        Returns: {
+          calendar_date: string
+          deadline: string
+          is_program_day: boolean
+        }[]
+      }
       fn_my_duties: {
         Args: never
         Returns: {
@@ -3444,12 +3452,35 @@ export type Database = {
           session_name: string
         }[]
       }
+      fn_my_milestones: {
+        Args: { p_participant_id: string }
+        Returns: {
+          at: string
+          exam_id: string
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          location: string
+          name: string
+          stage: Database["public"]["Enums"]["exam_stage"]
+        }[]
+      }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }
       fn_my_permissions: {
         Args: never
         Returns: {
           permission_code: string
           scope_program_id: string
+        }[]
+      }
+      fn_my_plan: {
+        Args: { p_participant_id: string }
+        Returns: {
+          compensated: boolean
+          completed_on: string
+          day_number: number
+          expected_date: string
+          scheduled_date: string
+          stumbled: boolean
+          tasks: Json
         }[]
       }
       fn_open_next_day: { Args: { p_participant_id: string }; Returns: Json }

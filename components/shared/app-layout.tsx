@@ -2,9 +2,11 @@
 
 import {
   BookOpen,
+  CalendarCheck,
   CalendarDays,
   Gavel,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Menu,
   ScrollText,
@@ -55,6 +57,24 @@ const ICONS: Record<IconName, LucideIcon> = {
 };
 
 const ICON_SIZE = 20;
+
+/**
+ * تبويبات الطالب داخل مشاركةٍ واحدة — المعرّف من المسار، فلا يحتاج التخطيط أن يعرف
+ * مشاركاته. **بنمطٍ محدّد:** شاشة اليوم وصفحاتها الشقيقة وحدها — لا الاختبار الموقوت
+ * (`/exam/*`) فتنقله ضغطةٌ خاطئة أثناء محاولته (المراجعة ح٣).
+ */
+const JOURNEY_PATH = /^\/journey\/([0-9a-f-]{36})(?:\/(plan))?\/?$/;
+
+export function journeyTabs(pathname: string): { href: string; label: string; icon: LucideIcon; current: boolean }[] | null {
+  const match = JOURNEY_PATH.exec(pathname);
+  if (!match) return null;
+  const base = `/journey/${match[1]}`;
+  const page = match[2] ?? "";
+  return [
+    { href: base, label: "اليوم", icon: CalendarCheck, current: page === "" },
+    { href: `${base}/plan`, label: "الخطة", icon: ListChecks, current: page === "plan" },
+  ];
+}
 const COLLAPSE_KEY = "sonan.sidebar.collapsed";
 const SCROLL_THRESHOLD = 8;
 
@@ -118,14 +138,34 @@ export function AppLayout({
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   if (mode === "participant") {
+    const studentTabs = journeyTabs(pathname);
     return (
-      <div className={`${styles.shell} ${styles.shellBare}`}>
+      <div className={`${styles.shell} ${styles.shellBare} ${studentTabs ? styles.shellTabs : ""}`}>
         <div className={`${styles.main} ${styles.mainBare}`}>
           <header className={styles.header}>
             <Link href="/journey" className={styles.headerBrand}>
               <BookOpen size={ICON_SIZE} aria-hidden />
               {brand}
             </Link>
+            {studentTabs ? (
+              // عائمٌ دون 1024px، وتبويباتٌ في الرأس فوقه (`adr/0049` · `adr/0050`).
+              <nav className={styles.studentTabs} aria-label="رحلتي">
+                {studentTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <Link
+                      key={tab.href}
+                      href={tab.href}
+                      aria-current={tab.current ? "page" : undefined}
+                      className={styles.studentTab}
+                    >
+                      <Icon size={ICON_SIZE} aria-hidden />
+                      {tab.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            ) : null}
             <div className={styles.headerEnd}>
               {onSwitchMode ? (
                 <form action={onSwitchMode}>
