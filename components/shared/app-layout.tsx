@@ -3,6 +3,7 @@
 import {
   BookOpen,
   CalendarCheck,
+  ChartNoAxesColumn,
   CalendarDays,
   Gavel,
   LayoutDashboard,
@@ -63,7 +64,7 @@ const ICON_SIZE = 20;
  * مشاركاته. **بنمطٍ محدّد:** شاشة اليوم وصفحاتها الشقيقة وحدها — لا الاختبار الموقوت
  * (`/exam/*`) فتنقله ضغطةٌ خاطئة أثناء محاولته (المراجعة ح٣).
  */
-const JOURNEY_PATH = /^\/journey\/([0-9a-f-]{36})(?:\/(plan))?\/?$/;
+const JOURNEY_PATH = /^\/journey\/([0-9a-f-]{36})(?:\/(plan|progress))?\/?$/;
 
 export function journeyTabs(pathname: string): { href: string; label: string; icon: LucideIcon; current: boolean }[] | null {
   const match = JOURNEY_PATH.exec(pathname);
@@ -73,6 +74,7 @@ export function journeyTabs(pathname: string): { href: string; label: string; ic
   return [
     { href: base, label: "اليوم", icon: CalendarCheck, current: page === "" },
     { href: `${base}/plan`, label: "الخطة", icon: ListChecks, current: page === "plan" },
+    { href: `${base}/progress`, label: "إنجازي", icon: ChartNoAxesColumn, current: page === "progress" },
   ];
 }
 const COLLAPSE_KEY = "sonan.sidebar.collapsed";

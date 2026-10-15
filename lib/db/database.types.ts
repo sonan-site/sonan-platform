@@ -3483,6 +3483,16 @@ export type Database = {
           tasks: Json
         }[]
       }
+      fn_my_stats: {
+        Args: { p_participant_id: string }
+        Returns: {
+          compensated_days: number
+          on_time: number
+          reps: number
+          streak: number
+          stumbled_days: number
+        }[]
+      }
       fn_open_next_day: { Args: { p_participant_id: string }; Returns: Json }
       fn_open_next_day_at: {
         Args: { p_at: string; p_participant_id: string }

@@ -21,12 +21,14 @@ let tilawa: string;
 let planId: string;
 let doneId: string;
 let freshId: string;
+let partialId: string;
 
 const ADMIN = "00000000-0000-4000-8000-000000000911";
 const FINISHER = "00000000-0000-4000-8000-000000000912";
 const FRESH = "00000000-0000-4000-8000-000000000913";
 const OUTSIDER = "00000000-0000-4000-8000-000000000914";
-const USERS = [ADMIN, FINISHER, FRESH, OUTSIDER];
+const PARTIAL = "00000000-0000-4000-8000-000000000915";
+const USERS = [ADMIN, FINISHER, FRESH, OUTSIDER, PARTIAL];
 const AMOUNTS = [1, 2, 1, 3, 1];
 
 async function asUser<T>(uid: string, work: () => Promise<T>): Promise<T> {
@@ -141,6 +143,7 @@ beforeAll(async () => {
     );
   doneId = await join(FINISHER);
   freshId = await join(FRESH);
+  partialId = await join(PARTIAL);
   // أتمّ الخطة كلها في أيامها الخمسة الأولى (الثلاثاء ١ سبتمبر ← الأحد ٦، والجمعة ٤ راحة).
   const dates = ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-05", "2026-09-06"];
   for (const [i, date] of dates.entries()) {
@@ -326,5 +329,89 @@ describe("fn_my_milestones", () => {
     await expect(
       asUser(OUTSIDER, () => db.query(`select * from public.fn_my_milestones($1)`, [freshId])),
     ).rejects.toThrow(/لا صلاحية لك على هذه المشاركة/);
+  });
+});
+
+describe("fn_my_stats (ش٢)", () => {
+  const stats = (uid: string, pid: string) =>
+    asUser(uid, async () =>
+      (await db.query<{ streak: number; on_time: number; reps: string; stumbled_days: number; compensated_days: number }>(`select * from public.fn_my_stats($1)`, [pid])).rows[0]!,
+    );
+
+  it("**المتتالية بعد آخر تعثّر** — والمعفى لا يقطعها ولا يُعدّ · في موعدها بلا المتعثَّر عليه · التكرار في المُتمّ وحده", async () => {
+    // بعد التعثّر (٤ سبتمبر): أتمّ السبت، ومعفى الأحد، وأتمّ الاثنين — فالمتتالية ٢.
+    for (const [date, status] of [
+      ["2026-09-05", "completed"],
+      ["2026-09-06", "exempt"],
+      ["2026-09-07", "completed"],
+    ] as const) {
+      await db.query(
+        `insert into public.commitment_archive (participant_id, track_id, plan_id, calendar_date, deadline, status, plan_day, completed_days)
+         values ($1, $2, $3, $4, '23:00', $5, 5, '{}')`,
+        [doneId, trackId, planId, date, status],
+      );
+    }
+    for (let d = 1; d <= 5; d++) {
+      await db.query(
+        `insert into public.field_counts (participant_id, plan_id, track_id, day_number, task_field_id, count) values ($1, $2, $3, $4, $5, 3)`,
+        [doneId, planId, trackId, d, hifz],
+      );
+    }
+    // عدٌّ محذوف لا يُحسب.
+    await db.query(
+      `insert into public.field_counts (participant_id, plan_id, track_id, day_number, task_field_id, count, deleted_at)
+       values ($1, $2, $3, 1, $4, 9, now())`,
+      [doneId, planId, trackId, tilawa],
+    );
+    const s = await stats(FINISHER, doneId);
+    expect(s.streak).toBe(2);
+    // كلها أُتمّت قبل وقت رصد موعدها المقرَّر — والتعثّر الموسوم لا يُنقصها (المراجعة م٢).
+    expect(s.on_time).toBe(5);
+    expect(Number(s.reps)).toBe(15);
+    expect([s.stumbled_days, s.compensated_days]).toEqual([1, 1]);
+  });
+
+  it("**من لم يبدأ: أصفار** — ولا يقرؤها غيره", async () => {
+    const s = await stats(FRESH, freshId);
+    expect([s.streak, s.on_time, Number(s.reps), s.stumbled_days]).toEqual([0, 0, 0, 0]);
+    await expect(stats(OUTSIDER, freshId)).rejects.toThrow(/لا صلاحية لك على هذه المشاركة/);
+  });
+
+  it("**المتأخر ليس في موعده · التكرار بعد آخر مُتمّ لا يُحسب · والمُلغى لا يُعدّ · واليوم يُعدّ إن أُتمّ فيه**", async () => {
+    // اليوم ١ في موعده (١ سبتمبر)، واليوم ٢ متأخر (٣ سبتمبر وموعده ٢)، واليوم ٣ اليوم. ويومٌ أُلغي إتمامه لا يُعدّ.
+    const complete = (day: number, at: string, undone = false) =>
+      db.query(
+        `insert into public.day_completions (participant_id, plan_id, track_id, day_number, completed_at, undone_at)
+         values ($1, $2, $3, $4, $5::timestamptz, $6::timestamptz)`,
+        [partialId, planId, trackId, day, at, undone ? at : null],
+      );
+    await complete(1, "2026-09-01T20:00:00+03:00");
+    await complete(2, "2026-09-03T20:00:00+03:00");
+    await complete(3, "2026-09-03T21:00:00+03:00", true);
+    await db.query(
+      `insert into public.day_completions (participant_id, plan_id, track_id, day_number, completed_at) values ($1, $2, $3, 3, now())`,
+      [partialId, planId, trackId],
+    );
+    for (let d = 1; d <= 4; d++) {
+      await db.query(
+        `insert into public.field_counts (participant_id, plan_id, track_id, day_number, task_field_id, count) values ($1, $2, $3, $4, $5, 3)`,
+        [partialId, planId, trackId, d, hifz],
+      );
+    }
+    // تعثّران — واحدٌ معوَّض.
+    for (const [date, comp] of [["2026-09-02", false], ["2026-09-03", true]] as const) {
+      await db.query(
+        `insert into public.commitment_archive (participant_id, track_id, plan_id, calendar_date, deadline, status, plan_day, completed_days, compensated_at)
+         values ($1, $2, $3, $4, '23:00', 'stumbled', 2, '{}', $5::timestamptz)`,
+        [partialId, trackId, planId, date, comp ? "2026-09-04T10:00:00+03" : null],
+      );
+    }
+    const s = await stats(PARTIAL, partialId);
+    expect(s.on_time).toBe(1);
+    expect(Number(s.reps)).toBe(9);
+    expect([s.stumbled_days, s.compensated_days]).toEqual([2, 1]);
+    // اليوم يُعدّ إن كان يوم برنامج (والجمعة ليست منها) — ثم يقطعها آخر تعثّر.
+    const friday = (await db.query<{ f: boolean }>(`select extract(dow from public.fn_local_now()::date) = 5 f`)).rows[0]!.f;
+    expect(s.streak).toBe(friday ? 0 : 1);
   });
 });
