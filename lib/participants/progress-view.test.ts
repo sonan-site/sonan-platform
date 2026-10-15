@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { heatRange, heatWeeks, nextExam } from "./progress-view";
+import { heatRange, heatWeeks, nextExam, stripTarget, weekRange, weekStrip } from "./progress-view";
 
 describe("خريطة الالتزام", () => {
   it("**أربعة أسابيع، السبت أولها، وتنتهي بأسبوع اليوم**", () => {
@@ -49,5 +49,64 @@ describe("الاختبار القادم", () => {
     ];
     expect(nextExam(items, "2026-10-15T07:00:00.000Z")?.name).toBe("الأول");
     expect(nextExam(items, "2027-01-01T00:00:00.000Z")).toBeNull();
+  });
+});
+
+describe("شريط الأسبوع (ب١)", () => {
+  it("**السبت إلى الجمعة**", () => {
+    expect(weekRange("2026-10-15")).toEqual({ from: "2026-10-10", to: "2026-10-16" });
+    expect(weekRange("2026-10-16")).toEqual({ from: "2026-10-10", to: "2026-10-16" });
+    expect(weekRange("2026-10-17")).toEqual({ from: "2026-10-17", to: "2026-10-23" });
+  });
+
+  const cell = (over: Partial<{ date: string; today: boolean }> = {}) => ({ date: "2026-10-12", kind: "done" as const, today: false, ...over });
+  const row = (planDay: number | null, completedDays: number[]) => ({ date: "2026-10-12", status: "completed" as const, compensated: false, planDay, completedDays });
+
+  it("**آخر يومٍ أُتمّ فيه، وإلا المتعثَّر عليه** — في حدود ما يُفتح", () => {
+    expect(stripTarget(cell(), row(5, [4, 5]), 9)).toBe(5);
+    expect(stripTarget(cell(), row(6, []), 9)).toBe(6);
+    expect(stripTarget(cell(), row(12, []), 9)).toBeNull();
+    expect(stripTarget(cell(), undefined, 9)).toBeNull();
+    expect(stripTarget(cell({ today: true }), undefined, 9)).toBe("today");
+  });
+
+  it("**حالاتٌ حدّية**: اليوم بعد إتمام يومٍ فيه · قبل البداية · معفى بلا يوم · يومٌ وراء ما يُفتح", () => {
+    expect(stripTarget(cell(), row(null, []), 9)).toBeNull();
+    expect(stripTarget(cell(), row(3, [10]), 9)).toBeNull();
+    const cells = weekStrip({
+      calendar: [
+        { date: "2026-10-10", isProgramDay: true },
+        { date: "2026-10-11", isProgramDay: true },
+      ],
+      archive: [],
+      today: "2026-10-11",
+      startDate: "2026-10-11",
+      completedToday: 1,
+      lastVisible: 3,
+    });
+    expect(cells.map((c) => [c.kind, c.target])).toEqual([
+      ["before", null],
+      ["done", "today"],
+    ]);
+  });
+
+  it("الخلايا بحالها ووجهتها", () => {
+    const cells = weekStrip({
+      calendar: [
+        { date: "2026-10-10", isProgramDay: true },
+        { date: "2026-10-11", isProgramDay: true },
+        { date: "2026-10-12", isProgramDay: false },
+      ],
+      archive: [{ date: "2026-10-10", status: "completed", compensated: false, planDay: 2, completedDays: [1, 2] }],
+      today: "2026-10-11",
+      startDate: "2026-10-01",
+      completedToday: 0,
+      lastVisible: 3,
+    });
+    expect(cells.map((c) => [c.kind, c.target])).toEqual([
+      ["done", 2],
+      ["future", "today"],
+      ["rest", null],
+    ]);
   });
 });

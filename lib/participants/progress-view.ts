@@ -79,3 +79,45 @@ export function nextExam<T extends { at: string }>(items: readonly T[], nowIso: 
   const now = Date.parse(nowIso);
   return items.filter((m) => Date.parse(m.at) >= now).sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0] ?? null;
 }
+
+// ── شريط الأسبوع في شاشة اليوم (المرحلة ب · ب١) ──
+
+/** أسبوع اليوم: من سبته إلى جمعته — سبعة أيام. */
+export function weekRange(today: string): { from: string; to: string } {
+  const t = ms(today);
+  const dow = new Date(t).getUTCDay();
+  const saturday = t - ((dow + 1) % 7) * DAY_MS;
+  return { from: iso(saturday), to: iso(saturday + 6 * DAY_MS) };
+}
+
+export type StripArchiveDay = ArchiveDay & { planDay: number | null; completedDays: number[] };
+
+/** وجهة الخلية: يوم خطةٍ يُفتح، أو «اليوم» (يومه الحالي)، أو لا شيء. */
+export type StripTarget = number | "today" | null;
+
+export type StripCell = HeatCell & { target: StripTarget };
+
+/**
+ * يومٌ مضى يفتح يوم خطته للعرض: **آخر يومٍ أُتمّ فيه**، وإلا يومه المتعثَّر عليه — في حدود ما
+ * تفتحه شاشة اليوم (`lastVisibleDay`)، وما وراءها لا يُضغط. واليوم يعيد إلى يومه، والقادم والراحة
+ * وما قبل البداية لا تُضغط.
+ */
+export function stripTarget(cell: HeatCell, row: StripArchiveDay | undefined, lastVisible: number): StripTarget {
+  if (cell.today) return "today";
+  if (!row) return null;
+  const day = row.completedDays.length > 0 ? Math.max(...row.completedDays) : row.planDay;
+  return day !== null && day >= 1 && day <= lastVisible ? day : null;
+}
+
+export function weekStrip(input: {
+  calendar: { date: string; isProgramDay: boolean }[];
+  archive: StripArchiveDay[];
+  today: string;
+  startDate: string;
+  completedToday: number;
+  lastVisible: number;
+}): StripCell[] {
+  const byDate = new Map(input.archive.map((a) => [a.date, a]));
+  const cells = heatWeeks(input).flat();
+  return cells.map((c) => ({ ...c, target: stripTarget(c, byDate.get(c.date), input.lastVisible) }));
+}

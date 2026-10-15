@@ -8,6 +8,7 @@ import { now, toDateInput, toTimeInput } from "@/lib/format";
 import {
   canMark,
   canUndo,
+  defaultDay,
   followsPlan,
   lastVisibleDay,
   pace,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/participants/journey";
 import { countedText, spanParts, type TrackShare } from "@/lib/plans/engine";
 import { withStarts, type Material } from "@/lib/programs/material";
+import { weekRange, weekStrip } from "@/lib/participants/progress-view";
 import { FinalCard, toFinals } from "./final-card";
 import { JourneyView, type ArchiveRow, type TaskRow } from "./journey-view";
 
@@ -119,7 +121,8 @@ export default async function JourneyDayPage({
   const requested = day && /^\d+$/.test(day) ? Number(day) : null;
   const shown = resolveDay(state, requested);
 
-  const [tasksResult, rangesResult, sectionsResult, archiveResult, recordResult, examsResult] = await Promise.all([
+  const week = weekRange(state.today);
+  const [tasksResult, rangesResult, sectionsResult, archiveResult, recordResult, examsResult, calendarResult] = await Promise.all([
     db.rpc("fn_day_tasks", { p_participant_id: participantId, p_day: shown }),
     db
       .from("track_content_ranges")
@@ -135,7 +138,7 @@ export default async function JourneyDayPage({
       .order("created_at"),
     db
       .from("commitment_archive")
-      .select("id, calendar_date, status, plan_day, completed_days, compensated_at")
+      .select("id, plan_id, calendar_date, status, plan_day, completed_days, compensated_at")
       .eq("participant_id", participantId)
       // سجلّ مساره الحالي — وبه تُعدّ أيام تعثّره فوقه، فلا يختلف العدّ عن القائمة.
       .eq("track_id", state.trackId)
@@ -146,6 +149,8 @@ export default async function JourneyDayPage({
     db.rpc("fn_participant_record", { p_participant_id: participantId }),
     // اختباراته عن بعد بموانعها (adr/0048) — من الدالة التي يرفض بها البدء.
     db.rpc("fn_my_exams", { p_participant_id: participantId }),
+    // أيام الأسبوع وراحته لشريط الأسبوع (المرحلة ب · ب١) — تعذّره يُخفي الشريط وحده.
+    db.rpc("fn_my_calendar", { p_participant_id: participantId, p_from: week.from, p_to: week.to }),
   ]);
 
   // **لا استعلام يبتلع خطأه.** نصيبٌ فارغ يجعل كل نطاقٍ «بعد آخر نصيب المسار».
@@ -226,8 +231,31 @@ export default async function JourneyDayPage({
     compensated: a.compensated_at !== null,
   }));
 
+  // الشريط من أرشيف **خطته** وحدها — فلا يفتح يوماً من خطةٍ سابقة (مراجعة الخطة ر٤). والقائمة
+  // بالمسار كما كانت، فيبقى عدّ التعثّر فوقها مطابقاً لما تعدّه الحال.
+  const strip = calendarResult.error
+    ? null
+    : weekStrip({
+        calendar: (calendarResult.data ?? []).map((c) => ({ date: c.calendar_date, isProgramDay: c.is_program_day })),
+        archive: (archiveResult.data ?? [])
+          .filter((a) => a.plan_id === s.planId)
+          .map((a) => ({
+            date: a.calendar_date,
+            status: a.status,
+            compensated: a.compensated_at !== null,
+            planDay: a.plan_day,
+            completedDays: a.completed_days ?? [],
+          })),
+        today: state.today,
+        startDate: state.startDate,
+        completedToday: state.completedToday,
+        lastVisible: lastVisibleDay(state),
+      });
+
   return (
     <JourneyView
+      week={strip}
+      todayDay={defaultDay(s)}
       participantId={participantId}
       justJoined={joined === "1"}
       registrationNo={formatRegistrationNo(program.registration_prefix, participant.registration_no)}

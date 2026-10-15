@@ -23,6 +23,61 @@ import {
 import { countRepetition, markField, openNextDay, undoMark } from "../actions";
 import { FinalCard, type JourneyFinal } from "./final-card";
 import styles from "./journey.module.css";
+import { HEAT_LABEL, type StripCell } from "@/lib/participants/progress-view";
+
+/** الحرف من التاريخ نفسه لا من الموضع (٠ الأحد … ٦ السبت). */
+const WEEKDAY_BY_DOW = ["ح", "ن", "ث", "ر", "خ", "ج", "س"];
+const weekdayOf = (iso: string) => WEEKDAY_BY_DOW[new Date(`${iso}T00:00:00Z`).getUTCDay()] ?? "";
+
+/**
+ * شريط الأسبوع (المرحلة ب · ب١): أيامه السبعة بحالها — والماضي يفتح يوم خطته، واليوم يعيد إلى
+ * يومه. وتُبرز دائرة اليوم المعروض.
+ */
+function WeekStrip({
+  cells,
+  shown,
+  todayDay,
+  onGo,
+}: {
+  cells: StripCell[];
+  shown: number;
+  /** يوم الخطة الذي تفتحه خلية «اليوم» — اليوم الافتراضي. */
+  todayDay: number;
+  onGo: (to: number | "today") => void;
+}) {
+  if (cells.length !== 7) return null;
+  // خليةٌ واحدة تُبرز للمعروض: اليوم إن طابق، وإلا أحدث خليةٍ تفتحه (مراجعة ب١ ٤).
+  const dayOf = (c: StripCell) => (c.target === "today" ? todayDay : c.target);
+  const todayCell = cells.find((c) => c.today);
+  const shownCell =
+    todayCell && dayOf(todayCell) === shown ? todayCell : [...cells].reverse().find((c) => dayOf(c) === shown);
+  return (
+    <ol className={styles.week} aria-label="أسبوعك">
+      {cells.map((c) => {
+        const opens = typeof c.target === "number" ? ` — يفتح اليوم ${formatNumber(c.target)}` : "";
+        const label = `${formatDate(c.date)}: ${HEAT_LABEL[c.kind]}${c.today ? "، اليوم" : ""}${opens}`;
+        const current = c === shownCell;
+        const cls = `${styles.weekDay} ${styles[`wk_${c.kind}`] ?? ""} ${c.today ? styles.weekToday : ""} ${current ? styles.weekShown : ""}`;
+        const ariaCurrent = c.today ? ("date" as const) : current ? ("true" as const) : undefined;
+        return (
+          <li key={c.date}>
+            {c.target !== null ? (
+              <button type="button" className={cls} aria-label={label} aria-current={ariaCurrent} aria-pressed={current} onClick={() => onGo(c.target!)}>
+                {weekdayOf(c.date)}
+                <i aria-hidden />
+              </button>
+            ) : (
+              <span className={cls} role="img" aria-label={label} aria-current={ariaCurrent}>
+                {weekdayOf(c.date)}
+                <i aria-hidden />
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 /** سطرٌ من نطاق الواجب: نصّه، وأوائل طرفيه إن كُتبت في المادة. */
 export type TaskLine = { text: string; fromLabel: string | null; toLabel: string | null };
@@ -86,6 +141,8 @@ const NEXT_GUARD_MS = 1500;
  * (حالةٌ على الجهاز لا مسار — فلا يُعاد حساب الحال بكل تنقّل)، وزرٌّ رئيسيٌّ ثابت في الأسفل.
  */
 export function JourneyView({
+  week,
+  todayDay,
   participantId,
   justJoined,
   registrationNo,
@@ -104,6 +161,10 @@ export function JourneyView({
   finals,
   serverClock,
 }: {
+  /** شريط الأسبوع (المرحلة ب · ب١) — فارغ إن تعذّر تقويمه. */
+  week: StripCell[] | null;
+  /** اليوم الافتراضي — ما تفتحه خلية «اليوم». */
+  todayDay: number;
   participantId: string;
   /** جاء من التسجيل للتوّ. */
   justJoined: boolean;
@@ -209,6 +270,14 @@ export function JourneyView({
     setOpenId(null);
     setMessage({});
     router.push(`/journey/${participantId}?day=${to}`);
+  };
+  // من شريط الأسبوع: «اليوم» يعيد إلى يومه بلا رقم — بالتنظيف نفسه (مراجعة ب١ ٦).
+  const goWeek = (to: number | "today") => {
+    if (to !== "today") return go(to);
+    cancelAuto();
+    setOpenId(null);
+    setMessage({});
+    router.push(`/journey/${participantId}`);
   };
 
   const target = (t: TaskRow) => ({ participantId, day, fieldId: t.fieldId });
@@ -506,6 +575,7 @@ export function JourneyView({
               <ChevronLeft size={18} aria-hidden />
             </button>
           </div>
+          {week ? <WeekStrip cells={week} shown={day} todayDay={todayDay} onGo={goWeek} /> : null}
           <p className={styles.heroLine}>
             <span>
               {state.stage === "finished" ? "أتممتَ الخطة" : `بقي ${daysLeftText(Math.max(0, state.dayCount - state.doneDays))} على الختم`}

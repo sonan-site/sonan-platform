@@ -663,3 +663,114 @@ button.step:active {
 .examGo:active {
   transform: scale(0.98);
 }
+
+/* ══ شريط الأسبوع (المرحلة ب · ب١) — على خلفية الرأس الداكنة ══ */
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  inline-size: 100%;
+  min-block-size: var(--touch-target);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-xs);
+  color: color-mix(in srgb, var(--color-text-on-brand) 75%, transparent);
+  background: none;
+}
+
+button.weekDay {
+  cursor: pointer;
+}
+
+button.weekDay:active {
+  transform: scale(var(--press-scale));
+}
+
+.weekDay i {
+  display: block;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  border: 1.5px solid color-mix(in srgb, var(--color-text-on-brand) 35%, transparent);
+  border-radius: 50%;
+}
+
+/* الحال بالشكل لا باللون وحده (مراجعة ب١ ١): أتمّ ممتلئ · متعثّر ممتلئٌ بلون التحذير ·
+   معوَّض نصفان · معفى حلقة · راحة متقطّعة · لم يُحكم عليه منقّطة · قبل البداية شَرطة · لم يأتِ باهت. */
+.wk_done i {
+  border-color: var(--color-on-brand-success);
+  background: var(--color-on-brand-success);
+}
+
+.wk_stumbled i {
+  border-color: var(--color-on-brand-warning);
+  background: var(--color-on-brand-warning);
+}
+
+.wk_recovered i {
+  border-color: var(--color-on-brand-warning);
+  background: linear-gradient(90deg, var(--color-on-brand-success) 50%, var(--color-on-brand-warning) 50%);
+}
+
+.wk_exempt i {
+  border-width: 2.5px;
+  border-color: var(--color-on-brand-success);
+}
+
+.wk_rest i {
+  border-style: dashed;
+}
+
+.wk_pending i {
+  border-style: dotted;
+  border-color: var(--color-on-brand-warning);
+}
+
+.wk_before i {
+  position: relative;
+  border-color: transparent;
+}
+
+.wk_before i::after {
+  content: "";
+  position: absolute;
+  inset-inline: 25%;
+  inset-block-start: 50%;
+  border-block-start: 1.5px solid color-mix(in srgb, var(--color-text-on-brand) 45%, transparent);
+}
+
+.wk_future i {
+  border-color: color-mix(in srgb, var(--color-text-on-brand) 30%, transparent);
+}
+
+.weekToday {
+  font-weight: var(--weight-bold);
+  color: var(--color-text-on-brand);
+}
+
+.weekToday i {
+  border-width: 2.5px;
+  border-color: var(--color-on-brand-warning);
+}
+
+/* اليوم المعروض الآن في الشاشة. */
+.weekShown i {
+  outline: 2px solid var(--color-text-on-brand);
+  outline-offset: 2px;
+}
+
+/* التركيز على الرأس الداكن بلون النصّ عليه — لونه العام لا يُرى هناك (مراجعة ب١ ٧). */
+.hero :focus-visible {
+  outline-color: var(--color-text-on-brand);
+}

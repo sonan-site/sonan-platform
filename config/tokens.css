@@ -77,6 +77,10 @@
 
   /* أحوال — بوظيفتها لا بلونها */
   --color-success: var(--_green);
+  /* الدلالة على خلفية العلامة الداكنة (رأس اليوم) — تبايُنٌ لا يبلغه الأخضر والكهرماني الداكنان
+     هناك (مراجعة ب١ ١). */
+  --color-on-brand-success: #7cc49c;
+  --color-on-brand-warning: #e3b46c;
   --color-success-surface: var(--_green-tint);
   --color-warning: var(--_amber);
   --color-warning-surface: var(--_amber-tint);
@@ -185,6 +189,8 @@
     --color-accent-subtle: #2c2418;
 
     --color-success: #6bb08c;
+    --color-on-brand-success: #7cc49c;
+    --color-on-brand-warning: #e3b46c;
     --color-success-surface: #17251d;
     --color-warning: #d2a05a;
     --color-warning-surface: #2a2118;
@@ -224,6 +230,8 @@
   --color-accent-subtle: #2c2418;
 
   --color-success: #6bb08c;
+  --color-on-brand-success: #7cc49c;
+  --color-on-brand-warning: #e3b46c;
   --color-success-surface: #17251d;
   --color-warning: #d2a05a;
   --color-warning-surface: #2a2118;
