@@ -1,0 +1,125 @@
+/* «رحلتي» — بطاقة لكل برنامج كما في النموذج المعتمد (خطة رحلتي ر٢). للجوال أولاً. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  inline-size: 100%;
+  max-inline-size: 36rem;
+  min-inline-size: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  background: var(--color-surface);
+  text-decoration: none;
+}
+
+.card:hover {
+  border-color: var(--color-accent);
+}
+
+.card:active {
+  transform: scale(0.99);
+}
+
+.ended {
+  background: transparent;
+}
+
+.ended .name {
+  color: var(--color-text-muted);
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.name {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+.chip {
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+}
+
+.chipNow {
+  color: var(--color-text-on-brand);
+  background: var(--color-brand);
+}
+
+.chipDone {
+  color: var(--color-success);
+  background: var(--color-success-surface);
+}
+
+.chipWarn {
+  color: var(--color-warning);
+  background: var(--color-warning-surface);
+}
+
+.meta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.no {
+  white-space: nowrap;
+}
+
+.bar {
+  display: block;
+  block-size: 0.375rem;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.bar i {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

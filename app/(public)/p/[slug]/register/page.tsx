@@ -3,9 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
-import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
+import { formatRegistrationNo, REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { NeedsForm, type NeedCode } from "./needs-form";
 import { RegisterForm, type QuestionRow, type TrackOption } from "./register-form";
+import styles from "./register.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function RegisterPage({
   const db = await createClient();
   const { data: program, error } = await db
     .from("programs")
-    .select("id, name, participant_label")
+    .select("id, name, participant_label, registration_prefix")
     .eq("slug", slug)
     .is("deleted_at", null)
     .maybeSingle();
@@ -44,20 +45,44 @@ export default async function RegisterPage({
 
   const { data: existing } = await db
     .from("participants")
-    .select("id")
+    .select("id, registration_no, tracks(name)")
     .eq("program_id", program.id)
     .eq("user_id", session.userId)
     .is("deleted_at", null)
     .maybeSingle();
 
+  // المسجَّل يجد بطاقة تسجيله بجلد صفحة التسجيل نفسها، وزرّه إلى واجبه مباشرة (د-١٠ · ر٥).
   if (existing) {
+    const track = existing.tracks as unknown as { name: string } | null;
+    const no = formatRegistrationNo(program.registration_prefix, existing.registration_no);
     return (
-      <EmptyState
-        kind="no-data"
-        title="أنت مسجَّل بالفعل"
-        body={`تسجيلك في «${program.name}» قائم. تابع واجبك اليومي في رحلتك.`}
-        action={<Link href="/journey">افتح رحلتي</Link>}
-      />
+      <div className={styles.page}>
+        <header className={styles.head}>
+          <p className={styles.eyebrow}>{program.name}</p>
+          <h1 className={styles.title}>أنت مسجَّل بالفعل</h1>
+          <p className={styles.lede}>تسجيلك قائم، وواجبك اليومي في رحلتك.</p>
+        </header>
+        <dl className={styles.card}>
+          {no ? (
+            <div className={styles.cardRow}>
+              <dt>رقم التسجيل</dt>
+              <dd>
+                <bdi dir="ltr">{no}</bdi>
+              </dd>
+            </div>
+          ) : null}
+          <div className={styles.cardRow}>
+            <dt>المسار</dt>
+            <dd>{track?.name ?? "لم يُحدَّد بعد"}</dd>
+          </div>
+        </dl>
+        <Link href={`/journey/${existing.id}`} className={styles.submit}>
+          افتح رحلتي
+        </Link>
+        <Link href={`/p/${slug}`} className={styles.backLink}>
+          صفحة {program.name}
+        </Link>
+      </div>
     );
   }
 

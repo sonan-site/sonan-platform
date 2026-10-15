@@ -248,6 +248,39 @@ export function autoCompletes(input: {
   );
 }
 
+// ── بطاقة البرنامج في «رحلتي» (خطة رحلتي ر٢·ر٣) ──
+
+export type CardTone = "now" | "done" | "wait" | "warn" | "rest";
+
+/**
+ * سطر حاله في بطاقة البرنامج: ما ينتظره اليوم بكلمةٍ واحدة. والعدّ بالإلزامي وحده
+ * (والاختياري إن لم يكن غيره) — فالطالب لا يرى «اختياري» ولا يُحاسَب به.
+ */
+export function cardStatus(s: JourneyState, steps: StepLike[]): { tone: CardTone; text: string } {
+  if (s.stage === "finished") return { tone: "done", text: "أتممت الخطة" };
+  if (s.stage === "not_started") {
+    const n = daysUntil(s.today, s.startDate);
+    return { tone: "wait", text: n > 0 ? `يبدأ بعد ${afterDaysText(n)}` : "يبدأ اليوم" };
+  }
+  if (s.stage === "done_today" || s.stage === "limit") return { tone: "done", text: "أتممت واجب اليوم" };
+  const counted = steps.some((x) => x.isRequired) ? steps.filter((x) => x.isRequired) : steps;
+  const done = counted.filter((x) => x.markedAt !== null).length;
+  const of = counted.length > 0 ? `: ${formatNumber(done)} من ${formatNumber(counted.length)}` : "";
+  // المرحَّل يُقال ولو في يوم راحة — والشاشة تُظهر تنبيهه فيه كذلك.
+  if (s.carried) return { tone: "warn", text: `واجب مرحَّل${of}` };
+  // أتمّ يومه وفتح التالي بنفسه: أدّى ما عليه، فلا يُستحثّ.
+  if (s.completedToday > 0 && done === 0) return { tone: "done", text: "أتممت واجب اليوم · بدأت التالي" };
+  // يوم الراحة راحةٌ ما لم يبدأ فيه شيئاً — كما تحكم الشاشة.
+  if (!s.isProgramDay && done === 0) return { tone: "rest", text: "يوم راحة" };
+  return { tone: "now", text: `واجب اليوم${of}` };
+}
+
+/** «بقي ١١ يوماً على الختم» — وفارغ لمن أتمّ. */
+export function remainingText(s: JourneyState): string {
+  const left = s.dayCount - s.doneDays;
+  return left > 0 ? `بقي ${daysLeftText(left)} على الختم` : "";
+}
+
 // ── الأرشيف ──
 
 export type CommitmentStatus = "completed" | "exempt" | "stumbled";

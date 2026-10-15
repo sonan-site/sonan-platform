@@ -14,6 +14,7 @@ export function JourneyBail({
   programSlug,
   contact,
   registrationNo = null,
+  listLink = true,
 }: {
   title: string;
   body: string;
@@ -23,6 +24,8 @@ export function JourneyBail({
   contact: string;
   /** رقم تسجيله — يُذكر للاستفسار (خطة واجهة الطالب ش١٠). */
   registrationNo?: string | null;
+  /** رابط «رحلتي» — يُخفى لمن مشاركته واحدة، فـ«رحلتي» تعيده إلى هنا (خطة رحلتي ر١). */
+  listLink?: boolean;
 }) {
   return (
     <EmptyState
@@ -31,7 +34,7 @@ export function JourneyBail({
       body={[body, registrationNo ? `رقم تسجيلك: \u2068${registrationNo}\u2069.` : "", contact ? `جهة التواصل: ${contact}` : ""].filter(Boolean).join(" ")}
       action={
         <span style={{ display: "flex", gap: "var(--space-4)", fontSize: "var(--text-sm)" }}>
-          <Link href="/journey">رحلتي</Link>
+          {listLink ? <Link href="/journey">رحلتي</Link> : null}
           <Link href={`/p/${programSlug}`}>صفحة {programName}</Link>
         </span>
       }

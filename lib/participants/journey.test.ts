@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { formatNumber } from "@/lib/format";
 import {
   canMark,
+  cardStatus,
+  remainingText,
   afterDaysText,
   autoCompletes,
   canUndo,
@@ -205,5 +207,50 @@ describe("صيغ العدد في شاشة اليوم", () => {
     expect(timesText(2)).toBe("مرتان");
     expect(timesText(5)).toBe(`${formatNumber(5)} مرات`);
     expect(timesText(15)).toBe(`${formatNumber(15)} مرةً`);
+  });
+});
+
+describe("بطاقة البرنامج في «رحلتي»", () => {
+  const step = (isRequired: boolean, marked: boolean) => ({ isRequired, markedAt: marked ? "2026-10-05T08:00:00Z" : null });
+
+  it("**العدّ بالإلزامي وحده** — والاختياري لا يظهر في العدد", () => {
+    const r = cardStatus(state(), [step(true, true), step(true, false), step(false, true)]);
+    expect(r).toEqual({ tone: "now", text: `واجب اليوم: ${formatNumber(1)} من ${formatNumber(2)}` });
+  });
+
+  it("بلا إلزامي يُعدّ الكل", () => {
+    expect(cardStatus(state(), [step(false, true), step(false, false)]).text).toBe(
+      `واجب اليوم: ${formatNumber(1)} من ${formatNumber(2)}`,
+    );
+  });
+
+  it("المرحَّل · الراحة · المُتَمّ · الحدّ · الختم", () => {
+    expect(cardStatus(state({ carried: true }), [step(true, false)]).tone).toBe("warn");
+    expect(cardStatus(state({ isProgramDay: false }), []).text).toBe("يوم راحة");
+    expect(cardStatus(state({ stage: "done_today" }), []).text).toBe("أتممت واجب اليوم");
+    expect(cardStatus(state({ stage: "limit" }), []).tone).toBe("done");
+    expect(cardStatus(state({ stage: "finished" }), []).text).toBe("أتممت الخطة");
+  });
+
+  it("قبل البداية بعدد الأيام", () => {
+    expect(cardStatus(state({ stage: "not_started", today: "2026-10-01", startDate: "2026-10-03" }), []).text).toBe(
+      "يبدأ بعد يومين",
+    );
+    expect(cardStatus(state({ stage: "not_started", today: "2026-10-03", startDate: "2026-10-03" }), []).text).toBe("يبدأ اليوم");
+  });
+
+  it("**المرحَّل يُقال في يوم الراحة**، والراحة بعد بدءٍ فيها عدٌّ لا راحة (المراجعة ٣)", () => {
+    expect(cardStatus(state({ carried: true, isProgramDay: false }), [step(true, false)]).tone).toBe("warn");
+    expect(cardStatus(state({ isProgramDay: false }), [step(true, true), step(true, false)]).tone).toBe("now");
+  });
+
+  it("أتمّ يومه وفتح التالي: لا يُستحثّ · وبلا خطوات بلا «٠ من ٠»", () => {
+    expect(cardStatus(state({ completedToday: 1 }), [step(true, false)]).tone).toBe("done");
+    expect(cardStatus(state(), []).text).toBe("واجب اليوم");
+  });
+
+  it("الباقي على الختم", () => {
+    expect(remainingText(state({ dayCount: 40, doneDays: 38 }))).toBe("بقي يومان على الختم");
+    expect(remainingText(state({ dayCount: 40, doneDays: 40 }))).toBe("");
   });
 });

@@ -66,6 +66,13 @@ export default async function JourneyDayPage({
     unit_many: string | null;
   };
   const track = participant.tracks as unknown as { id: string; name: string } | null;
+  // «رحلتي» تُدخل صاحب المشاركة الواحدة إلى هنا مباشرة — فرابطها في المخرج يدور به (ر١).
+  const { count: participations } = await db
+    .from("participants")
+    // بالربط نفسه الذي تعدّ به «رحلتي» — فلا يختلف العددان فيدور الرابط (المراجعة ١).
+    .select("id, programs!inner(id)", { count: "exact", head: true })
+    .eq("user_id", session.userId)
+    .is("deleted_at", null);
   const bail = (title: string, body: string) => (
     <JourneyBail
       title={title}
@@ -74,6 +81,7 @@ export default async function JourneyDayPage({
       programSlug={program.slug}
       contact={program.contact}
       registrationNo={formatRegistrationNo(program.registration_prefix, participant.registration_no)}
+      listLink={(participations ?? 0) > 1}
     />
   );
 

@@ -266,6 +266,13 @@
   cursor: pointer;
 }
 
+a.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .submit:disabled {
   opacity: 0.7;
   cursor: default;
@@ -296,4 +303,40 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-warning);
+}
+
+/* ══ بطاقة «أنت مسجَّل بالفعل» (د-١٠) ══ */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.cardRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.cardRow + .cardRow {
+  border-block-start: 1px solid var(--color-border);
+}
+
+.cardRow dt {
+  color: var(--color-text-muted);
+}
+
+.cardRow dd {
+  margin: 0;
+  font-weight: var(--weight-bold);
+}
+
+.backLink {
+  align-self: center;
+  font-size: var(--text-sm);
 }
