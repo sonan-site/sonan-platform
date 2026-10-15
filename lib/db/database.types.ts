@@ -3452,6 +3452,7 @@ export type Database = {
           session_name: string
         }[]
       }
+      fn_my_has_password: { Args: never; Returns: boolean }
       fn_my_milestones: {
         Args: { p_participant_id: string }
         Returns: {

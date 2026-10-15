@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
+import { signedInRecently } from "@/lib/auth/recent-sign-in";
 import { getSession } from "@/lib/auth/session";
+import { now } from "@/lib/format";
 import { userMessage } from "@/lib/db/messages";
 import { createClient } from "@/lib/db/server";
 import { env } from "@/lib/env.server";
@@ -63,7 +65,19 @@ export async function changePassword(_prev: FormState, form: FormData): Promise<
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { error: "انتهت جلستك. سجّل الدخول من جديد." };
 
-  const hasPassword = (auth.user.identities ?? []).some((i) => i.provider === "email");
+  // من مصدرها لا من هوية البريد — GoTrue لا يُنشئها حين يضيف حساب Google كلمة مرور (ب٢ · ر١).
+  const { data: hasPassword, error: hasError } = await db.rpc("fn_my_has_password");
+  if (hasError) return { error: "تعذّر التحقق من حسابك. أعد المحاولة." };
+  if (!hasPassword) {
+    // بلا كلمة سابقة: دخولٌ في هذه الجلسة خلال عشر دقائق (`adr/0051`) — فمن وجد جلسةً مفتوحة
+    // على جهازٍ مشترك لا يضيف كلمةً يدخل بها بعد ذلك.
+    const { data: claims } = await db.auth.getClaims();
+    if (!signedInRecently(claims?.claims?.amr, Math.floor(now().getTime() / 1000))) {
+      // تُقرأ الصفحة من جديد فيظهر زرّ إعادة الدخول — لا نموذجٌ يُرفض بلا مخرج (مراجعة ب٢ ٣).
+      revalidatePath("/account");
+      return { error: "لإضافة كلمة مرور أعد الدخول بحسابك أولاً — حمايةً لحسابك." };
+    }
+  }
   if (hasPassword) {
     const current = String(form.get("current") ?? "");
     if (!current) return { fieldErrors: { current: "اكتب كلمة المرور الحالية" } };

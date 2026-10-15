@@ -8,7 +8,9 @@ import { PhoneField, ProfileFields, type ProfileValues } from "@/components/shar
 import { Card, Cards, Messages, Muted, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Modal } from "@/components/shared/modal";
 import { SessionTools } from "@/components/shared/session-tools";
-import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
+import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
+import { setPasswordSchema } from "@/lib/validation/auth";
+import { GoogleButton } from "@/components/shared/google-button";
 import { formatDate, formatNumber } from "@/lib/format";
 import { COUNTRIES, formatPhone } from "@/lib/profile/phone";
 import { PARTICIPANT_STATUS_LABEL, type ParticipantStatus } from "@/lib/programs/kinds";
@@ -20,6 +22,7 @@ import {
   withdrawParticipation,
 } from "./actions";
 import { PasswordInput } from "@/components/shared/password-input";
+import styles from "./account.module.css";
 import { ReadSection } from "./read-section";
 
 type Section = "profile" | "identity" | "password";
@@ -43,6 +46,11 @@ export function AccountView({
   hasPassword,
   hasGoogle,
   isStaff,
+  recentSignIn,
+  mode,
+  openSection,
+  userId,
+  switchedAccount,
   home,
   participations,
   available,
@@ -53,6 +61,15 @@ export function AccountView({
   hasPassword: boolean;
   hasGoogle: boolean;
   isStaff: boolean;
+  /** دخلَ في هذه الجلسة خلال عشر دقائق — شرط إضافة كلمة مرور لمن لا كلمة له (`adr/0051`). */
+  recentSignIn: boolean;
+  /** وضع الجلسة القائم — تحفظه إعادة الدخول بـ Google. */
+  mode: "participant" | "staff";
+  /** قسمٌ يُفتح عند التحميل (العودة من إعادة الدخول). */
+  openSection: "password" | null;
+  userId: string;
+  /** عاد من إعادة الدخول بحسابٍ غير الذي بدأ منه. */
+  switchedAccount: boolean;
   /** فتات الإدارة إلى «لوحة المتابعة» — والطالب بلا فتات: رجوعه في رأسه (ملاحظات الجوال ٢ · ٣). */
   home: { href: string; label: string } | null;
   participations: Participation[];
@@ -69,7 +86,17 @@ export function AccountView({
    * بخطأ (فيبقى ما كُتب)؛ ويُغلق بنجاحه في التصيير نفسه الذي يحمل القيم الجديدة — بلا تأثيرٍ
    * ولا ومضةٍ للقديم (مراجعة الخطة ٥). والإغلاق يُفكّ النموذج، فيعود بقيمه الحيّة عند فتحه.
    */
-  const [open, setOpen] = useState<{ section: Section; at: FormState } | null>(null);
+  const [open, setOpen] = useState<{ section: Section; at: FormState } | null>(
+    openSection ? { section: openSection, at: pwState } : null,
+  );
+  // أخطاء الكتابة في كلمة المرور تُكشف قبل الإرسال بمخطط الخادم نفسه — فلا تُمسح الحقول بسببها.
+  const [pwCheck, setPwCheck] = useState<Record<string, string> | null>(null);
+  const checkPassword = (payload: FormData) => {
+    const parsed = setPasswordSchema.safeParse({ password: payload.get("password"), confirm: payload.get("confirm") });
+    setPwCheck(parsed.success ? null : toFieldErrors(parsed.error.issues));
+    return parsed.success;
+  };
+  const needsReauth = !hasPassword && !recentSignIn;
   const isOpen = (s: Section, st: FormState) =>
     open?.section === s && (st === open.at || Boolean(st.error) || Boolean(st.fieldErrors));
   const lastNotice = (s: Section, st: FormState) =>
@@ -85,6 +112,7 @@ export function AccountView({
   };
   const cancel = (section: Section) => {
     setOpen(null);
+    setPwCheck(null);
     focusSoon(`edit-${section}`);
   };
   const fullName = [profile.firstName, profile.fatherName, profile.grandfatherName, profile.familyName]
@@ -104,6 +132,11 @@ export function AccountView({
         lede="بياناتك، وكلمة مرورك، والبرامج التي سجّلت فيها والمتاحة للتسجيل."
       />
       <SessionTools />
+      {switchedAccount ? (
+        <p className={styles.switched} role="alert">
+          دخلتَ بحسابٍ غير الذي بدأت منه — أنت الآن في «{email}». إن لم تقصد ذلك فسجّل الخروج.
+        </p>
+      ) : null}
 
       {/* ══ ١ · بياناتي ══ */}
       <Step
@@ -218,9 +251,36 @@ export function AccountView({
         state={<span>{hasPassword ? "لحسابك كلمة مرور" : "بلا كلمة مرور"}</span>}
       >
         {isOpen("password", pwState) ? (
-        <StepForm title={hasPassword ? "كلمة مرور جديدة" : "كلمة المرور"} action={pwAction} state={pwState}>
+        needsReauth ? (
+          <div className={styles.reauth}>
+            <p className={styles.readTitle}>أعد الدخول أولاً</p>
+            <Muted>
+              لإضافة كلمة مرور لحساب «{email}» نطلب أن تدخل به من جديد الآن — فمن وجد جلستك مفتوحة على
+              جهازٍ آخر لا يضيف كلمةً يدخل بها بعد ذلك.
+            </Muted>
+            {hasGoogle ? (
+              <GoogleButton
+                next={`/account?section=password&as=${userId}`}
+                mode={mode}
+                label="أعد الدخول بـ Google"
+                reauth
+              />
+            ) : (
+              // بلا Google ولا كلمة مرور: لا طريق دخولٍ يُعاد به هنا — والاسترجاع ينتظر مزوّد البريد (د-٤).
+              <Muted>تواصل مع إدارة البرنامج لإضافة كلمة مرور لحسابك.</Muted>
+            )}
+            <Button onClick={() => cancel("password")}>إلغاء</Button>
+          </div>
+        ) : (
+        <StepForm
+          title={hasPassword ? "كلمة مرور جديدة" : "كلمة المرور"}
+          action={pwAction}
+          state={pwState}
+          validate={checkPassword}
+          onChange={() => pwCheck && setPwCheck(null)}
+        >
           {hasPassword ? (
-            <Field id="current" label="كلمة المرور الحالية" required error={fresh(pwState).fieldErrors?.["current"]}>
+            <Field id="current" label="كلمة المرور الحالية" required error={pwCheck?.["current"] ?? fresh(pwState).fieldErrors?.["current"]}>
               <PasswordInput id="current" name="current" autoComplete="current-password" required />
             </Field>
           ) : null}
@@ -229,11 +289,11 @@ export function AccountView({
             label="الجديدة"
             required
             hint="8 أحرف فأكثر"
-            error={fresh(pwState).fieldErrors?.["password"]}
+            error={pwCheck?.["password"] ?? fresh(pwState).fieldErrors?.["password"]}
           >
             <PasswordInput id="password" name="password" autoComplete="new-password" required />
           </Field>
-          <Field id="confirm" label="تأكيدها" required error={fresh(pwState).fieldErrors?.["confirm"]}>
+          <Field id="confirm" label="تأكيدها" required error={pwCheck?.["confirm"] ?? fresh(pwState).fieldErrors?.["confirm"]}>
             <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required />
           </Field>
           <FormActions>
@@ -246,6 +306,7 @@ export function AccountView({
           </FormActions>
           <Messages state={fresh(pwState)} />
         </StepForm>
+        )
         ) : (
           <ReadSection
             title="كلمة المرور"

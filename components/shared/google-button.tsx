@@ -17,10 +17,18 @@ import styles from "./google-button.module.css";
 export function GoogleButton({
   next,
   mode = "participant",
+  label = "المتابعة بحساب Google",
+  reauth = false,
 }: {
   next: string;
   /** وضع الجلسة الذي يكتبه الباب — يُحمَل في الوجهة ليكتبه مسار الاستدعاء. */
   mode?: "participant" | "staff";
+  label?: string;
+  /**
+   * إعادة دخولٍ من داخل المنصة (ب٢ · `adr/0051`): بلا فاصل «أو»، ويُطلب من Google اختيار
+   * الحساب صراحةً — فلا تكتمل بنقرةٍ على جهازٍ بقي Google مفتوحاً فيه بحسابٍ آخر.
+   */
+  reauth?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -33,7 +41,7 @@ export function GoogleButton({
     )}&mode=${mode}`;
     const { error } = await createClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo },
+      options: { redirectTo, ...(reauth ? { queryParams: { prompt: "select_account" } } : {}) },
     });
     // عند النجاح يغادر المتصفح الصفحة إلى Google، فلا يُعاد الزر.
     if (error) {
@@ -45,7 +53,7 @@ export function GoogleButton({
   return (
     <div className={styles.wrap}>
       <Button type="button" pending={pending} onClick={() => void start()} className={styles.button}>
-        المتابعة بحساب Google
+        {label}
         <LogIn size={16} aria-hidden className={styles.icon} />
       </Button>
       {failed ? (
@@ -53,9 +61,11 @@ export function GoogleButton({
           تعذّر الدخول بحساب Google الآن. استعمل البريد وكلمة المرور، أو أعد المحاولة بعد قليل.
         </p>
       ) : null}
-      <div className={styles.divider} aria-hidden>
-        <span>أو</span>
-      </div>
+      {reauth ? null : (
+        <div className={styles.divider} aria-hidden>
+          <span>أو</span>
+        </div>
+      )}
     </div>
   );
 }

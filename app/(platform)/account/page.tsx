@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
+import { signedInRecently } from "@/lib/auth/recent-sign-in";
+import { now } from "@/lib/format";
 import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
@@ -11,11 +13,27 @@ import { AccountView, type AvailableProgram, type Participation } from "./accoun
  * «حسابي» — ما يراه المستخدم عند الدخول بتعريف `CONTEXT.md`: حسابه، والبرامج
  * المتاحة، والبرامج المسجَّل فيها فعلاً.
  */
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string; as?: string }>;
+}) {
   const session = await getSession();
   if (session.status !== "active") redirect("/sign-in");
+  // يُفتح قسمٌ بعينه بعد العودة من إعادة الدخول — بقائمةٍ محدّدة، ولصاحب الطلب نفسه: من اختار
+  // في Google حساباً آخر لا يجد القسم مفتوحاً لحسابٍ لم يقصده (مراجعة ب٢ ٢).
+  const query = await searchParams;
+  const switched = query.section === "password" && query.as !== session.userId;
+  const section = query.section === "password" && !switched ? "password" : null;
 
   const db = await createClient();
+  const [{ data: hasPassword, error: hasPasswordError }, { data: claims }] = await Promise.all([
+    db.rpc("fn_my_has_password"),
+    db.auth.getClaims(),
+  ]);
+  // لا يُعامَل الفشل «بلا كلمة مرور» — فيرى من له كلمةٌ نموذج إضافةٍ بلا الحالية (مراجعة ب٢ ٤).
+  if (hasPasswordError) return <ErrorState body="تعذّر جلب حال حسابك. أعد تحميل الصفحة." />;
+  const mode = resolveMode((await cookies()).get(MODE_COOKIE)?.value, session.permissions.size > 0);
   const [{ data: auth }, profileResult, participationsResult, programsResult, identityResult] = await Promise.all([
     db.auth.getUser(),
     db
@@ -90,14 +108,15 @@ export default async function AccountPage() {
         nationalId: identityResult.data?.national_id ?? null,
         guardianPhone: identityResult.data?.guardian_phone ?? null,
       }}
-      hasPassword={providers.has("email")}
+      hasPassword={hasPassword === true}
       hasGoogle={providers.has("google")}
+      recentSignIn={signedInRecently(claims?.claims?.amr, Math.floor(now().getTime() / 1000))}
+      mode={mode}
+      openSection={section}
+      userId={session.userId}
+      switchedAccount={switched}
       isStaff={session.permissions.size > 0}
-      home={
-        resolveMode((await cookies()).get(MODE_COOKIE)?.value, session.permissions.size > 0) === "participant"
-          ? null
-          : { href: "/dashboard", label: "لوحة المتابعة" }
-      }
+      home={mode === "participant" ? null : { href: "/dashboard", label: "لوحة المتابعة" }}
       participations={participations}
       available={available}
     />

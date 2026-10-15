@@ -17,12 +17,18 @@ import styles from "./form.module.css";
 export function ActionForm({
   action,
   state,
+  validate,
   children,
   className,
   ...rest
 }: Omit<FormHTMLAttributes<HTMLFormElement>, "action" | "onSubmit"> & {
   action: (payload: FormData) => void;
   state: FormState;
+  /**
+   * فحصٌ قبل الإرسال بمخطط الخادم نفسه — `false` يُوقفه، والمستدعي يُظهر أخطاءه. فخطأ الكتابة
+   * (القِصَر · عدم التطابق) لا يبلغ الخادم ولا يمسح ما كُتب (د-٩).
+   */
+  validate?: (payload: FormData) => boolean;
 }) {
   const ref = useRef<HTMLFormElement>(null);
   const submitted = useRef(false);
@@ -48,6 +54,7 @@ export function ActionForm({
     event.preventDefault();
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const payload = new FormData(event.currentTarget, submitter);
+    if (validate && !validate(payload)) return;
     submitted.current = true;
     startTransition(() => action(payload));
   }

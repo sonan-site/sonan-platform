@@ -167,16 +167,21 @@ export function StepForm({
   title,
   action,
   state,
+  validate,
+  onChange,
   children,
 }: {
   title: string;
   action: (payload: FormData) => void;
+  /** فحصٌ قبل الإرسال — انظر `ActionForm`. */
+  validate?: (payload: FormData) => boolean;
+  onChange?: () => void;
   /** حالة الإجراء — بها يُعرف أنجح الحفظ فيُفرَّغ النموذج، أم فشل فيبقى ما كُتب. */
   state: FormState;
   children: ReactNode;
 }) {
   return (
-    <ActionForm action={action} state={state} className={styles.form}>
+    <ActionForm action={action} state={state} validate={validate} onChange={onChange} className={styles.form}>
       <p className={styles.formTitle}>{title}</p>
       {children}
     </ActionForm>
