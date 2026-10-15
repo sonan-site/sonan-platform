@@ -7,6 +7,7 @@ import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { PhoneField, ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
 import { Card, Cards, Messages, Muted, PageHead, Step, StepForm } from "@/components/shared/steps";
 import { Modal } from "@/components/shared/modal";
+import { SessionTools } from "@/components/shared/session-tools";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { formatNumber } from "@/lib/format";
 import { PARTICIPANT_STATUS_LABEL, type ParticipantStatus } from "@/lib/programs/kinds";
@@ -35,6 +36,7 @@ export function AccountView({
   hasPassword,
   hasGoogle,
   isStaff,
+  home,
   participations,
   available,
 }: {
@@ -44,6 +46,8 @@ export function AccountView({
   hasPassword: boolean;
   hasGoogle: boolean;
   isStaff: boolean;
+  /** باب الوضع للفتات: «رحلتي» للطالب و«لوحة المتابعة» للإدارة (ملاحظات الجوال م٨). */
+  home: { href: string; label: string };
   participations: Participation[];
   available: AvailableProgram[];
 }) {
@@ -61,10 +65,11 @@ export function AccountView({
   return (
     <>
       <PageHead
-        crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
+        crumbs={[home]}
         title="حسابي"
         lede="بياناتك، وكلمة مرورك، والبرامج التي سجّلت فيها والمتاحة للتسجيل."
       />
+      <SessionTools />
 
       {/* ══ ١ · بياناتي ══ */}
       <Step

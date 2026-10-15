@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_LANDING, safeNext } from "@/lib/auth/safe-next";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { clearRateLimit, withinRateLimit } from "@/lib/auth/rate-limit";
 import { createClient } from "@/lib/db/server";
@@ -41,6 +41,8 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
   const mode: SessionMode = isSessionMode(raw) ? raw : "participant";
   await writeMode(mode);
 
-  redirect(safeNext(form.get("next")));
+  // الطالب بلا وجهةٍ مقصودة إلى بابه مباشرة، لا إلى لوحةٍ تحوّله (`adr/0049` · المراجعة ٣).
+  const next = safeNext(form.get("next"));
+  redirect(next === DEFAULT_LANDING && mode === "participant" ? "/journey" : next);
 }
 

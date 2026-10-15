@@ -1,0 +1,31 @@
+/* أدوات الجلسة في «حسابي» — زرّان بنصّهما، بحجم لمسٍ كامل. */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-end: var(--space-6);
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.tool:hover {
+  border-color: var(--color-accent);
+}
+
+.tool:active {
+  transform: scale(0.98);
+}

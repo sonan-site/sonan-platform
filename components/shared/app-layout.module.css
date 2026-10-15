@@ -1,4 +1,7 @@
 .shell {
+  /* ما يشغله الإطار أسفل الشاشة — يرثه كل لاصقٍ في الأسفل (زرّ اليوم · التنبيه)، فلا يحسب
+     شريطاً ليس موجوداً (المراجعة ١ للدفعة ب). */
+  --chrome-block-end: 0px;
   display: flex;
   min-block-size: 100dvh;
   background: var(--color-bg);
@@ -221,6 +224,10 @@
   .bottomBar {
     display: flex;
   }
+
+  .shell {
+    --chrome-block-end: var(--bottombar-height);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -249,5 +256,38 @@
 @media (max-width: 640px) {
   .switchMode {
     display: none;
+  }
+}
+
+/* ══ وضع الطالب المختصَر (ملاحظات الجوال ب٢) — لا شريط جانبي ولا سفلي ══ */
+.shell.shellBare {
+  --chrome-block-end: 0px;
+}
+
+.mainBare {
+  margin-inline-start: 0;
+}
+
+.headerBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+@media (max-width: 1023px) {
+  .contentBare {
+    padding-block-end: var(--space-8);
+  }
+}
+
+/* مفتاح الإدارة للطالب الإداري ظاهرٌ على الجوال — فلا طريق غيره إليها في الإطار المختصَر. */
+@media (max-width: 640px) {
+  .switchModeBare {
+    display: inline-flex;
+    align-items: center;
   }
 }

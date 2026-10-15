@@ -520,7 +520,7 @@ button.step:active {
 
 .dock {
   position: sticky;
-  inset-block-end: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  inset-block-end: calc(var(--chrome-block-end, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-3));
   z-index: 5;
   margin-block-start: var(--space-2);
 }

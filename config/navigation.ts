@@ -61,6 +61,8 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: "LayoutDashboard",
     permission: null,
     primary: true,
+    // للإدارة وحدها: الطالب وجهته «رحلتي»، وبطاقاتها تحمل ما كانت تحمله لوحته (ملاحظات الجوال ب١).
+    mode: "staff",
   },
   {
     key: "team",

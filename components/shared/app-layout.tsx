@@ -7,11 +7,9 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  MoonStar,
   ScrollText,
   Settings,
   ShieldCheck,
-  Sun,
   UserRound,
   Users,
   type LucideIcon,
@@ -20,6 +18,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { ActionNotice } from "./action-notice";
+import { ThemeToggle } from "./theme-toggle";
 import { useStoredState } from "./use-stored-state";
 import {
   listNavigation,
@@ -36,6 +35,11 @@ import styles from "./app-layout.module.css";
  * انكسار واحد `1024px`:
  *   فوقه — شريط جانبي جهة البداية، حالته محفوظة، ورأس ثابت.
  *   دونه — شريط سفلي يختفي نزولاً ويظهر صعوداً، والجانبي طبقة منزلقة.
+ *
+ * **وضع الطالب مختصَر** (ملاحظات الجوال ب٢·ب٣ · `docs/UI-UX.md` س-٣ و س-٩): وجهته واحدة
+ * («رحلتي»)، فلا شريط جانبي ولا سفلي ولا زرّ قائمة؛ ورأسه الشعار و«حسابي» (ومفتاح الإدارة
+ * لمن له الوضعان) — والمظهر والخروج في «حسابي» (`adr/0049`). والشرط الوضعُ وحده: الموقوف بلا وضع
+ * يبقى بإطاره الكامل فلا يفقد الخروج.
  */
 
 const ICONS: Record<IconName, LucideIcon> = {
@@ -52,7 +56,6 @@ const ICONS: Record<IconName, LucideIcon> = {
 
 const ICON_SIZE = 20;
 const COLLAPSE_KEY = "sonan.sidebar.collapsed";
-const THEME_KEY = "sonan.theme";
 const SCROLL_THRESHOLD = 8;
 
 export function AppLayout({
@@ -92,6 +95,8 @@ export function AppLayout({
 
   // الشريط السفلي يختفي نزولاً ويظهر صعوداً وعند القمة (§١١.٣)
   useEffect(() => {
+    // الإطار المختصَر بلا شريطٍ سفلي — فلا يُصغى للتمرير.
+    if (mode === "participant") return;
     let last = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;
@@ -102,7 +107,7 @@ export function AppLayout({
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [mode]);
 
   const toggleCollapse = () => setCollapsedValue(collapsed ? "0" : "1");
 
@@ -111,6 +116,35 @@ export function AppLayout({
   const { tabs, more } = splitForBottomBar(listed);
   const isCurrent = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  if (mode === "participant") {
+    return (
+      <div className={`${styles.shell} ${styles.shellBare}`}>
+        <div className={`${styles.main} ${styles.mainBare}`}>
+          <header className={styles.header}>
+            <Link href="/journey" className={styles.headerBrand}>
+              <BookOpen size={ICON_SIZE} aria-hidden />
+              {brand}
+            </Link>
+            <div className={styles.headerEnd}>
+              {onSwitchMode ? (
+                <form action={onSwitchMode}>
+                  <button type="submit" className={`${styles.switchMode} ${styles.switchModeBare}`}>
+                    الإدارة
+                  </button>
+                </form>
+              ) : null}
+              <Link href="/account" className={styles.iconButton} aria-label="حسابي" title="حسابي">
+                <UserRound size={ICON_SIZE} aria-hidden />
+              </Link>
+            </div>
+          </header>
+          <main className={`${styles.content} ${styles.contentBare}`}>{children}</main>
+          <ActionNotice />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.shell}>
@@ -147,7 +181,7 @@ export function AppLayout({
           })}
         </ul>
         <div className={styles.sidebarFoot}>
-          <ThemeToggle />
+          <ThemeToggle className={styles.iconButton} />
         </div>
       </aside>
 
@@ -238,31 +272,3 @@ export function AppLayout({
   );
 }
 
-/**
- * اختيار السمة يُحفظ، والافتراض تفضيل النظام (`platform.md §١٠`).
- * السمة تُطبَّق قبل الرسم بسكربت في الترويسة، فلا ومضة بيضاء عند من اختار الداكنة.
- */
-function ThemeToggle() {
-  const [theme, setTheme] = useStoredState<"system" | "light" | "dark">(THEME_KEY, "system");
-
-  const cycle = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.dataset["theme"] = next;
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={cycle}
-      className={styles.iconButton}
-      aria-label={theme === "dark" ? "التحويل للسمة الفاتحة" : "التحويل للسمة الداكنة"}
-    >
-      {theme === "dark" ? (
-        <Sun size={ICON_SIZE} aria-hidden />
-      ) : (
-        <MoonStar size={ICON_SIZE} aria-hidden />
-      )}
-    </button>
-  );
-}

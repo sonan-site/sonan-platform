@@ -1,12 +1,13 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PageHead } from "@/components/shared/steps";
-import { ErrorState } from "@/components/shared/states";
+import { EmptyState, ErrorState } from "@/components/shared/states";
 import { visibleNavigation } from "@/config/navigation";
 import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
 import { getSession } from "@/lib/auth/session";
-import { dashboardCounts, myDuties, staffAttention } from "@/lib/dashboard/server";
+import { dashboardCounts, staffAttention } from "@/lib/dashboard/server";
 import { currentViewer } from "@/lib/permissions/granted";
-import { ParticipantView } from "./participant-view";
 import { StaffView } from "./staff-view";
 
 /**
@@ -25,13 +26,17 @@ export default async function DashboardPage() {
   const viewer = await currentViewer();
   const mode = resolveMode((await cookies()).get(MODE_COOKIE)?.value, viewer.granted.size > 0);
 
+  // الطالب بابه «رحلتي»، وبطاقاتها تحمل ما كانت تحمله لوحته (ملاحظات الجوال ب١). ومن لا مشاركة
+  // له يُقال له ذلك هنا بلا تحويل — فـ«رحلتي» لا تعيده إلى هنا فيدور (المراجعة ح١).
   if (mode === "participant") {
-    const duties = await myDuties();
+    if (session.isParticipant) redirect("/journey");
     return (
-      <>
-        <PageHead crumbs={[]} title="لوحة المتابعة" lede="واجبك اليوم، وأين وصلت فيه." />
-        <ParticipantView duties={duties} />
-      </>
+      <EmptyState
+        kind="no-data"
+        title="لست مشاركاً في أي برنامج"
+        body="تصفّح البرامج المعلنة وسجّل في أحدها، ثم يظهر واجبك اليومي في «رحلتي»."
+        action={<Link href="/">تصفّح البرامج</Link>}
+      />
     );
   }
 

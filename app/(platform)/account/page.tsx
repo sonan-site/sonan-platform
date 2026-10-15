@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
 import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
@@ -91,6 +93,11 @@ export default async function AccountPage() {
       hasPassword={providers.has("email")}
       hasGoogle={providers.has("google")}
       isStaff={session.permissions.size > 0}
+      home={
+        resolveMode((await cookies()).get(MODE_COOKIE)?.value, session.permissions.size > 0) === "participant"
+          ? { href: "/journey", label: "رحلتي" }
+          : { href: "/dashboard", label: "لوحة المتابعة" }
+      }
       participations={participations}
       available={available}
     />

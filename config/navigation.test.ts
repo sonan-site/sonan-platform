@@ -23,6 +23,10 @@ describe("التنقّل بحسب من يدخل", () => {
     expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey", "account"]);
   });
 
+  it("**وفي وضع الطالب «رحلتي» وحدها** — لا لوحة متابعة (ملاحظات الجوال ب١)", () => {
+    expect(listNavigation(visibleNavigation({ granted: perms(), isParticipant: true, mode: "participant" })).map((i) => i.key)).toEqual(["journey"]);
+  });
+
   it("الموظف المشارك في برنامج يرى ما تسمح به صلاحياته ورحلته", () => {
     expect(keys({ granted: perms("programs.read"), isParticipant: true })).toEqual([
       "dashboard",
@@ -39,11 +43,7 @@ describe("التنقّل بحسب من يدخل", () => {
 
 describe("وضع الجلسة يحكم ما يُعرض", () => {
   it("**وضع المشارك لا شاشات عمل فيه** — ولو كان صاحبه مديراً", () => {
-    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual([
-      "dashboard",
-      "journey",
-      "account",
-    ]);
+    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual(["journey", "account"]);
   });
 
   it("**ووضع الإدارة لا «رحلتي» فيه** — ولو كان صاحبه مشاركاً", () => {
