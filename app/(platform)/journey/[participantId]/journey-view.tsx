@@ -3,7 +3,7 @@
 import { Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { formatClock, formatDate, formatDateBoth, formatHijri, formatNumber, formatPercent, formatTime, now, toTimeInput } from "@/lib/format";
 import {
   afterDaysText,
@@ -297,6 +297,10 @@ export function JourneyView({
     const next = Math.max(0, Math.min(t.repetition, cur + delta));
     if (next === cur) return;
     if (delta === -1) cancelAuto();
+    // تُثبَّت الخطوة المعدودة مفتوحةً قبل قراءة الجيل: على الكمبيوتر تُعرض الأولى المتاحة بلا فتحٍ
+    // صريح، و`still()` يشترطه — وإلا لم يُطلق الإتمام التلقائي فيها (مراجعة ب٣ ح١). وعلى الجوال
+    // يُعدّ من شاشةٍ مفتوحة أصلاً فلا يتغيّر شيء.
+    if (openRef.current !== t.fieldId) setOpenId(t.fieldId);
     try {
       navigator.vibrate?.(12);
     } catch {
@@ -430,21 +434,59 @@ export function JourneyView({
   const saveState = saving > 0 ? "saving" : failed ? "failed" : "saved";
   const open = openId ? tasks.find((t) => t.fieldId === openId) ?? null : null;
 
-  // ══ تفاصيل الخطوة: شاشةٌ داخلية ══
-  if (open) {
+  // ══ الكمبيوتر (المرحلة ب · ب٣): الخطوة المختارة في عمودٍ بجانب اليوم — لا شاشةٌ تحلّ محلّه ══
+  // التخطيط بـCSS وحده، والعرض هنا للسلوك فقط: أيّ خطوةٍ تُعرض، وأين يكون الزرّ الرئيسي.
+  const wide = useWide();
+  const primTask = markable && primary >= 0 ? tasks[primary]! : null;
+  /** المعروضة في العمود الجانبي: المفتوحة، وإلا التالية المتاحة — فبعد الرصد تُختار التي بعدها. */
+  const selected = wide && !resting ? open ?? primTask : null;
+
+  // لوحة المفاتيح على الكمبيوتر: المسافة تعدّ في الخطوة المعروضة، و↑/↓ يتنقّلان بين الخطوات.
+  // لا في حقلٍ أو زرٍّ أو قائمةٍ تُطوى، ولا مع الضغط المستمر أو المفاتيح المساعدة، ولا في يومٍ لا يُرصد.
+  // بلا مصفوفة اعتماد عن قصد: يُعاد الاشتراك كل تصيير فيقرأ أحدث حالٍ بلا إغلاقٍ قديم — وكلفته زهيدة.
+  useEffect(() => {
+    if (!wide) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const el = e.target instanceof Element ? e.target : null;
+      // الكتابة والنوافذ لا تُمسّ أبداً. والمسافة على زرٍّ أو رابطٍ تضغطه هو — فلا تعدّ مرتين.
+      if (el?.closest("input, textarea, select, [role=dialog], [contenteditable=true]")) return;
+      if (e.key === " " && el?.closest("button, summary, a")) return;
+      if (e.key === " " && selected && markable && selected.repetition !== null && selected.markedAt === null) {
+        e.preventDefault();
+        bump(selected, 1);
+        return;
+      }
+      if ((e.key === "ArrowDown" || e.key === "ArrowUp") && selected && autoFor === null && saving === 0 && tasks.length > 1) {
+        e.preventDefault();
+        const i = tasks.indexOf(selected);
+        const next = tasks[(i + (e.key === "ArrowDown" ? 1 : -1) + tasks.length) % tasks.length];
+        if (next) setOpenId(next.fieldId);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  // ══ تفاصيل الخطوة — شاشةٌ داخلية على الجوال، وعمودٌ جانبي على الكمبيوتر ══
+  const renderDetail = (open: TaskRow, side: boolean, quiet = false) => {
     const idx = tasks.indexOf(open);
     const count = counts[open.fieldId] ?? 0;
     return (
-      <div className={styles.shell}>
+      <>
         <div className={styles.detailHead}>
-          <button type="button" className={styles.backLink} onClick={() => { cancelAuto(); setOpenId(null); }}>
-            <ChevronRight size={16} aria-hidden /> اليوم {formatNumber(day)}
-          </button>
+          {side ? (
+            <span className={styles.muted}>الخطوة المختارة</span>
+          ) : (
+            <button type="button" className={styles.backLink} onClick={() => { cancelAuto(); setOpenId(null); }}>
+              <ChevronRight size={16} aria-hidden /> اليوم {formatNumber(day)}
+            </button>
+          )}
           <span className={styles.muted}>
             الخطوة {formatNumber(idx + 1)} من {formatNumber(tasks.length)}
           </span>
         </div>
-        <h1 className={styles.detailTitle}>{open.label}</h1>
+        {side ? <h2 className={styles.detailTitle}>{open.label}</h2> : <h1 className={styles.detailTitle}>{open.label}</h1>}
         <div className={styles.passage}>
           {open.lines.map((line, i) => (
             <div key={i}>
@@ -468,9 +510,13 @@ export function JourneyView({
         <p className={styles.srOnly} aria-live="polite">
           {autoFor === open.fieldId ? "اكتمل العدد — يُتمّ خلال ثانية. أنقص واحداً لإلغائه." : ""}
         </p>
-        <Dock save={saveState} error={message.error ?? null}>
+        <Dock save={quiet ? null : saveState} error={quiet ? null : (message.error ?? null)}>
           {open.markedAt !== null ? (
-            <DockButton onClick={() => setOpenId(null)}>عُد إلى اليوم {formatNumber(day)}</DockButton>
+            side ? (
+              <DockMessage>أُتمّ {open.label}</DockMessage>
+            ) : (
+              <DockButton onClick={() => setOpenId(null)}>عُد إلى اليوم {formatNumber(day)}</DockButton>
+            )
           ) : !markable ? (
             <DockMessage>لا يُرصد هذا اليوم الآن</DockMessage>
           ) : open.repetition === null ? (
@@ -487,9 +533,11 @@ export function JourneyView({
             <DockMessage>بقي {ofText(open.repetition - count, open.repetition)}</DockMessage>
           )}
         </Dock>
-      </div>
+      </>
     );
-  }
+  };
+
+  if (open && !wide) return <div className={styles.shell}>{renderDetail(open, false)}</div>;
 
   // ══ اليوم ══
   const prim = primary >= 0 ? tasks[primary]! : null;
@@ -513,6 +561,9 @@ export function JourneyView({
   } else if (atNext && state.stage === "finished") {
     // بطاقة الإتمام تقول ما يُقال — فلا زرّ يكرّره.
     dock = null;
+  } else if (markable && prim && selected) {
+    // على الكمبيوتر الزرّ في عمود الخطوة — فلا يتكرّر هنا.
+    dock = null;
   } else if (markable && prim) {
     const c = counts[prim.fieldId] ?? 0;
     dock =
@@ -532,6 +583,7 @@ export function JourneyView({
   }
 
   return (
+    <div className={`${styles.layout} ${selected ? styles.layoutTwo : ""}`}>
     <div className={styles.shell}>
       {justJoined ? (
         <p role="status" className={styles.joined}>
@@ -692,8 +744,13 @@ export function JourneyView({
                   {markable ? (
                     <button
                       type="button"
-                      className={`${styles.step} ${i === primary ? styles.stepNow : ""}`}
-                      onClick={() => setOpenId(t.fieldId)}
+                      className={`${styles.step} ${i === primary ? styles.stepNow : ""} ${selected === t ? styles.stepSelected : ""}`}
+                      aria-current={selected === t ? "step" : undefined}
+                      onClick={() => {
+                        // على الكمبيوتر: لا يتبدّل الاختيار أثناء عدٍّ جارٍ أو إتمامٍ تلقائيٍّ منتظر (مراجعة ب٣ ٣).
+                        if (wide && (autoFor !== null || saving > 0)) return;
+                        setOpenId(t.fieldId);
+                      }}
                     >
                       {body}
                       <span className={styles.srOnly}>التفاصيل</span>
@@ -750,12 +807,36 @@ export function JourneyView({
         <Dock save={state.stage === "not_started" ? null : saveState} error={message.error ?? null}>
           {dock}
         </Dock>
-      ) : message.error ? (
+      ) : message.error && !selected ? (
         <p role="alert" className={styles.error}>
           {message.error}
         </p>
       ) : null}
     </div>
+      {/* عمود الخطوة على الكمبيوتر — مخفيٌّ دون 1024px بـCSS، وفارغٌ حتى يُعرف العرض. */}
+      {selected && !resting ? (
+        <aside className={styles.side} aria-label={`تفاصيل ${selected.label}`}>
+          {renderDetail(selected, true, dock !== null)}
+        </aside>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * عرض الكمبيوتر (1024px فأوسع) — للسلوك وحده، والتخطيط بـCSS. على الخادم «جوال»: فلا يُعرض
+ * العمود الجانبي قبل أن يُعرف العرض، ولا يختلف ما يُرسم عمّا يُثبَّت.
+ */
+const WIDE_QUERY = "(min-width: 1024px)";
+function useWide(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(WIDE_QUERY);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(WIDE_QUERY).matches,
+    () => false,
   );
 }
 
