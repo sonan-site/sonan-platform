@@ -532,3 +532,42 @@ body:has([data-skin="campaign"]) {
   font-family: var(--font-display);
   font-weight: 500;
 }
+
+/* ══ إطار الطالب بلون الحملة — فاتحٌ كما هو (ملحق adr/0045 · خطة الألوان ش٤) ══
+   لمن يشارك في برنامج الحملة: العلامة (رأس اليوم · شريط الأسبوع) بحبرها، والإطار (رأس المنصة ·
+   الشريط العائم) بحبرها وذهبها. **الذهبي لا يُمسّ في المحتوى**: عائلة --color-accent كما هي —
+   الذهبي الفاتح على البيج يُسقط تباين الأزرار والأرقام والأشرطة (مراجعة الخطة ح٣).
+   **وفي الوضع الداكن لا يُطبَّق**: الحبر على الخلفية الداكنة لا يُقرأ (م٥ب) — فالمحدّدان للفاتح وحده.
+   رموز --color-chrome-* لا تُعرَّف إلا هنا؛ والإطار يقرؤها ببديلٍ هو لونه المعتاد.
+   **الكتلتان متطابقتان — تُعدَّلان معاً.** */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) [data-skin="campaign-tint"] {
+    --color-brand: #072c3a;
+    --color-brand-deep: #041d27;
+    --color-text-on-brand: #e3f1f4;
+
+    --color-chrome: #072c3a;
+    --color-chrome-text: #e3f1f4;
+    --color-chrome-muted: #a9c8d0;
+    --color-chrome-border: #072c3a;
+    --color-chrome-hover: rgb(255 255 255 / 8%);
+    --color-chrome-current: rgb(244 213 155 / 16%);
+    --color-chrome-current-text: #f4d59b;
+    --color-chrome-focus: #f4d59b;
+  }
+}
+
+:root[data-theme="light"] [data-skin="campaign-tint"] {
+  --color-brand: #072c3a;
+  --color-brand-deep: #041d27;
+  --color-text-on-brand: #e3f1f4;
+
+  --color-chrome: #072c3a;
+  --color-chrome-text: #e3f1f4;
+  --color-chrome-muted: #a9c8d0;
+  --color-chrome-border: #072c3a;
+  --color-chrome-hover: rgb(255 255 255 / 8%);
+  --color-chrome-current: rgb(244 213 155 / 16%);
+  --color-chrome-current-text: #f4d59b;
+  --color-chrome-focus: #f4d59b;
+}

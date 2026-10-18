@@ -10,6 +10,7 @@ import { getSession } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth/sign-out";
 import { switchMode } from "@/lib/auth/switch-mode";
 import { currentViewer } from "@/lib/permissions/granted";
+import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 
 /** كل ما تحت (platform) يمرّ بالتخطيط الجامع. لا تخطيط موضعي في صفحة. */
 export default async function PlatformLayout({ children }: { children: ReactNode }) {
@@ -49,10 +50,16 @@ export default async function PlatformLayout({ children }: { children: ReactNode
 
   const items = visibleNavigation({ ...viewer, mode });
 
+  // إطار الطالب بلون الحملة (ملحق `adr/0045`): لمن يشارك في برنامجها، في وضع الطالب وحده — والفريق
+  // بهوية المنصة. ومشاركاته من الجلسة نفسها، فالسؤال الوحيد الزائد عن المفتاح وفي وضع الطالب فقط.
+  const featured = mode === "participant" && session.status === "active" ? await getHomeFeatured() : null;
+  const skin = featured && session.status === "active" && session.programSlugs.includes(featured) ? "campaign-tint" : null;
+
   return (
     <AppLayout
       items={items}
       mode={mode}
+      skin={skin}
       onSignOut={signOut}
       onSwitchMode={
         bothWays

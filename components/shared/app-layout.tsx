@@ -91,6 +91,7 @@ export function AppLayout({
   onSignOut,
   onSwitchMode,
   mode,
+  skin,
   children,
 }: {
   /** مرشَّحة بصلاحيات المستخدم قبل الوصول هنا — المحجوب **يُخفى لا يُعطَّل**. */
@@ -103,6 +104,8 @@ export function AppLayout({
   onSwitchMode?: () => Promise<void>;
   /** وضع الجلسة القائم، لتسمية المفتاح بما ينتقل إليه. */
   mode?: "staff" | "participant";
+  /** إطار الطالب بلون الحملة (ملحق `adr/0045`) — لمن يشارك في برنامجها، في وضع الطالب وحده. */
+  skin?: "campaign-tint" | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -146,7 +149,7 @@ export function AppLayout({
   if (mode === "participant") {
     const studentTabs = journeyTabs(pathname);
     return (
-      <div className={`${styles.shell} ${styles.shellBare} ${studentTabs ? styles.shellTabs : ""}`}>
+      <div className={`${styles.shell} ${styles.shellBare} ${studentTabs ? styles.shellTabs : ""}`} data-skin={skin ?? undefined}>
         <div className={`${styles.main} ${styles.mainBare}`}>
           <header className={styles.header}>
             {/* قائمةٌ صريحة لا «كل ما خارج رحلته» — فلا يظهر الرجوع في الاختبار الموقوت (مراجعة الخطة ١). */}

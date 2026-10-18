@@ -108,8 +108,15 @@
   gap: var(--space-3);
   min-block-size: var(--header-height);
   padding-inline: var(--space-4);
-  background: var(--color-surface);
-  border-block-end: 1px solid var(--color-border);
+  /* --color-chrome-* لا تُعرَّف إلا في إطار الطالب بلون الحملة (tokens.css) — وإلا لونه المعتاد.
+     واللون هنا لا يُترك للوراثة: أيقونات الرأس (السمة · حسابي) ترثه فتُقرأ على الحبر. */
+  color: var(--color-chrome-text, var(--color-text));
+  background: var(--color-chrome, var(--color-surface));
+  border-block-end: 1px solid var(--color-chrome-border, var(--color-border));
+}
+
+.header :focus-visible {
+  outline-color: var(--color-chrome-focus, var(--color-focus));
 }
 
 .iconButton {
@@ -126,7 +133,7 @@
 }
 
 .iconButton:hover {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-chrome-muted, var(--color-border-strong));
 }
 
 .crumb {
@@ -242,7 +249,7 @@
   padding-inline: var(--space-3);
   font-family: inherit;
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  color: var(--color-chrome-muted, var(--color-text-muted));
   background: none;
   border: 0;
   cursor: pointer;
@@ -250,7 +257,7 @@
 }
 
 .switchMode:hover {
-  color: var(--color-brand);
+  color: var(--color-chrome-text, var(--color-brand));
 }
 
 @media (max-width: 640px) {
@@ -274,7 +281,7 @@
   gap: var(--space-2);
   min-block-size: var(--touch-target);
   font-weight: var(--weight-bold);
-  color: var(--color-text);
+  color: var(--color-chrome-text, var(--color-text));
   text-decoration: none;
 }
 
@@ -307,18 +314,18 @@
   padding-inline: var(--space-4);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
-  color: var(--color-text-muted);
+  color: var(--color-chrome-muted, var(--color-text-muted));
   text-decoration: none;
 }
 
 .studentTab:hover {
-  color: var(--color-text);
+  color: var(--color-chrome-text, var(--color-text));
 }
 
 .studentTab[aria-current="page"] {
   font-weight: var(--weight-bold);
-  color: var(--color-text);
-  background: var(--color-accent-subtle);
+  color: var(--color-chrome-current-text, var(--color-text));
+  background: var(--color-chrome-current, var(--color-accent-subtle));
 }
 
 .studentTab:active {
@@ -335,9 +342,9 @@
     block-size: var(--student-tabs-height);
     margin: 0;
     padding: var(--space-1);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-chrome-border, var(--color-border));
     border-radius: var(--radius-full);
-    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    background: color-mix(in srgb, var(--color-chrome, var(--color-surface)) 86%, transparent);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
     box-shadow:
@@ -391,12 +398,12 @@
   padding-inline: var(--space-2) var(--space-3);
   border-radius: var(--radius-full);
   font-weight: var(--weight-bold);
-  color: var(--color-text);
+  color: var(--color-chrome-text, var(--color-text));
   text-decoration: none;
 }
 
 .headerBack:hover {
-  background: var(--color-accent-subtle);
+  background: var(--color-chrome-hover, var(--color-accent-subtle));
 }
 
 .headerBack:active {

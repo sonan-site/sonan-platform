@@ -34,6 +34,8 @@ export type SessionState =
       permissions: Map<string, Set<string | null>>;
       /** له مشاركة قائمة في برنامج — جارية أو منتهية. يُظهر «رحلتي» لصاحبها وحده. */
       isParticipant: boolean;
+      /** روابط برامج مشاركاته — يُعرف بها إطار الطالب بلون الحملة (ملحق `adr/0045`). */
+      programSlugs: string[];
     };
 
 export const getSession = cache(async (): Promise<SessionState> => {
@@ -42,15 +44,17 @@ export const getSession = cache(async (): Promise<SessionState> => {
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { status: "anonymous" };
 
-  const [{ data: profile }, { data: rows }, { count: participations }] = await Promise.all([
+  const [{ data: profile }, { data: rows }, { data: participations }] = await Promise.all([
     // الملف نفسه لا `fn_is_active`: غيابه أو نقصه «ناقص»، وحذفه الليّن «موقوف» —
     // والدالة تُرجع «لا» للحالتين فلا تفرّق بينهما.
     db.from("profiles").select(COMPLETENESS_COLUMNS).eq("user_id", auth.user.id).maybeSingle(),
     db.rpc("fn_my_permissions"),
-    // عدٌّ لا جلب: السؤال «هل له مشاركة؟» لا «ما مشاركاته؟».
+    // مشاركاته برابط برنامجها — صفوفٌ قليلة، وفي الرحلة نفسها: «هل له مشاركة؟» و«هل إحداها في
+    // برنامج الحملة؟» بلا رحلةٍ ثانية (مراجعة خطة الألوان م٦).
     db
       .from("participants")
-      .select("id", { count: "exact", head: true })
+      // باسم المفتاح: مفتاحٌ ثانٍ إلى البرامج يُفشل الربط الضمني بصمت فيختفي كل طالب (adr/0024).
+      .select("programs!participants_program_id_fkey(slug)")
       .eq("user_id", auth.user.id)
       .is("deleted_at", null),
   ]);
@@ -78,6 +82,11 @@ export const getSession = cache(async (): Promise<SessionState> => {
     userId: auth.user.id,
     email: auth.user.email ?? "",
     permissions,
-    isParticipant: (participations ?? 0) > 0,
+    isParticipant: (participations ?? []).length > 0,
+    // برنامجٌ مغلق تحجبه سياسته (د-١١) فيأتي فارغاً — يُسقط ولا تُسقط المشاركة معه.
+    programSlugs: (participations ?? []).flatMap((p) => {
+      const slug = (p.programs as unknown as { slug: string } | null)?.slug;
+      return slug ? [slug] : [];
+    }),
   };
 });
