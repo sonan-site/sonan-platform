@@ -96,9 +96,17 @@ export function parseJourneyState(raw: unknown): JourneyState | null {
 
 // ── أي يومٍ يُعرض ──
 
-/** آخر يومٍ يُفتح للعرض: يومه الحالي، ولا يومَ بعده (`fn_day_tasks` لا تُرجعه). */
+/** يومه الذي بلغه: الحالي ولا ما بعده — إليه يعود «عُد إلى اليوم»، ومنه يُرصد. */
 export function lastVisibleDay(s: JourneyState): number {
   return Math.max(1, Math.min(s.currentDay, s.dayCount));
+}
+
+/**
+ * آخر يومٍ يُفتح **للاطّلاع**: آخر الخطة (قرار الراعي ١٨ أكتوبر · الهجرة ٠٩٥) — والرصد يبقى بحكمه
+ * (`canMark` · `fn_engine_require_day`). وقبل البداية يومه الأول وحده: لا رحلة بعدُ يُتنقَّل فيها.
+ */
+export function lastViewableDay(s: JourneyState): number {
+  return s.stage === "not_started" ? 1 : Math.max(1, s.dayCount);
 }
 
 /**
@@ -114,7 +122,7 @@ export function defaultDay(s: JourneyState): number {
 
 /** المطلوب إن كان مفتوحاً للعرض، وإلا الافتراضي — فرابطٌ قديم يُصحَّح ولا يُفشل الصفحة. */
 export function resolveDay(s: JourneyState, requested: number | null): number {
-  if (requested !== null && requested >= 1 && requested <= lastVisibleDay(s)) return requested;
+  if (requested !== null && requested >= 1 && requested <= lastViewableDay(s)) return requested;
   return defaultDay(s);
 }
 
@@ -153,7 +161,9 @@ export function daysText(count: number): string {
   if (count === 2) return "يومين";
   const rest = count % 100;
   if (rest >= 3 && rest <= 10) return `${formatNumber(count)} أيام`;
-  return `${formatNumber(count)} يوماً`;
+  // المئات يتبع آخر رقمين: ١٠٠ و١٠١ و١٠٢ بمعدودٍ مفرد مجرور — «١٠٠ يوم» لا «١٠٠ يوماً».
+  if (rest >= 11 || count < 100) return `${formatNumber(count)} يوماً`;
+  return `${formatNumber(count)} يوم`;
 }
 
 export type Pace = { tone: "on" | "ahead" | "behind"; text: string };
@@ -211,7 +221,8 @@ export function timesText(count: number): string {
   if (count === 2) return "مرتان";
   const rest = count % 100;
   if (rest >= 3 && rest <= 10) return `${formatNumber(count)} مرات`;
-  return `${formatNumber(count)} مرةً`;
+  if (rest >= 11 || count < 100) return `${formatNumber(count)} مرةً`;
+  return `${formatNumber(count)} مرة`;
 }
 
 /** الأيام حتى يوم البداية من اليوم التقويمي (`YYYY-MM-DD` كلاهما) — صفرٌ إن حلّ. */

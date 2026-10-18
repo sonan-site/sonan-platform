@@ -152,6 +152,7 @@ export function JourneyView({
   pace,
   day,
   lastDay,
+  maxDay,
   markable,
   tasks,
   archive,
@@ -176,8 +177,10 @@ export function JourneyView({
   pace: Pace;
   /** اليوم المعروض من الخطة. */
   day: number;
-  /** آخر يومٍ يُفتح للعرض — يومه الحالي. */
+  /** يومه الذي بلغه — إليه يعود «عُد إلى اليوم». */
   lastDay: number;
+  /** آخر يومٍ يُفتح للاطّلاع — آخر الخطة (الهجرة ٠٩٥). وما بعد `lastDay` يُعرض ولا يُرصد. */
+  maxDay: number;
   /** يُرصد هذا اليوم الآن. */
   markable: boolean;
   tasks: TaskRow[];
@@ -283,6 +286,8 @@ export function JourneyView({
   const target = (t: TaskRow) => ({ participantId, day, fieldId: t.fieldId });
   const required = tasks.filter((t) => t.isRequired);
   const isCurrent = day === state.currentDay && state.stage === "tasks";
+  // يومٌ بعد ما بلغه: يُعرض واجبه وتفاصيله للاطّلاع، ولا يُرصد (قرار الراعي ١٨ أكتوبر).
+  const upcoming = day > lastDay && state.stage !== "not_started";
   const finishedStage = state.stage === "done_today" || state.stage === "limit" || state.stage === "finished";
   const justFinished = day === state.currentDay - 1 && finishedStage;
   /** اليوم المتمّ للتوّ، أو التالي الذي لم يُبدأ — والزرّ فيهما واحد. */
@@ -292,6 +297,8 @@ export function JourneyView({
   const resting = !state.isProgramDay && isCurrent && !anyProgress && !advance;
 
   function bump(t: TaskRow, delta: 1 | -1): void {
+    // حارسٌ هنا لا عند المستدعي وحده: اليوم القادم يُعرض ولا يُعدّ (مراجعة الاطّلاع ٣).
+    if (!markable) return;
     if (t.repetition === null || t.markedAt !== null || marking === t.fieldId) return;
     const cur = counts[t.fieldId] ?? 0;
     const next = Math.max(0, Math.min(t.repetition, cur + delta));
@@ -355,6 +362,7 @@ export function JourneyView({
   const offline = { error: "تعذّر الاتصال — تحقّق من الشبكة وأعد." };
 
   function mark(t: TaskRow): void {
+    if (!markable) return;
     if (t.markedAt !== null || busy !== null) return;
     const finishesDay = t.isRequired && required.every((r) => r.fieldId === t.fieldId || r.markedAt !== null);
     setMarking(t.fieldId);
@@ -505,6 +513,7 @@ export function JourneyView({
             minusDisabled={!markable || count === 0 || open.markedAt !== null || marking === open.fieldId}
             onTap={() => bump(open, 1)}
             onMinus={() => bump(open, -1)}
+            idle={!markable}
           />
         ) : null}
         <p className={styles.srOnly} aria-live="polite">
@@ -518,7 +527,7 @@ export function JourneyView({
               <DockButton onClick={() => setOpenId(null)}>عُد إلى اليوم {formatNumber(day)}</DockButton>
             )
           ) : !markable ? (
-            <DockMessage>لا يُرصد هذا اليوم الآن</DockMessage>
+            <DockMessage>{upcoming ? "يُرصد حين تبلغه" : "لا يُرصد هذا اليوم الآن"}</DockMessage>
           ) : open.repetition === null ? (
             <DockButton pending={marking === open.fieldId} onClick={() => mark(open)}>
               أتممتُ {open.label}
@@ -622,8 +631,9 @@ export function JourneyView({
               اليوم {formatNumber(Math.min(day, state.dayCount))}
               {state.carried && day === state.currentDay ? <span className={styles.heroTag}>مرحَّل</span> : null}
               {day < state.currentDay ? <span className={styles.heroTag}>أُتمّ</span> : null}
+              {upcoming ? <span className={styles.heroTag}>قادم</span> : null}
             </p>
-            <button type="button" className={styles.nav} aria-label="اليوم التالي" disabled={day >= lastDay} onClick={() => go(day + 1)}>
+            <button type="button" className={styles.nav} aria-label="اليوم التالي" disabled={day >= maxDay} onClick={() => go(day + 1)}>
               <ChevronLeft size={18} aria-hidden />
             </button>
           </div>
@@ -702,7 +712,7 @@ export function JourneyView({
       ) : (
         <>
           <h2 className={styles.stepsTitle}>
-            {state.stage === "not_started" ? "واجب يومك الأول — لتستعدّ له" : "خطوات اليوم"}
+            {state.stage === "not_started" ? "واجب يومك الأول — لتستعدّ له" : upcoming ? "واجب يومٍ قادم — للاطّلاع" : "خطوات اليوم"}
           </h2>
           <ol className={styles.steps}>
             {tasks.map((t, i) => {
@@ -731,7 +741,7 @@ export function JourneyView({
                   <span className={styles.stepText}>
                     <b>{t.label}</b>
                     <span>
-                      {t.repetition !== null && state.stage === "not_started" ? `${timesText(t.repetition)} · ` : ""}
+                      {t.repetition !== null && (state.stage === "not_started" || upcoming) ? `${timesText(t.repetition)} · ` : ""}
                       {t.lines.map((l) => l.text).join(" · ")}
                     </span>
                   </span>
@@ -741,7 +751,7 @@ export function JourneyView({
               );
               return (
                 <li key={t.fieldId}>
-                  {markable ? (
+                  {markable || upcoming ? (
                     <button
                       type="button"
                       className={`${styles.step} ${i === primary ? styles.stepNow : ""} ${selected === t ? styles.stepSelected : ""}`}
@@ -912,6 +922,7 @@ function Ring({
   minusDisabled,
   onTap,
   onMinus,
+  idle = false,
 }: {
   count: number;
   total: number;
@@ -920,6 +931,8 @@ function Ring({
   minusDisabled: boolean;
   onTap: () => void;
   onMinus: () => void;
+  /** يومٌ لا يُرصد الآن — فلا يُدعى إلى الضغط. */
+  idle?: boolean;
 }) {
   const C = 2 * Math.PI * 37;
   const off = C * (1 - Math.min(count, total) / Math.max(total, 1));
@@ -942,7 +955,7 @@ function Ring({
           </button>
         )}
       </div>
-      <p className={styles.muted}>{done ? "أُتمّ" : "اضغط الدائرة مع كل تكرار — ويُتمّ ببلوغ العدد"}</p>
+      <p className={styles.muted}>{done ? "أُتمّ" : idle ? `يُكرَّر ${timesText(total)}` : "اضغط الدائرة مع كل تكرار — ويُتمّ ببلوغ العدد"}</p>
     </div>
   );
 }

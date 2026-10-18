@@ -195,6 +195,26 @@ afterAll(async () => {
   await db?.end();
 });
 
+describe("fn_day_tasks · الاطّلاع على ما بعد يومه (الهجرة ٠٩٥)", () => {
+  it("**يُرجع اليوم القادم للعرض، ولا يُرصد**", async () => {
+    // FRESH لم يُتمّ شيئاً: يومه الأول، واليوم ٣ قادم.
+    const ahead = await asUser(FRESH, async () =>
+      (await db.query(`select task_field_id from public.fn_day_tasks($1, 3)`, [freshId])).rows,
+    );
+    expect(ahead.length).toBeGreaterThan(0);
+    const beyond = await asUser(FRESH, async () =>
+      (await db.query(`select task_field_id from public.fn_day_tasks($1, 99)`, [freshId])).rows,
+    );
+    expect(beyond).toEqual([]);
+    await expect(
+      asUser(FRESH, async () => db.query(`select public.fn_mark_field($1, 3, $2)`, [freshId, hifz])),
+    ).rejects.toThrow(/يُرصد يوم خطتك الحالي وحده/);
+    await expect(
+      asUser(FRESH, async () => db.query(`select public.fn_count_repetition($1, 3, $2, 1)`, [freshId, hifz])),
+    ).rejects.toThrow(/يُرصد يوم خطتك الحالي وحده/);
+  });
+});
+
 describe("fn_my_plan", () => {
   it("**يكافئ fn_day_tasks في كل يوم** — المدى التراكمي والصريح المرتبط بالمادة والتكرار", async () => {
     const plan = await myPlan(FINISHER, doneId);

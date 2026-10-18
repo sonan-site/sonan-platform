@@ -10,6 +10,7 @@ import {
   canUndo,
   defaultDay,
   followsPlan,
+  lastViewableDay,
   lastVisibleDay,
   pace,
   parseJourneyState,
@@ -265,6 +266,7 @@ export default async function JourneyDayPage({
       pace={pace(state)}
       day={shown}
       lastDay={lastVisibleDay(state)}
+      maxDay={lastViewableDay(state)}
       markable={canMark(state, shown, clock)}
       tasks={tasks}
       archive={archive}

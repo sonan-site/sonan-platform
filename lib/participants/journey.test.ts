@@ -92,9 +92,12 @@ describe("اليوم المعروض", () => {
     expect(defaultDay(state({ stage: "finished", currentDay: 41, doneDays: 40 }))).toBe(40);
   });
 
-  it("لا يُفتح يومٌ بعد يومه، والرابط القديم يُصحَّح", () => {
+  it("القادم يُفتح للاطّلاع حتى آخر الخطة، وما وراءها يُصحَّح", () => {
     expect(resolveDay(state(), 3)).toBe(3);
-    expect(resolveDay(state(), 6)).toBe(5);
+    // اليوم القادم يُفتح للاطّلاع حتى آخر الخطة (الهجرة ٠٩٥) — وما وراءها يُصحَّح.
+    expect(resolveDay(state(), 6)).toBe(6);
+    expect(resolveDay(state({ dayCount: 40 }), 41)).toBe(5);
+    expect(resolveDay(state({ stage: "not_started", currentDay: 1, doneDays: 0 }), 3)).toBe(1);
     expect(resolveDay(state(), 0)).toBe(5);
     expect(resolveDay(state({ stage: "done_today", currentDay: 6 }), 6)).toBe(6);
   });
@@ -103,6 +106,8 @@ describe("اليوم المعروض", () => {
 describe("الرصد والتراجع", () => {
   it("يُرصد اليوم الحالي وحده وهو يرصد", () => {
     expect(canMark(state(), 5, "10:00")).toBe(true);
+    // اليوم القادم يُعرض ولا يُرصد.
+    expect(canMark(state(), 6, "10:00")).toBe(false);
     expect(canMark(state(), 4, "10:00")).toBe(false);
     expect(canMark(state({ stage: "done_today", currentDay: 6 }), 6, "10:00")).toBe(false);
     expect(canMark(state({ stage: "not_started" }), 5, "10:00")).toBe(false);
@@ -149,6 +154,10 @@ describe("صيغ", () => {
     expect(daysText(3)).toBe("3 أيام");
     expect(daysText(11)).toBe("11 يوماً");
     expect(daysText(103)).toBe("103 أيام");
+    expect(daysText(100)).toBe("100 يوم");
+    expect(daysText(102)).toBe("102 يوم");
+    expect(daysText(111)).toBe("111 يوماً");
+    expect(timesText(100)).toBe("100 مرة");
   });
 
   it("حكم الأرشيف — والمعوَّض يبقى متعثّراً", () => {
