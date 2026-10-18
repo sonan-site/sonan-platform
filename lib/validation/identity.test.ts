@@ -5,12 +5,14 @@ describe("هوية المشارك", () => {
   it("**الرقم يُطبَّع لاتينياً** — من لوحة عربية أو بمسافات", () => {
     expect(normalizeNationalId("١٠٢٣٤٥٦٧٨٩")).toBe("1023456789");
     expect(normalizeNationalId("2023 456 789")).toBe("2023456789");
+    expect(normalizeNationalId("a12-34567")).toBe("A1234567");
   });
 
-  it("**عشرة أرقام تبدأ بـ1 أو 2** — وغيرها مرفوض", () => {
-    expect(identitySchema.parse({ nationalId: "1023456789" })).toMatchObject({ national_id: "1023456789" });
-    expect(identitySchema.parse({ nationalId: "2023456789" })).toMatchObject({ national_id: "2023456789" });
-    for (const bad of ["3023456789", "102345678", "10234567890", "10234x6789"]) {
+  it("**رقم وثيقةٍ مفتوح**: أرقام وأحرف لاتينية من ٥ إلى ٢٠ — وغيرها مرفوض", () => {
+    for (const ok of ["1023456789", "2023456789", "3023456789", "4123456789", "A1234567", "12345", "A".repeat(20)]) {
+      expect(identitySchema.parse({ nationalId: ok })).toMatchObject({ national_id: ok });
+    }
+    for (const bad of ["1234", "A".repeat(21), "10234/6789", "رقم12345"]) {
       expect(identitySchema.safeParse({ nationalId: bad }).error?.issues[0]?.path).toEqual(["nationalId"]);
     }
   });

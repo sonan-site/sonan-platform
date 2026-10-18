@@ -187,15 +187,15 @@ export function AccountView({
           </Muted>
           <Field
             id="nationalId"
-            label="رقم الهوية أو الإقامة"
-            hint={identity.nationalId ? "مثبَّت — لتصحيحه تواصل مع إدارة البرنامج" : "عشرة أرقام يبدأ بـ1 أو 2"}
+            label="رقم الهوية أو الإقامة أو الجواز"
+            hint={identity.nationalId ? "مثبَّت — لتصحيحه تواصل مع إدارة البرنامج" : "كما هو في وثيقتك"}
             error={fresh(idState).fieldErrors?.["nationalId"]}
           >
             <Input
               id="nationalId"
               name="nationalId"
-              inputMode="numeric"
-              maxLength={10}
+              autoCapitalize="characters"
+              maxLength={30}
               latin
               defaultValue={identity.nationalId ?? ""}
               readOnly={Boolean(identity.nationalId)}
@@ -229,7 +229,7 @@ export function AccountView({
             notice={lastNotice("identity", idState)}
             rows={[
               // كاملاً لصاحبه وحده — والإدارة تراه مقنّعاً (`adr/0047`).
-              ["رقم الهوية أو الإقامة", identity.nationalId ? <bdi dir="ltr">{identity.nationalId}</bdi> : ""],
+              ["رقم الهوية أو الإقامة أو الجواز", identity.nationalId ? <bdi dir="ltr">{identity.nationalId}</bdi> : ""],
               ["جوال وليّ الأمر", identity.guardianPhone ? <bdi dir="ltr">{formatPhone(identity.guardianPhone)}</bdi> : ""],
             ]}
           >

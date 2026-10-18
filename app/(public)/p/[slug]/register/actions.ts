@@ -9,7 +9,7 @@ import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { userMessage } from "@/lib/db/messages";
 import { normalizePhone } from "@/lib/profile/phone";
-import { normalizeNationalId } from "@/lib/validation/identity";
+import { isNationalId, NATIONAL_ID_MESSAGE, normalizeNationalId } from "@/lib/validation/identity";
 
 /**
  * التسجيل في برنامج.
@@ -123,7 +123,7 @@ export async function completeForRegistration(_prev: FormState, form: FormData):
   }
   if (form.has("nationalId")) {
     const v = normalizeNationalId(get("nationalId"));
-    if (!/^[12][0-9]{9}$/.test(v)) fieldErrors["nationalId"] = "رقم الهوية عشرة أرقام يبدأ بـ1 للمواطن أو 2 للمقيم";
+    if (!isNationalId(v)) fieldErrors["nationalId"] = NATIONAL_ID_MESSAGE;
     else if (v !== normalizeNationalId(get("nationalIdConfirm"))) fieldErrors["nationalIdConfirm"] = "الرقمان غير متطابقين";
     else identity.national_id = v;
   }

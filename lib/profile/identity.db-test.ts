@@ -133,10 +133,10 @@ describe("profile_identities", () => {
     expect(dup.error).toMatch(/uq_profile_identities_national_id/);
   });
 
-  it("والصيغة مفروضة: عشرة أرقام تبدأ بـ1 أو 2", async () => {
+  it("والصيغة مفروضة: أرقام وأحرف لاتينية كبيرة من ٥ إلى ٢٠", async () => {
     const bad = await as(
       OTHER,
-      `insert into public.profile_identities (user_id, national_id) values ($1, '3023456789')`,
+      `insert into public.profile_identities (user_id, national_id) values ($1, 'a12/34')`,
       [OTHER],
     );
     expect(bad.error).toMatch(/chk_profile_identities_national_id/);

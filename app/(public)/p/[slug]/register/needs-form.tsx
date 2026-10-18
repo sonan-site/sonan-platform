@@ -60,11 +60,11 @@ export function NeedsForm({
 
           {has("national_id") ? (
             <>
-            <Field id="nationalId" label="رقم الهوية أو الإقامة" required hint="لا يُغيَّر بعد حفظه — تأكّد منه" error={err("nationalId")}>
-              <Input id="nationalId" name="nationalId" required inputMode="numeric" latin autoComplete="off" invalid={Boolean(err("nationalId"))} aria-describedby={err("nationalId") ? "nationalId-error" : undefined} />
+            <Field id="nationalId" label="رقم الهوية أو الإقامة أو الجواز" required hint="لا يُغيَّر بعد حفظه — تأكّد منه" error={err("nationalId")}>
+              <Input id="nationalId" name="nationalId" required autoCapitalize="characters" latin autoComplete="off" invalid={Boolean(err("nationalId"))} aria-describedby={err("nationalId") ? "nationalId-error" : undefined} />
             </Field>
-            <Field id="nationalIdConfirm" label="أعد كتابة رقم الهوية" required error={err("nationalIdConfirm")}>
-              <Input id="nationalIdConfirm" name="nationalIdConfirm" required inputMode="numeric" latin autoComplete="off" invalid={Boolean(err("nationalIdConfirm"))} aria-describedby={err("nationalIdConfirm") ? "nationalIdConfirm-error" : undefined} />
+            <Field id="nationalIdConfirm" label="أعد كتابة الرقم" required error={err("nationalIdConfirm")}>
+              <Input id="nationalIdConfirm" name="nationalIdConfirm" required autoCapitalize="characters" latin autoComplete="off" invalid={Boolean(err("nationalIdConfirm"))} aria-describedby={err("nationalIdConfirm") ? "nationalIdConfirm-error" : undefined} />
             </Field>
             </>
           ) : null}

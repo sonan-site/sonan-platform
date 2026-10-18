@@ -2,20 +2,31 @@ import { z } from "@/lib/validation/z";
 import { isCountryCode, normalizePhone } from "@/lib/profile/phone";
 
 /**
- * هوية المشارك (`adr/0047`) — رقم الهوية أو الإقامة وجوال وليّ الأمر.
+ * هوية المشارك (`adr/0047`) — رقم الهوية أو الإقامة أو الجواز وجوال وليّ الأمر.
  *
  * الرقم يُكتب بلوحة عربية كثيراً، فيُطبَّع لاتينياً قبل الحكم عليه. وكلاهما
  * اختياري هنا: الإلزام عند التسجيل في برنامجٍ يشترطهما، لا عند الحفظ.
  */
 
-const NATIONAL_ID = /^[12][0-9]{9}$/;
+/**
+ * رقم وثيقةٍ مفتوح بلا نوع (ملحق `adr/0047` · ١٨ أكتوبر): هوية أو إقامة أو جواز أو غيرها —
+ * أرقامٌ وأحرف لاتينية كبيرة، من ٥ إلى ٢٠ خانة. توأم `chk_profile_identities_national_id`.
+ */
+const NATIONAL_ID = /^[A-Z0-9]{5,20}$/;
 
-/** «١٠٢٣…» و«1023 456 789» ← «1023456789». */
+export const NATIONAL_ID_MESSAGE = "اكتب رقم وثيقتك كما هو فيها: أرقام وأحرف لاتينية، من ٥ إلى ٢٠ خانة";
+
+export function isNationalId(v: string): boolean {
+  return NATIONAL_ID.test(v);
+}
+
+/** «١٠٢٣…» و«1023 456 789» ← «1023456789»، و«a12-345» ← «A12345». */
 export function normalizeNationalId(raw: string): string {
   return raw
     .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
-    .replace(/[\s-]/g, "");
+    .replace(/[\s-]/g, "")
+    .toUpperCase();
 }
 
 export const identitySchema = z
@@ -30,7 +41,7 @@ export const identitySchema = z
       ctx.addIssue({
         code: "custom",
         path: ["nationalId"],
-        message: "رقم الهوية عشرة أرقام يبدأ بـ1 للمواطن أو 2 للمقيم",
+        message: NATIONAL_ID_MESSAGE,
       });
       return z.NEVER;
     }
