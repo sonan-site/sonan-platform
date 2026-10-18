@@ -460,3 +460,72 @@ body {
   --c-fs-lede: 1.08rem;
   --c-fs-small: 0.72rem;
 }
+
+/* ══ جلد الحملة خارج واجهتها (ملحق adr/0045 · خطة ألوان الحملة) ══
+   صفحة تسجيل برنامج الحملة وصفحات الدخول في طريقها **بلون الواجهة** — فلا يظنّ الطالب أنه
+   انتقل إلى موقعٍ آخر. يعيد تعريف رموز المنصة الدلالية فتتبعه المكوّنات بلا لمسة. القيم خام:
+   رموز `--c-*` لا تُعرَّف إلا داخل [data-campaign] فتسقط هنا بصمت (مراجعة الخطة ح٤).
+   والأحوال من الوضع الداكن للمنصة لا من الحملة — فتبقى معانيها (م٣). */
+[data-skin="campaign"] {
+  color-scheme: dark;
+
+  --color-bg: #072c3a;
+  --color-surface: #0b3747;
+  --color-surface-raised: #104253;
+  --color-surface-sunken: #052433;
+
+  --color-border: #1f5566;
+  --color-border-strong: #4f8f9d; /* حدّ الحقل ≥ ٣:١ على الخلفية والسطح */
+
+  --color-text: #e3f1f4;
+  --color-text-muted: #a9c8d0;
+  --color-text-subtle: #8fb3bc;
+  --color-text-on-brand: #e3f1f4;
+  --color-text-on-accent: #072c3a;
+
+  /* العلامة فيروزيٌّ مرفوع يتميّز عن الخلفية (م٤)، والإجراء ذهبيٌّ بحبر الصفحة. */
+  --color-brand: #12566b;
+  --color-brand-deep: #041d27;
+
+  --color-accent: #f4d59b;
+  --color-accent-hover: #e3b56d;
+  --color-accent-subtle: #1d3d3f;
+
+  --color-success: #6bb08c;
+  --color-success-surface: #12302a;
+  --color-warning: #d2a05a;
+  --color-warning-surface: #2a2a1f;
+  --color-danger: #e08a7b;
+  --color-danger-surface: #2e2424;
+  --color-info: #8fe9ea;
+  --color-info-surface: #0f3c48;
+
+  --color-focus: #f4d59b;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 36%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 45%);
+
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* الصفحة كلها بالحبر — لا بيجٌ عند ارتداد التمرير ولا تحت إطارٍ قصير (م١). */
+:root:has([data-skin="campaign"]) {
+  color-scheme: dark;
+}
+
+body:has([data-skin="campaign"]) {
+  background: #072c3a;
+}
+
+/* روابط النصّ بلا صنفٍ ملوّن بالذهبي — لا أزرق المتصفح على الحبر (ن٥). وبلا ثقل انتقاء. */
+[data-skin="campaign"] :where(a) {
+  color: var(--color-accent);
+}
+
+/* خطّ الحملة لعنوان الصفحة وحده؛ النصّ والحقول بخطّ المنصة للقراءة والكتابة. */
+[data-skin="campaign"] :where(h1) {
+  font-family: "Handicrafts", var(--font-body);
+  font-weight: 500;
+}

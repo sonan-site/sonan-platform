@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
+import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { createClient } from "@/lib/db/server";
 import { parseBlockContent, pickGuide } from "@/lib/programs/blocks";
 import { formatRegistrationNo, REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
@@ -40,6 +41,9 @@ export default async function RegisterPage({
 
   if (error) return <ErrorState body="تعذّر جلب البرنامج." />;
   if (!program) notFound();
+
+  // صفحة برنامج الحملة هي واجهته — فالرجوع إليها لا إلى صفحته ببيج المنصة (خطة الألوان م٨).
+  const programHome = (await getHomeFeatured()) === slug ? "/" : `/p/${slug}`;
 
   // [BR-CAP-01] — الحالة من القاعدة: هي مصدر الإنفاذ، فتُقرأ منها لا تُحسب هنا.
   const { data: state } = await db.rpc("fn_registration_state", { p_program_id: program.id });
@@ -80,7 +84,7 @@ export default async function RegisterPage({
         <Link href={`/journey/${existing.id}`} className={styles.submit}>
           افتح رحلتي
         </Link>
-        <Link href={`/p/${slug}`} className={styles.backLink}>
+        <Link href={programHome} className={styles.backLink}>
           صفحة {program.name}
         </Link>
       </div>
@@ -111,7 +115,7 @@ export default async function RegisterPage({
         kind="no-data"
         title="لا يتاح لك التسجيل في هذه المسابقة"
         body={hard.map((n) => n.message).join(" · ")}
-        action={<Link href={`/p/${slug}`}>صفحة المسابقة</Link>}
+        action={<Link href={programHome}>صفحة المسابقة</Link>}
       />
     );
   }

@@ -78,3 +78,34 @@
 .foot a:hover {
   color: var(--color-text);
 }
+
+/* ══ جلد الحملة — صفحة تسجيل برنامجها (ملحق adr/0045) ══
+   الرموز من [data-skin="campaign"]؛ هنا الهيئة وحدها. */
+.skinTop {
+  justify-content: space-between;
+  background: var(--color-brand-deep);
+  border-block-end-color: var(--color-border);
+}
+
+.skinBrand {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--touch-target);
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.skinBrand img {
+  display: block;
+  block-size: 2.5rem;
+  inline-size: auto;
+}
+
+.skinBrand:active {
+  transform: scale(var(--press-scale));
+}
+
+.skinShell .signIn {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}

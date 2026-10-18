@@ -306,3 +306,19 @@ a.submit {
   font-weight: var(--weight-bold);
   color: var(--color-accent);
 }
+
+/* جلد الحملة (ملحق adr/0045): الإجراء ذهبيٌّ بحبر الصفحة كزرّ الواجهة — والعلامة هناك
+   فيروزيٌّ لا يحمل الإجراء الرئيسي. */
+:global([data-skin="campaign"]) .submit {
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+}
+
+:global([data-skin="campaign"]) .submit:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+:global([data-skin="campaign"]) .radio,
+:global([data-skin="campaign"]) .check {
+  accent-color: var(--color-accent);
+}
