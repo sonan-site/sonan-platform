@@ -435,7 +435,7 @@ body {
   --c-header-bg: linear-gradient(180deg, rgba(4, 29, 39, 0.92), rgba(4, 29, 39, 0.7));
   --c-footer-bg: rgba(4, 29, 39, 0.55);
   --c-gold-fill: linear-gradient(180deg, #fbe4b6, #f4d59b 45%, #e3b56d);
-  --c-gold-glow: 0 6px 24px rgba(244, 213, 155, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --c-gold-glow: 0 4px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   --c-now-glow: 0 0 0 6px rgba(244, 213, 155, 0.12), 0 0 24px rgba(244, 213, 155, 0.4);
   --c-title-glow: 0 0 28px rgba(53, 236, 226, 0.45), 0 0 70px rgba(53, 236, 226, 0.18);
   --c-pill-fill: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(143, 233, 234, 0.12), rgba(255, 255, 255, 0.04));
