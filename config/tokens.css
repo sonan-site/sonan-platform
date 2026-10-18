@@ -544,11 +544,11 @@ body:has([data-skin="campaign"]) {
   :root:not([data-theme="dark"]) [data-skin="campaign-tint"] {
     --color-brand: #072c3a;
     --color-brand-deep: #041d27;
-    --color-text-on-brand: #e3f1f4;
+    --color-text-on-brand: #f7fbfc;
 
     --color-chrome: #072c3a;
-    --color-chrome-text: #e3f1f4;
-    --color-chrome-muted: #a9c8d0;
+    --color-chrome-text: #f7fbfc;
+    --color-chrome-muted: #c4d9de;
     --color-chrome-border: #072c3a;
     --color-chrome-hover: rgb(255 255 255 / 8%);
     --color-chrome-current: rgb(244 213 155 / 16%);
@@ -560,11 +560,11 @@ body:has([data-skin="campaign"]) {
 :root[data-theme="light"] [data-skin="campaign-tint"] {
   --color-brand: #072c3a;
   --color-brand-deep: #041d27;
-  --color-text-on-brand: #e3f1f4;
+  --color-text-on-brand: #f7fbfc;
 
   --color-chrome: #072c3a;
-  --color-chrome-text: #e3f1f4;
-  --color-chrome-muted: #a9c8d0;
+  --color-chrome-text: #f7fbfc;
+  --color-chrome-muted: #c4d9de;
   --color-chrome-border: #072c3a;
   --color-chrome-hover: rgb(255 255 255 / 8%);
   --color-chrome-current: rgb(244 213 155 / 16%);
