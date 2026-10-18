@@ -502,6 +502,9 @@ body {
 
   --color-focus: #f4d59b;
 
+  /* خطّ الحملة للعناوين وحدها. */
+  --font-display: "Handicrafts", var(--font-body);
+
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
   --shadow-md: 0 2px 8px rgb(0 0 0 / 36%);
   --shadow-lg: 0 8px 24px rgb(0 0 0 / 45%);
@@ -526,6 +529,6 @@ body:has([data-skin="campaign"]) {
 
 /* خطّ الحملة لعنوان الصفحة وحده؛ النصّ والحقول بخطّ المنصة للقراءة والكتابة. */
 [data-skin="campaign"] :where(h1) {
-  font-family: "Handicrafts", var(--font-body);
+  font-family: var(--font-display);
   font-weight: 500;
 }
