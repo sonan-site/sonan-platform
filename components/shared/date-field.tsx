@@ -111,7 +111,8 @@ export function DateField({
             >
               {(kind === "event" ? eventYears() : birthYears()).map((year) => (
                 <option key={year} value={year}>
-                  {formatNumber(year)}
+                  {/* السنة تسميةٌ لا كمّية: بلا فاصل الآلاف («2,006»). */}
+                  {String(year)}
                 </option>
               ))}
             </select>
