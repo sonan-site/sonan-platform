@@ -267,13 +267,24 @@ describe("المحاولة", () => {
     expect(second.error).toBeNull();
     const id2 = second.rows[0]!.id;
     expect(id2).not.toBe(attempt);
-    // التنوّع: ما لم يُسأل أولاً — في النطاق ما يكفي فلا تكرار.
+    // لا تكرار حتى يرى النطاق كله (الهجرة ٠٩٨): في نطاقه خمسة حيّة (الوحدات ١–٦ بلا المؤرشف)، رأى
+    // منها ثلاثةً أولاً (سؤالان مسؤولان حيّان ومتخطّى — والمتخطّى ظهر له، والثالث المسؤول أُرشف)، فالثانية: الاثنان الباقيان ثم مكرّرٌ واحد —
+    // ولا يتكرر شيءٌ قبل أن يرى الخمسة كلها.
     const overlap = await one(
       `select cardinality(array(select unnest(a.question_ids) intersect select unnest(b.question_ids))) n
        from public.remote_attempts a, public.remote_attempts b where a.id = $1 and b.id = $2`,
       [attempt, id2],
     );
-    expect(overlap.n).toBe(0);
+    // والمكرّر واحدٌ من الأقل ظهوراً: مسؤولٌ في الأولى، أو المتخطّى (فلا يقع في تقاطع question_ids).
+    expect(overlap.n).toBeLessThanOrEqual(1);
+    const seenAll = await one(
+      `select count(distinct q)::int n from (
+         select unnest(question_ids) q from public.remote_attempts where id in ($1, $2)
+         union all select question_id from public.remote_answers where attempt_id = $1 and is_skipped
+       ) s join public.questions x on x.id = s.q where x.deleted_at is null`,
+      [attempt, id2],
+    );
+    expect(seenAll.n).toBe(5);
     let s = (await stateOf(id2))!;
     while (s.status === "open") s = await answer(id2, s.question!.id, wrong.get(s.question!.id)!);
     expect(Number(s.percent)).toBe(0);
@@ -319,8 +330,8 @@ describe("المحاولة", () => {
       [programId, examId],
     );
     // المسار عشر وحدات، والدخول ٧٥٪ ← أول ثماني. والصالح للمرحلي ستةٌ في ١–٦ (المفتوح والتاسعة خارجه، وواحدٌ مؤرشف).
-    // والمطلوب = الأسئلة + حدّ التخطّي (٠٨٦).
-    expect(rows[0]).toEqual({ scope_units: 8, available: 5, needed: 4 });
+    // والمطلوب = (الأسئلة + حدّ التخطّي) × المحاولات — لكلها بلا تكرار (٠٨٦ · ٠٩٨): (٣ + ١) × ٢.
+    expect(rows[0]).toEqual({ scope_units: 8, available: 5, needed: 8 });
   });
 
   it("**الإعدادات المقفلة بعد البدء** — والمخرج الرجعي بسببٍ مدقَّق", async () => {

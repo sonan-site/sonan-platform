@@ -62,6 +62,8 @@ const examSchema = z
     secondsPerQuestion: optionalNumber(z.number().int().positive("عدد موجب")),
     maxSkips: optionalNumber(z.number().int().min(0, "صفر فأكثر")),
     maxAttempts: optionalNumber(z.number().int().min(1, "من 1 إلى 10").max(10, "من 1 إلى 10")),
+    scopeFromPct: optionalNumber(z.number().min(0, "بين 0 و100").max(100, "بين 0 و100")),
+    scopeToPct: optionalNumber(z.number().min(0, "بين 0 و100").max(100, "بين 0 و100")),
     opensOn: optionalDay,
     closesOn: optionalDay,
     eligibilityOn: optionalDay,
@@ -89,6 +91,11 @@ const examSchema = z
     path: ["closesOn"],
     message: "الإغلاق لا يسبق الفتح",
   })
+  // للاختبار عن بعد وحده، ونسبة دخولٍ صفرٌ = بلا شرط فالنهاية ١٠٠٪ (مراجعة ش٣ م٢).
+  .refine((v) => v.examType !== "remote" || (v.scopeFromPct ?? 0) < (v.scopeToPct ?? (v.entryPercentage || 100)), {
+    path: ["scopeToPct"],
+    message: "نهاية النطاق بعد بدايته",
+  })
   .refine((v) => !v.examId || v.prerequisiteExamId !== v.examId, {
     path: ["prerequisiteExamId"],
     message: "الاختبار لا يشترط نفسه",
@@ -114,6 +121,8 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
     secondsPerQuestion: text("secondsPerQuestion"),
     maxSkips: text("maxSkips"),
     maxAttempts: text("maxAttempts"),
+    scopeFromPct: text("scopeFromPct"),
+    scopeToPct: text("scopeToPct"),
     opensOn: String(form.get("opensOn") ?? ""),
     closesOn: String(form.get("closesOn") ?? ""),
     eligibilityOn: String(form.get("eligibilityOn") ?? ""),
@@ -138,6 +147,8 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
     seconds_per_question: remote ? (v.secondsPerQuestion ?? null) : null,
     max_skips: remote ? (v.maxSkips ?? 0) : null,
     max_attempts: remote ? (v.maxAttempts ?? null) : null,
+    scope_from_pct: remote ? (v.scopeFromPct ?? null) : null,
+    scope_to_pct: remote ? (v.scopeToPct ?? null) : null,
     opens_at: remote && v.opensOn ? riyadhDayStart(v.opensOn) : null,
     closes_at: remote && v.closesOn ? riyadhDayEnd(v.closesOn) : null,
     eligibility_at: !remote && v.eligibilityOn ? riyadhDayEnd(v.eligibilityOn) : null,
@@ -152,7 +163,8 @@ export async function saveExam(_prev: FormState, form: FormData): Promise<FormSt
     if (reason) {
       const locked = remote
         ? { pass_percentage: row.pass_percentage, question_count: row.question_count,
-            seconds_per_question: row.seconds_per_question, max_skips: row.max_skips, track_id: row.track_id }
+            seconds_per_question: row.seconds_per_question, max_skips: row.max_skips, track_id: row.track_id,
+            scope_from_pct: row.scope_from_pct, scope_to_pct: row.scope_to_pct, entry_percentage: row.entry_percentage }
         : { pass_percentage: row.pass_percentage, question_count: row.question_count, judge_count: row.judge_count,
             award_percentage: row.award_percentage, entry_percentage: row.entry_percentage,
             prerequisite_exam_id: row.prerequisite_exam_id, eligibility_at: row.eligibility_at, track_id: row.track_id };

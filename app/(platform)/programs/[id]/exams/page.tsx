@@ -52,7 +52,7 @@ export default async function ExamsPage({
     db
       .from("exams")
       .select(
-        "id, name, exam_type, stage, track_id, pass_percentage, question_count, entry_percentage, prerequisite_exam_id, seconds_per_question, max_skips, max_attempts, opens_at, closes_at, eligibility_at, judge_count, award_percentage",
+        "id, name, exam_type, stage, track_id, pass_percentage, question_count, entry_percentage, prerequisite_exam_id, seconds_per_question, max_skips, max_attempts, scope_from_pct, scope_to_pct, opens_at, closes_at, eligibility_at, judge_count, award_percentage",
       )
       .eq("program_id", id)
       .is("deleted_at", null)
@@ -101,6 +101,8 @@ export default async function ExamsPage({
     secondsPerQuestion: e.seconds_per_question,
     maxSkips: e.max_skips,
     maxAttempts: e.max_attempts,
+    scopeFromPct: e.scope_from_pct === null ? null : Number(e.scope_from_pct),
+    scopeToPct: e.scope_to_pct === null ? null : Number(e.scope_to_pct),
     opensOn: e.opens_at ? toDateInput(e.opens_at) : "",
     closesOn: e.closes_at ? toDateInput(e.closes_at) : "",
     eligibilityOn: e.eligibility_at ? toDateInput(e.eligibility_at) : "",

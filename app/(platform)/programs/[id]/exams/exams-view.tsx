@@ -38,6 +38,9 @@ export type ExamSettings = {
   secondsPerQuestion: number | null;
   maxSkips: number | null;
   maxAttempts: number | null;
+  /** نطاق الأسئلة عن بعد نسبةً من نصيب المسار (الهجرة ٠٩٨) — فارغٌ: من ٠ إلى نسبة الدخول. */
+  scopeFromPct: number | null;
+  scopeToPct: number | null;
   opensOn: string;
   closesOn: string;
   /** لحظة احتساب الإنجاز للتأهل (الشفهي) — يومٌ يُحتسب إلى آخره. */
@@ -146,6 +149,7 @@ function settingsSummary(e: ExamSettings, exams: ExamSettings[]): string {
   if (pre) parts.push(`بعد اجتياز «${pre.name}»`);
   if (e.examType === "remote") {
     parts.push(`${formatNumber(e.secondsPerQuestion ?? 0)} ثانية للسؤال`, `${formatNumber(e.maxAttempts ?? 1)} محاولة`);
+    parts.push(`الأسئلة من ${pct(e.scopeFromPct ?? 0)} إلى ${pct(e.scopeToPct ?? (e.entryPercentage || 100))} من المسار`);
   } else {
     parts.push(`${formatNumber(e.judgeCount ?? 0)} محكّمين`, `الجائزة من ${pct(e.awardPercentage ?? 0)}`);
     parts.push(e.eligibilityOn ? `الإنجاز يُحتسب حتى ${e.eligibilityOn}` : "لحظة احتساب الإنجاز لم تُحدَّد");
@@ -252,7 +256,7 @@ function ExamForm({
       {exam?.locked ? (
         <div className={styles.lockNote}>
           <p>
-            <b>بدأ هذا الاختبار.</b> تغيير الاجتياز أو عدد الأسئلة أو الزمن أو المحكّمين أو الشروط يغيّر نتائج قائمة
+            <b>بدأ هذا الاختبار.</b> تغيير الاجتياز أو عدد الأسئلة أو الزمن أو المحكّمين أو الشروط أو نطاق الأسئلة يغيّر نتائج قائمة
             بأثرٍ رجعي. والنافذة والمحاولات والاسم تُعدَّل بلا سبب.
           </p>
           <Field id={`${p}reason`} label="سبب التعديل الرجعي" hint="اتركه فارغاً إن لم تغيّر ما ذُكر. يُسجَّل في سجل التدقيق.">
@@ -328,6 +332,22 @@ function ExamForm({
           </Field>
           <Field id={`${p}attempts`} label="عدد المحاولات" required hint="المعتدّ أعلاها." error={f?.maxAttempts}>
             <Input id={`${p}attempts`} name="maxAttempts" type="number" min={1} max={10} numeric required defaultValue={exam?.maxAttempts ?? 1} />
+          </Field>
+          <Field
+            id={`${p}scopeFrom`}
+            label="الأسئلة من (٪ من المسار)"
+            hint="فارغ = من أول المسار."
+            error={f?.scopeFromPct}
+          >
+            <Input id={`${p}scopeFrom`} name="scopeFromPct" type="number" min={0} max={100} step="any" numeric defaultValue={exam?.scopeFromPct ?? ""} />
+          </Field>
+          <Field
+            id={`${p}scopeTo`}
+            label="إلى (٪ من المسار)"
+            hint="فارغ = نسبة الدخول. ولا يُسأل المشارك عمّا لم يبلغه."
+            error={f?.scopeToPct}
+          >
+            <Input id={`${p}scopeTo`} name="scopeToPct" type="number" min={0} max={100} step="any" numeric defaultValue={exam?.scopeToPct ?? ""} />
           </Field>
           <Field id={`${p}opens`} label="يُفتح يوم" hint="بتوقيت الرياض. فارغ = مفتوح." error={f?.opensOn}>
             <Input id={`${p}opens`} name="opensOn" type="date" defaultValue={exam?.opensOn ?? ""} />
@@ -504,16 +524,16 @@ function BankStep({
     >
       {coverage.length > 0 ? (
         <div className={styles.coverage}>
-          <p className={styles.coverageTitle}>ما يكفي كل مسار — من الوحدات التي يُسأل منها الداخل</p>
+          <p className={styles.coverageTitle}>ما يكفي كل مسار — من نطاق أسئلة الاختبار</p>
           <p className={styles.coverageNote}>
-            المطلوب أسئلة الاختبار وحدّ تخطّيه. والهدف ضعفه: الإنجاز يُقاس بأيام الخطة، فمن بلغ النسبة قد يكون بلغ
-            وحداتٍ أقل منها — والضعف يُبقي لكلٍّ ما يكفيه، ويُنوّع المحاولة الثانية.
+            المطلوب للاختبار عن بعد: أسئلة المحاولة وحدّ تخطّيها، مضروبةً في عدد المحاولات — فلا يتكرر سؤالٌ على
+            المشارك حتى يرى النطاق كله. وما دونه يُكمَل بالأقل ظهوراً له.
           </p>
           <ul className={styles.coverageList}>
             {coverage.map((c) => (
               <li key={c.key} className={c.available < c.needed ? styles.short : styles.enough}>
-                {c.examName} · {c.trackName}: {formatNumber(c.available)} صالحاً من أول {formatNumber(c.scopeUnits)} وحدة
-                — المطلوب {formatNumber(c.needed)} والهدف {formatNumber(c.needed * 2)}
+                {c.examName} · {c.trackName}: {formatNumber(c.available)} صالحاً في نطاقٍ من {formatNumber(c.scopeUnits)} وحدة
+                — المطلوب {formatNumber(c.needed)} لكل المحاولات بلا تكرار
                 {c.available < c.needed ? ` (ينقص ${formatNumber(c.needed - c.available)})` : ""}
               </li>
             ))}

@@ -1125,6 +1125,8 @@ export type Database = {
           prerequisite_exam_id: string | null
           program_id: string
           question_count: number
+          scope_from_pct: number | null
+          scope_to_pct: number | null
           seconds_per_question: number | null
           sorted_at: string | null
           stage: Database["public"]["Enums"]["exam_stage"]
@@ -1149,6 +1151,8 @@ export type Database = {
           prerequisite_exam_id?: string | null
           program_id: string
           question_count: number
+          scope_from_pct?: number | null
+          scope_to_pct?: number | null
           seconds_per_question?: number | null
           sorted_at?: string | null
           stage: Database["public"]["Enums"]["exam_stage"]
@@ -1173,6 +1177,8 @@ export type Database = {
           prerequisite_exam_id?: string | null
           program_id?: string
           question_count?: number
+          scope_from_pct?: number | null
+          scope_to_pct?: number | null
           seconds_per_question?: number | null
           sorted_at?: string | null
           stage?: Database["public"]["Enums"]["exam_stage"]
@@ -3224,6 +3230,13 @@ export type Database = {
           passed: boolean
           registration_no: number
           track_id: string
+        }[]
+      }
+      fn_exam_seen: {
+        Args: { p_exam_id: string; p_participant_id: string }
+        Returns: {
+          n: number
+          question_id: string
         }[]
       }
       fn_export_results: {
