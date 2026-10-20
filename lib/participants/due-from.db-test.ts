@@ -200,6 +200,25 @@ describe("بداية احتساب الموعد · من بداية البرنام
   });
 });
 
+describe("بداية احتساب الموعد · من تجدّدت لحظته (الهجرة ٠٩٧)", () => {
+  it("**العائد بعد توقّف** يُحسب من لحظة عودته بما أتمّه — مدة التوقّف لا تُحسب تأخراً", async () => {
+    // لحظة الحكم تتجدّد بالعودة إلى حالةٍ تتبع الخطة — تُحاكى هنا بلا مشغّلاتها.
+    await db.query("begin");
+    try {
+      await db.query("set local session_replication_role = replica");
+      await db.query(`update public.participants set judge_from = '2026-11-12T10:00:00+03' where id = $1`, [onTime]);
+      await db.query("set local session_replication_role = origin");
+      const s = await stateAt(onTime, "2026-11-14T12:00:00+03");
+      expect(s.start_date).toBe("2026-11-12");
+      expect(s.done_days).toBe(10);
+      // أتمّ عشرة قبل توقّفه، والموعد منها: يوما ١٢ و١٣ نوفمبر فقط.
+      expect(s.due_days).toBe(12);
+    } finally {
+      await db.query("rollback");
+    }
+  });
+});
+
 describe("بداية احتساب الموعد · الحدود", () => {
   it("**لا موعد قبل أن تكون للمسار خطة**: خطةٌ حُفظت أولاً بعد البداية تُبدئ الموعد من يومها", async () => {
     await db.query(`update public.plan_versions set created_at = '2026-11-05T09:00:00+03' where plan_id = $1`, [planId]);
