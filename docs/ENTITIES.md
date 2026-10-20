@@ -489,6 +489,7 @@
 | `credit_enabled` | boolean | `true` — احتساب رصيد التقدّم |
 | `compensation_enabled` | boolean | `true` — احتساب التعويض |
 | `progress_measure` | enum `progress_measure` | `units` · `days` — افتراضاً `units` |
+| `due_from` | text · `join` أو `program_start` | `join` — بداية احتساب الموعد: من يوم التحاق كل مشارك، أو من بداية البرنامج للجميع (`adr/0052` · الهجرة ٠٩٦) |
 
 **على `tracks`** — الأعمدة نفسها **تقبل الفراغ**، والفراغ = موروث. ومعها علامتان صريحتان حيث الفراغ قيمةٌ لا غياب: `exceptions_overridden` (القائمة الفارغة قيمة) و`start_date_overridden` («بلا تاريخ بداية» قيمة — الهجرة ٠٥٨).
 

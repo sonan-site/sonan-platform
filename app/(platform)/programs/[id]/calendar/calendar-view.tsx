@@ -211,6 +211,15 @@ export function CalendarView({
             </Select>
           </ValueForm>
         ))}
+
+        {card("due_from", (disabled) => (
+          <ValueForm programId={programId} trackId={trackId} settingKey="due_from" disabled={disabled}>
+            <Select name="value" aria-label="بداية احتساب الموعد" defaultValue={values.dueFrom} disabled={disabled}>
+              <option value="join">من يوم التحاق كل مشارك</option>
+              <option value="program_start">من بداية البرنامج للجميع</option>
+            </Select>
+          </ValueForm>
+        ))}
       </div>
     </>
   );

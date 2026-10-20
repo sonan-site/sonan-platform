@@ -37,6 +37,8 @@ export type JourneyState = {
   lastCompletedToday: boolean;
   dailyLimit: number;
   startDate: string;
+  /** يومه الأول في الحكم: ما قبله لم يكن فيه (الهجرة ٠٩٦) — يساوي بداية الموعد ما لم يُحسب من بداية البرنامج. */
+  judgeStart: string;
   /** اليوم التقويمي بتوقيت الرياض: `YYYY-MM-DD`. */
   today: string;
   isProgramDay: boolean;
@@ -79,6 +81,7 @@ export function parseJourneyState(raw: unknown): JourneyState | null {
     lastCompletedToday: r.last_completed_today === true,
     dailyLimit: num("daily_limit"),
     startDate: str("start_date"),
+    judgeStart: str("judge_start") || str("start_date"),
     today: str("today"),
     isProgramDay: r.is_program_day === true,
     deadline: str("deadline"),

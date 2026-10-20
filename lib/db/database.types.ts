@@ -1988,6 +1988,7 @@ export type Database = {
           credit_enabled: boolean
           daily_limit: number
           deleted_at: string | null
+          due_from: string
           id: string
           kind: Database["public"]["Enums"]["program_kind"]
           min_age: number | null
@@ -2025,6 +2026,7 @@ export type Database = {
           credit_enabled?: boolean
           daily_limit?: number
           deleted_at?: string | null
+          due_from?: string
           id?: string
           kind?: Database["public"]["Enums"]["program_kind"]
           min_age?: number | null
@@ -2062,6 +2064,7 @@ export type Database = {
           credit_enabled?: boolean
           daily_limit?: number
           deleted_at?: string | null
+          due_from?: string
           id?: string
           kind?: Database["public"]["Enums"]["program_kind"]
           min_age?: number | null
@@ -2799,6 +2802,7 @@ export type Database = {
           daily_limit: number | null
           deleted_at: string | null
           description: string
+          due_from: string | null
           exceptions_overridden: boolean
           id: string
           name: string
@@ -2820,6 +2824,7 @@ export type Database = {
           daily_limit?: number | null
           deleted_at?: string | null
           description?: string
+          due_from?: string | null
           exceptions_overridden?: boolean
           id?: string
           name: string
@@ -2841,6 +2846,7 @@ export type Database = {
           daily_limit?: number | null
           deleted_at?: string | null
           description?: string
+          due_from?: string | null
           exceptions_overridden?: boolean
           id?: string
           name?: string
@@ -3160,6 +3166,7 @@ export type Database = {
           compensation_enabled: boolean
           credit_enabled: boolean
           daily_limit: number
+          due_from: string
           exceptions: string[]
           progress_measure: Database["public"]["Enums"]["progress_measure"]
           start_date: string

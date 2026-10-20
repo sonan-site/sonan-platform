@@ -248,7 +248,8 @@ export default async function JourneyDayPage({
             completedDays: a.completed_days ?? [],
           })),
         today: state.today,
-        startDate: state.startDate,
+        // «قبل بدايتك» حتى يومه الأول في الحكم — لا بداية البرنامج (مراجعة ش١ ١).
+        startDate: state.judgeStart,
         completedToday: state.completedToday,
         lastVisible: lastVisibleDay(state),
       });

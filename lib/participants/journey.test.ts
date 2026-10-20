@@ -35,6 +35,7 @@ function state(over: Partial<JourneyState> = {}): JourneyState {
     lastCompletedToday: false,
     dailyLimit: 2,
     startDate: "2026-10-01",
+    judgeStart: "2026-10-01",
     today: "2026-10-05",
     isProgramDay: true,
     deadline: "23:00",

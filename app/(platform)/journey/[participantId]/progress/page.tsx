@@ -106,7 +106,7 @@ export default async function JourneyProgressPage({ params }: { params: Promise<
             compensated: a.compensated_at !== null,
           })),
           today: state.today,
-          startDate: state.startDate,
+          startDate: state.judgeStart,
           completedToday: state.completedToday,
         });
   const now = nowIso();

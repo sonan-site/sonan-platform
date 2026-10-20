@@ -114,6 +114,10 @@ export async function saveEngineSetting(_prev: FormState, form: FormData): Promi
       if (raw !== "units" && raw !== "days") return { fieldErrors: { value: "اختر المقياس" } };
       return write(programId, trackId, key, raw, "حُفظ المقياس.");
     }
+    case "due_from": {
+      if (raw !== "join" && raw !== "program_start") return { fieldErrors: { value: "اختر بداية الاحتساب" } };
+      return write(programId, trackId, key, raw, "حُفظت بداية احتساب الموعد.");
+    }
     case "exceptions":
       return { error: "أيام التوقف تُضاف وتُحذف يوماً يوماً." };
   }

@@ -14,6 +14,7 @@ export const ENGINE_KEYS = [
   "credit_enabled",
   "compensation_enabled",
   "progress_measure",
+  "due_from",
 ] as const;
 
 export type EngineKey = (typeof ENGINE_KEYS)[number];
@@ -51,7 +52,13 @@ export const ENGINE_LABEL: Record<EngineKey, { title: string; hint: string }> = 
     title: "مقياس نسبة الإنجاز",
     hint: "بالوحدات: ما حُفظ من نصيب المسار. بالأيام: ما أُتمّ من أيام الخطة.",
   },
+  due_from: {
+    title: "بداية احتساب الموعد",
+    hint: "من بداية البرنامج: من التحق متأخراً يُعرض متأخراً بما فاته، ولا تُكتب أيامه قبل التحاقه متعثّرة. من يوم التحاقه: يبدأ كل مشارك موعده يوم التحاقه.",
+  },
 };
+
+export type DueFrom = "join" | "program_start";
 
 /** الأحد أولاً كما في التقويم السعودي، والرقم كما يخزّنه `extract(dow)`. */
 export const WEEK_DAYS = [
@@ -77,6 +84,7 @@ export type EngineValues = {
   creditEnabled: boolean;
   compensationEnabled: boolean;
   progressMeasure: ProgressMeasure;
+  dueFrom: DueFrom;
 };
 
 export const DEFAULT_DEADLINE = "23:00";
@@ -108,5 +116,6 @@ export function effectiveValues(
     creditEnabled: pick("credit_enabled", "creditEnabled"),
     compensationEnabled: pick("compensation_enabled", "compensationEnabled"),
     progressMeasure: pick("progress_measure", "progressMeasure"),
+    dueFrom: pick("due_from", "dueFrom"),
   };
 }
