@@ -131,6 +131,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // الدور المقيّد ببرنامجٍ يُحذف قبل برنامجه — مفتاح النطاق يمنع العكس.
+  if (scopedRole) await db.query(`delete from public.user_roles where role_id = $1`, [scopedRole]);
   if (programId) {
     await db.query(`delete from public.audit_log where actor_id = any($1::uuid[])`, [USERS]);
     for (const table of ["commitment_archive", "field_marks", "field_counts", "day_openings", "day_completions"]) {
