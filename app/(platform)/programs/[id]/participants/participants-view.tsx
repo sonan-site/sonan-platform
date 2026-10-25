@@ -1,12 +1,13 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { Modal } from "@/components/shared/modal";
 import { ScreenActions } from "@/components/shared/screen-actions";
-import { Messages, TabHead, Step, StepForm } from "@/components/shared/steps";
+import { Messages, Muted, TabHead, Step, StepForm } from "@/components/shared/steps";
 import {
   PARTICIPANT_STATUS_LABEL,
   statusesOf,
@@ -270,6 +271,9 @@ export function ParticipantsView({
       ) : null}
 
       <TabHead title="المشاركون" lede="من سجّل في البرنامج، ومساره، وكم يوماً أرسل من خطته، وكم منها أتمّه كاملاً. ومنها تُبتّ طلبات تغيير المسار." />
+      <Muted>
+        <Link href={`/programs/${programId}/participants/late`}>المتأخرون عن خططهم، بجوالاتهم ←</Link>
+      </Muted>
 
       <Modal
         open={confirming !== null}

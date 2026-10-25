@@ -3572,6 +3572,21 @@ export type Database = {
         }
         Returns: number
       }
+      fn_program_late: {
+        Args: { p_at?: string; p_program_id: string }
+        Returns: {
+          done_days: number
+          due_days: number
+          full_name: string
+          id: string
+          last_done_at: string
+          late_days: number
+          phone: string
+          registration_no: number
+          track_id: string
+          track_name: string
+        }[]
+      }
       fn_program_missing: { Args: { p_program_id: string }; Returns: string[] }
       fn_program_participants: {
         Args: { p_limit?: number; p_offset?: number; p_program_id: string }
