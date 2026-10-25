@@ -650,7 +650,11 @@ button.step:active {
   font-weight: var(--weight-bold);
 }
 
+/* بقدر اللمس: أبرز زرٍّ في الشاشة حين يُبرَز الاختبار. */
 .examGo {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target);
   justify-self: start;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
@@ -662,6 +666,42 @@ button.step:active {
 
 .examGo:active {
   transform: scale(0.98);
+}
+
+/* المتاح الآن — بارزٌ أعلى الشاشة (خطة الدليل · الدفعة أ). */
+.examHot {
+  gap: var(--space-3);
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+}
+
+/* عنوانٌ يصله قارئ الشاشة من قائمة العناوين — بلا هامشه الافتراضي. */
+.examHotTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.examFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.examFacts div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.examFacts dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.examFacts dd {
+  margin: 0;
+  font-weight: var(--weight-bold);
 }
 
 /* ══ شريط الأسبوع (المرحلة ب · ب١) — على خلفية الرأس الداكنة ══ */

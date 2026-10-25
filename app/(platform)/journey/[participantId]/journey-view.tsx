@@ -22,6 +22,7 @@ import {
 } from "@/lib/participants/journey";
 import { countRepetition, markField, openNextDay, undoMark } from "../actions";
 import { FinalCard, type JourneyFinal } from "./final-card";
+import { attemptsLeft, isHotExam, lastExamMoment } from "@/lib/participants/exam-card";
 import styles from "./journey.module.css";
 import { HEAT_LABEL, type StripCell } from "@/lib/participants/progress-view";
 
@@ -602,6 +603,11 @@ export function JourneyView({
         </p>
       ) : null}
 
+      {/* الاختبار المتاح الآن أو الجاري — أعلى الشاشة (خطة الدليل · الدفعة أ). */}
+      {exams.filter(isHotExam).map((exam) => (
+        <ExamCard key={exam.id} participantId={participantId} exam={exam} />
+      ))}
+
       {/* ══ رأس اليوم ══ */}
       {state.stage === "not_started" ? (
         <section className={styles.hero} aria-label="بداية الحفظ">
@@ -676,9 +682,11 @@ export function JourneyView({
         </p>
       ) : null}
       {examsUnavailable ? <p className={styles.muted}>تعذّر جلب اختباراتك الآن — أعد فتح الصفحة لتظهر.</p> : null}
-      {exams.map((exam) => (
-        <ExamCard key={exam.id} participantId={participantId} exam={exam} />
-      ))}
+      {exams
+        .filter((exam) => !isHotExam(exam))
+        .map((exam) => (
+          <ExamCard key={exam.id} participantId={participantId} exam={exam} />
+        ))}
       {finals.map((f) => (
         <FinalCard key={f.examId} final={f} />
       ))}
@@ -960,36 +968,62 @@ function Ring({
   );
 }
 
-/** بطاقة اختبارٍ في «رحلتي»: حاله في سطر، ورابطه حين يُدخل أو تُرى نتيجته. */
+/**
+ * بطاقة اختبارٍ في «رحلتي». المتاح الآن أو الجاري **بارزٌ** أعلى الشاشة: «متاحٌ لك»، والمحاولات
+ * الباقية، وآخر موعد (خطة الدليل · الدفعة أ). وما سواه سطرُ حاله في مكانه.
+ */
 function ExamCard({ participantId, exam }: { participantId: string; exam: JourneyExam }) {
   const href = `/journey/${participantId}/exam/${exam.id}`;
-  const span =
-    exam.opensAt && exam.closesAt
-      ? `من ${formatDateBoth(exam.opensAt)} إلى ${formatDateBoth(exam.closesAt)}`
-      : null;
-  let line: string;
-  let action: string | null = null;
-  if (exam.open) {
-    line = "لك محاولةٌ لم تكتمل.";
-    action = "أكمل الاختبار";
-  } else if (exam.passed) {
-    line = `اجتزته بنسبة ${percent(exam.bestPercent ?? 0)}.`;
-  } else if (exam.blocker === null) {
-    line = exam.attempts > 0 ? `أعلى نتيجة لك ${percent(exam.bestPercent ?? 0)} — ولك محاولةٌ أخرى.` : "الاختبار متاحٌ لك الآن.";
-    action = exam.attempts > 0 ? "ابدأ محاولة جديدة" : "ادخل الاختبار";
-  } else {
-    line = exam.bestPercent !== null ? `${exam.blocker} — أعلى نتيجة لك ${percent(exam.bestPercent)}.` : `${exam.blocker}.`;
+  const hot = isHotExam(exam);
+  const left = attemptsLeft(exam);
+  const last = lastExamMoment(exam.closesAt);
+  const span = exam.opensAt && last ? `من ${formatDateBoth(exam.opensAt)} إلى ${formatDateBoth(last)}` : null;
+
+  if (hot) {
+    return (
+      <section className={`${styles.exam} ${styles.examHot}`} aria-labelledby={`exam-${exam.id}`}>
+        <h2 id={`exam-${exam.id}`} className={styles.examHotTitle}>
+          {exam.open ? `لك محاولةٌ لم تكتمل في ${exam.name}` : `${exam.name} متاحٌ لك`}
+        </h2>
+        <dl className={styles.examFacts}>
+          {left !== null && exam.maxAttempts !== null ? (
+            <div>
+              <dt>المحاولات الباقية</dt>
+              <dd>
+                {formatNumber(left)} من {formatNumber(exam.maxAttempts)}
+              </dd>
+            </div>
+          ) : null}
+          {last ? (
+            <div>
+              <dt>آخر موعد</dt>
+              <dd>{formatDateBoth(last)}</dd>
+            </div>
+          ) : null}
+          {exam.bestPercent !== null ? (
+            <div>
+              <dt>أعلى نتيجة لك</dt>
+              <dd>{percent(exam.bestPercent)}</dd>
+            </div>
+          ) : null}
+        </dl>
+        <Link className={styles.examGo} href={href}>
+          {exam.open ? "أكمل الاختبار" : exam.attempts > 0 ? "ابدأ محاولة جديدة" : "ادخل الاختبار"}
+        </Link>
+      </section>
+    );
   }
+
+  const line = exam.passed
+    ? `اجتزته بنسبة ${percent(exam.bestPercent ?? 0)}.`
+    : exam.bestPercent !== null
+      ? `${exam.blocker ?? ""} — أعلى نتيجة لك ${percent(exam.bestPercent)}.`
+      : `${exam.blocker ?? ""}.`;
   return (
     <section className={styles.exam} aria-label={exam.name}>
       <p className={styles.examName}>{exam.name}</p>
       {span ? <p className={styles.muted}>{span}</p> : null}
       <p>{line}</p>
-      {action ? (
-        <Link className={styles.examGo} href={href}>
-          {action}
-        </Link>
-      ) : null}
     </section>
   );
 }
