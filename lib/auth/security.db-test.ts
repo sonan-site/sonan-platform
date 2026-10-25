@@ -424,10 +424,13 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
     // `fn_public_tracks` تُرجع مسارات **المنشور** وحده، و**المأخوذ من مقاعده**
     //   لا أسماء من أخذها — والصفحة المعلنة تعرض المتبقي (الهجرة ٠٥٣).
     // `fn_home_featured` تُرجع رابط برنامج الحملة **المنشور** وحده، لا الإعدادات (الهجرة ٠٦٩).
+    // `fn_public_exams` و`fn_public_track_sections` لدليل المشارك: إعداداتٌ مختارة بعد ضبط الموعد، وأبواب المسارات (الهجرة ١٠٠).
     expect(rows.map((r) => r.name)).toEqual([
       "fn_auth_showcase",
       "fn_has_permission",
       "fn_home_featured",
+      "fn_public_exams",
+      "fn_public_track_sections",
       "fn_public_tracks",
       "fn_registration_state",
       "fn_track_unit_count",
@@ -515,6 +518,8 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
       "fn_program_readiness",
       "fn_programs_publish_state",
       "fn_progress_at",
+      "fn_public_exams",
+      "fn_public_track_sections",
       "fn_public_tracks",
       "fn_publish_results",
       "fn_purge_account",

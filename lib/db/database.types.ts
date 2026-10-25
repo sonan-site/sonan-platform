@@ -1348,6 +1348,44 @@ export type Database = {
           },
         ]
       }
+      guide_updates: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          entry_date: string
+          id: string
+          program_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          entry_date: string
+          id?: string
+          program_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          entry_date?: string
+          id?: string
+          program_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_updates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_entries: {
         Row: {
           answer: string
@@ -3654,6 +3692,32 @@ export type Database = {
           percent: number
           reach_sequence: number
           share_size: number
+          units: number
+        }[]
+      }
+      fn_public_exams: {
+        Args: { p_program_id: string }
+        Returns: {
+          award_percentage: number
+          entry_percentage: number
+          exam_type: string
+          id: string
+          max_attempts: number
+          name: string
+          pass_percentage: number
+          prerequisite_name: string
+          question_count: number
+          seconds_per_question: number
+          stage: string
+          track_id: string
+        }[]
+      }
+      fn_public_track_sections: {
+        Args: { p_program_id: string }
+        Returns: {
+          section_name: string
+          sort_order: number
+          track_id: string
           units: number
         }[]
       }
