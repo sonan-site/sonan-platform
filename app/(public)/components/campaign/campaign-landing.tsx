@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Check, Plus } from "lucide-react";
+import { Check } from "lucide-react";
 import { formatHijri, lastOpenDay } from "@/lib/format";
 import { campaignStages, campaignTracks, collectBlocks } from "@/lib/programs/campaign-content";
-import { groupFaq } from "@/lib/programs/faq";
 import type { PublicProgram } from "@/lib/programs/public-page-server";
 import { CampaignCountdown } from "./campaign-countdown";
 import { CampaignFooter } from "./campaign-footer";
+import { Accented, CampaignFaq, CampaignTimeline } from "./campaign-sections";
 import { CampaignTracks } from "./campaign-tracks";
 import styles from "./campaign.module.css";
 
@@ -21,16 +21,6 @@ import styles from "./campaign.module.css";
  */
 
 /** العنوان بكلمته الأخيرة ملوّنة — كما في التصميم المعتمد. */
-function Accented({ text }: { text: string }) {
-  const at = text.trim().lastIndexOf(" ");
-  if (at < 0) return <>{text}</>;
-  return (
-    <>
-      {text.slice(0, at)} <span className={styles.accent}>{text.slice(at + 1)}</span>
-    </>
-  );
-}
-
 export function CampaignLanding({ program, signedIn }: { program: PublicProgram; signedIn: boolean }) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
@@ -166,34 +156,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
           </div>
         ) : null}
 
-        {stages.length > 0 ? (
-          <section className={styles.block} id="stages">
-            <div className={styles.wrap}>
-              <div className={styles.head}>
-                <h2>
-                  <Accented text={timeline?.heading ?? ""} />
-                </h2>
-              </div>
-              <ol className={styles.timeline}>
-                {stages.map((s, i) => (
-                  <li
-                    key={i}
-                    className={`${styles.stage} ${s.status === "done" ? styles.stageDone : ""} ${
-                      s.status === "now" ? styles.stageNow : ""
-                    }`}
-                  >
-                    <span className={styles.dot} aria-hidden />
-                    <h3>{s.title}</h3>
-                    {s.dates ? <span className={styles.stageDates}>{s.dates}</span> : null}
-                    {s.datesSub ? <span className={styles.stageDatesSub}>{s.datesSub}</span> : null}
-                    {s.note ? <p>{s.note}</p> : null}
-                    {s.status === "now" ? <span className={styles.nowTag}>جارٍ الآن</span> : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </section>
-        ) : null}
+        {stages.length > 0 ? <CampaignTimeline heading={timeline?.heading ?? ""} stages={stages} /> : null}
 
         {tracks.length > 0 ? (
           <section className={styles.block} id="tracks">
@@ -270,42 +233,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
           </section>
         ))}
 
-        {data.faq.length > 0 ? (
-          <section className={styles.block} id="faq">
-            <div className={styles.wrap}>
-              <div className={styles.head}>
-                <h2>
-                  <Accented text={faqBlock?.heading ?? "الأسئلة الشائعة"} />
-                </h2>
-              </div>
-              <div className={styles.faq}>
-                {groupFaq(data.faq).map(([group, items]) => (
-                  <details key={group || "_"} className={styles.group} open={group === ""}>
-                    <summary>
-                      <span>{group || "عام"}</span>
-                      <span className={styles.plus} aria-hidden>
-                        <Plus size={20} strokeWidth={1.5} />
-                      </span>
-                    </summary>
-                    <div className={styles.questions}>
-                      {items.map((q) => (
-                        <details key={q.id} className={styles.question}>
-                          <summary>
-                            <span>{q.question}</span>
-                            <span className={styles.plus} aria-hidden>
-                              <Plus size={16} strokeWidth={1.5} />
-                            </span>
-                          </summary>
-                          <p className={styles.answer}>{q.answer}</p>
-                        </details>
-                      ))}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
+        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} /> : null}
       </main>
 
       <CampaignFooter programName={data.programName} contact={data.contact} />

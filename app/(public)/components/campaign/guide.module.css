@@ -68,19 +68,8 @@
   transform: scale(var(--press-scale));
 }
 
-/* ══ الأقسام ══ */
-.section {
-  padding-block-start: var(--space-10);
-  scroll-margin-block-start: var(--c-header-offset);
-}
-
-.section h2 {
-  margin: 0 0 var(--space-5);
-  color: var(--c-white);
-  font-size: var(--text-2xl);
-}
-
-.section h3 {
+/* ══ الأقسام ══ بقالب الواجهة (styles.block) — هنا ما يخصّ الدليل وحده. */
+.card h3 {
   margin: 0;
   color: var(--c-cyan);
   font-size: var(--text-lg);
@@ -108,45 +97,6 @@
   color: var(--c-white);
   font-size: var(--text-xl);
   font-weight: var(--weight-bold);
-}
-
-/* المراحل خطّاً عمودياً — يُقرأ ويُطبع، لا شريطاً أفقياً. */
-.stages {
-  display: grid;
-  gap: var(--space-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.stages li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-4);
-}
-
-.stageDot {
-  inline-size: 12px;
-  block-size: 12px;
-  margin-block-start: var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--c-gold);
-}
-
-.stages p {
-  margin: var(--space-1) 0 0;
-  color: var(--c-muted);
-  font-size: var(--text-sm);
-}
-
-.stages .dates {
-  color: var(--c-white);
-}
-
-/* الميلادي تحت الهجري — أصغر وأخفت (قرار الراعي ٢٦ أكتوبر). */
-.stages .datesSub {
-  margin: 0;
-  font-size: var(--text-xs);
 }
 
 .cards {
@@ -262,26 +212,6 @@
   color: var(--c-cyan);
 }
 
-.faqGroup {
-  margin-block-end: var(--space-6);
-}
-
-.qa {
-  display: grid;
-  gap: var(--space-4);
-  margin: var(--space-3) 0 0;
-}
-
-.qa dt {
-  color: var(--c-white);
-  font-weight: var(--weight-bold);
-}
-
-.qa dd {
-  margin: var(--space-1) 0 0;
-  white-space: pre-line;
-}
-
 /* سجل التحديثات — خطٌّ زمنيٌّ مختصر بهيئة المراحل. */
 .updates {
   display: grid;
@@ -378,12 +308,8 @@
     padding-block-start: 0;
   }
 
-  .section {
-    padding-block-start: var(--space-6);
-  }
-
-  .section h2,
-  .section h3 {
+  .card h3,
+  .card h4 {
     break-after: avoid;
   }
 
