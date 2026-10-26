@@ -263,7 +263,7 @@ function DayRow({
   visible: boolean;
 }) {
   const date = shownDate(day);
-  const finished = status === "done" || status === "recovered";
+  const finished = status === "done" || status === "recovered" || status === "credited";
   const head = (
     <>
       <span className={`${styles.dot} ${styles[status] ?? ""}`}>{finished ? <Check size={15} aria-hidden /> : formatNumber(day.day)}</span>

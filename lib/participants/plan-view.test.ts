@@ -8,6 +8,7 @@ const day = (n: number, over: Partial<PlanDay> = {}): PlanDay => ({
   completedOn: null,
   stumbled: false,
   compensated: false,
+  credited: false,
   tasks: [],
   ...over,
 });
@@ -92,5 +93,16 @@ describe("قراءة fn_my_plan", () => {
     expect(() =>
       parsePlan([{ day_number: 1, scheduled_date: null, expected_date: null, completed_on: null, stumbled: false, compensated: false, tasks: {} }]),
     ).toThrow();
+  });
+});
+
+describe("المحتسب من مسارٍ سابق", () => {
+  it("يومٌ متمٌّ محتسب يُوسم «محتسب» لا «أتمّ»، ولا يدخل «المتأخرة»", () => {
+    const s = { stage: "tasks" as const, currentDay: 6, doneDays: 5, dueDays: 6 };
+    expect(dayStatus(day(3, { credited: true }), s)).toBe("credited");
+    expect(dayStatus(day(3), s)).toBe("done");
+    expect(matchesFilter("credited", "late")).toBe(false);
+    expect(matchesFilter("credited", "next")).toBe(false);
+    expect(matchesFilter("credited", "all")).toBe(true);
   });
 });

@@ -1638,6 +1638,8 @@ export type Database = {
         Row: {
           baseline_percentage: number | null
           created_at: string
+          credited_at: string | null
+          credited_units: number | null
           deleted_at: string | null
           id: string
           joined_at: string
@@ -1652,6 +1654,8 @@ export type Database = {
         Insert: {
           baseline_percentage?: number | null
           created_at?: string
+          credited_at?: string | null
+          credited_units?: number | null
           deleted_at?: string | null
           id?: string
           joined_at?: string
@@ -1666,6 +1670,8 @@ export type Database = {
         Update: {
           baseline_percentage?: number | null
           created_at?: string
+          credited_at?: string | null
+          credited_units?: number | null
           deleted_at?: string | null
           id?: string
           joined_at?: string
@@ -2026,6 +2032,7 @@ export type Database = {
           allowed_gender: Database["public"]["Enums"]["gender"] | null
           award_percentage: number | null
           capacity: number | null
+          carry_on_transfer: boolean
           compensation_enabled: boolean
           contact: string
           created_at: string
@@ -2064,6 +2071,7 @@ export type Database = {
           allowed_gender?: Database["public"]["Enums"]["gender"] | null
           award_percentage?: number | null
           capacity?: number | null
+          carry_on_transfer?: boolean
           compensation_enabled?: boolean
           contact?: string
           created_at?: string
@@ -2102,6 +2110,7 @@ export type Database = {
           allowed_gender?: Database["public"]["Enums"]["gender"] | null
           award_percentage?: number | null
           capacity?: number | null
+          carry_on_transfer?: boolean
           compensation_enabled?: boolean
           contact?: string
           created_at?: string
@@ -3034,6 +3043,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      fn_carry_units: {
+        Args: { p_participant_id: string; p_to_track_id: string }
+        Returns: number
+      }
       fn_close_my_account: { Args: never; Returns: undefined }
       fn_close_session_if_complete: {
         Args: { p_session_id: string }
@@ -3078,6 +3091,19 @@ export type Database = {
       fn_create_plan: {
         Args: { p_copy?: boolean; p_program_id: string; p_track_id: string }
         Returns: string
+      }
+      fn_credit_span: {
+        Args: { p_plan_id: string; p_units: number }
+        Returns: number
+      }
+      fn_credited_days_at: {
+        Args: {
+          p_at: string
+          p_participant_id: string
+          p_plan_id: string
+          p_track_id: string
+        }
+        Returns: number
       }
       fn_customize_engine_setting: {
         Args: { p_key: string; p_track_id: string }
@@ -3557,6 +3583,7 @@ export type Database = {
         Returns: {
           compensated: boolean
           completed_on: string
+          credited: boolean
           day_number: number
           expected_date: string
           scheduled_date: string
@@ -3605,6 +3632,7 @@ export type Database = {
           invited_at: string
         }[]
       }
+      fn_plan_credit_through: { Args: { p_plan_id: string }; Returns: number }
       fn_plan_issues: {
         Args: { p_plan_id: string }
         Returns: {
@@ -3653,6 +3681,7 @@ export type Database = {
         Returns: {
           baseline_percentage: number
           compensated_days: number
+          credited_days: number
           day_count: number
           done_days: number
           due_days: number
@@ -3955,6 +3984,15 @@ export type Database = {
         }[]
       }
       fn_start_attempt: { Args: { p_exam_id: string }; Returns: string }
+      fn_track_change_carry_preview: {
+        Args: { p_request_id: string }
+        Returns: {
+          carry: boolean
+          credited_days: number
+          credited_units: number
+          day_count: number
+        }[]
+      }
       fn_track_has_plan: { Args: { p_track_id: string }; Returns: boolean }
       fn_track_ordinal_of: {
         Args: { p_sequence: number; p_track_id: string }

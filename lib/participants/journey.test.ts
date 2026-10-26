@@ -25,6 +25,7 @@ import {
 
 function state(over: Partial<JourneyState> = {}): JourneyState {
   return {
+    creditedDays: 0,
     stage: "tasks",
     planId: "p",
     trackId: "t",

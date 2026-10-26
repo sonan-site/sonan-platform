@@ -33,6 +33,8 @@ export type PlanDay = {
   completedOn: string | null;
   stumbled: boolean;
   compensated: boolean;
+  /** محتسبٌ من مسارٍ سابق (ش٢): متمٌّ بلا إتمامٍ حيّ — فلا تاريخ إتمامٍ له. */
+  credited: boolean;
   tasks: PlanTask[];
 };
 
@@ -44,6 +46,7 @@ type Raw = {
   stumbled: boolean;
   compensated: boolean;
   tasks: unknown;
+  credited?: boolean | null;
 };
 
 const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
@@ -59,6 +62,7 @@ export function parsePlan(rows: Raw[]): PlanDay[] {
       completedOn: r.completed_on,
       stumbled: r.stumbled,
       compensated: r.compensated,
+      credited: r.credited === true,
       tasks: (r.tasks as Record<string, unknown>[]).map((t) => ({
         fieldId: String(t["field_id"]),
         label: String(t["label"]),
@@ -78,11 +82,12 @@ export function parsePlan(rows: Raw[]): PlanDay[] {
 
 /**
  * حال يوم الخطة — بمصطلحات `adr/0041`:
- * أتمّ · متعثّر (له صفُّ تعثّرٍ في أرشيف خطته) · متعثّر معوَّض · اليوم · متأخر (فات موعده ولم يُتمّ) · قادم.
+ * أتمّ · محتسب (من مسارٍ سابق) · متعثّر (له صفُّ تعثّرٍ في أرشيف خطته) · متعثّر معوَّض · اليوم · متأخر (فات موعده ولم يُتمّ) · قادم.
  */
-export type DayStatus = "done" | "slipped" | "recovered" | "now" | "overdue" | "ahead";
+export type DayStatus = "done" | "credited" | "slipped" | "recovered" | "now" | "overdue" | "ahead";
 
 export function dayStatus(d: PlanDay, s: Pick<JourneyState, "stage" | "currentDay" | "doneDays" | "dueDays">): DayStatus {
+  if (d.day <= s.doneDays && d.credited) return "credited";
   if (d.day <= s.doneDays) return d.stumbled ? (d.compensated ? "recovered" : "slipped") : "done";
   // «اليوم» ليومٍ مفتوحٍ يُرصد الآن وحده — بعد إتمام يومه فيومُه الحالي التالي، وليس «اليوم».
   if (s.stage === "tasks" && d.day === s.currentDay) return "now";
@@ -92,6 +97,7 @@ export function dayStatus(d: PlanDay, s: Pick<JourneyState, "stage" | "currentDa
 
 export const STATUS_LABEL: Record<DayStatus, string> = {
   done: "أتمّ",
+  credited: "محتسب",
   slipped: "متعثّر",
   recovered: "متعثّر معوَّض",
   now: "اليوم",

@@ -15,6 +15,7 @@ export const ENGINE_KEYS = [
   "compensation_enabled",
   "progress_measure",
   "due_from",
+  "carry_on_transfer",
 ] as const;
 
 export type EngineKey = (typeof ENGINE_KEYS)[number];
@@ -52,6 +53,10 @@ export const ENGINE_LABEL: Record<EngineKey, { title: string; hint: string }> = 
     title: "مقياس نسبة الإنجاز",
     hint: "بالوحدات: ما حُفظ من نصيب المسار. بالأيام: ما أُتمّ من أيام الخطة.",
   },
+  carry_on_transfer: {
+    title: "حمل التقدّم عند النقل",
+    hint: "إذا فُعّل: من يُنقل بين المسارات يُحتسب له ما حفظه في مساره السابق بأيامٍ كاملة من خطة الجديد، ويبدأ بعدها. للبرنامج كله، ويمسّ ما يُقبل من النقل بعد تفعيله.",
+  },
   due_from: {
     title: "بداية احتساب الموعد",
     hint: "من بداية البرنامج: من التحق متأخراً يُعرض متأخراً بما فاته، ولا تُكتب أيامه قبل التحاقه متعثّرة. من يوم التحاقه: يبدأ كل مشارك موعده يوم التحاقه.",
@@ -85,6 +90,8 @@ export type EngineValues = {
   compensationEnabled: boolean;
   progressMeasure: ProgressMeasure;
   dueFrom: DueFrom;
+  /** للبرنامج وحده — المسار يرثه دائماً. */
+  carryOnTransfer: boolean;
 };
 
 export const DEFAULT_DEADLINE = "23:00";
@@ -117,5 +124,6 @@ export function effectiveValues(
     compensationEnabled: pick("compensation_enabled", "compensationEnabled"),
     progressMeasure: pick("progress_measure", "progressMeasure"),
     dueFrom: pick("due_from", "dueFrom"),
+    carryOnTransfer: program.carryOnTransfer,
   };
 }

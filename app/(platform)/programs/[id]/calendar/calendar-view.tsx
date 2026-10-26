@@ -220,6 +220,19 @@ export function CalendarView({
             </Select>
           </ValueForm>
         ))}
+
+        {/* للبرنامج كله: لا يظهر في نطاق مسار — لا يُخصَّص. */}
+        {current === null
+          ? card("carry_on_transfer", (disabled) => (
+              <ToggleForm
+                programId={programId}
+                trackId={null}
+                settingKey="carry_on_transfer"
+                on={values.carryOnTransfer}
+                disabled={disabled}
+              />
+            ))
+          : null}
       </div>
     </>
   );

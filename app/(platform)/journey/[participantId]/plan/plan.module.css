@@ -217,6 +217,13 @@ a.row:active,
   background: var(--color-success);
 }
 
+/* محتسبٌ من مسارٍ سابق: متمٌّ بإطار الإتمام لا بتعبئته — لم يُرصد هنا. */
+.dot.credited {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: var(--color-surface);
+}
+
 .dot.slipped,
 .dot.overdue {
   border-color: var(--color-warning);

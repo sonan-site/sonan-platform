@@ -45,6 +45,8 @@ export type ParticipantRow = {
   compensatedDays: number;
   /** أيامه في مساراتٍ قبل الحالي — لا تُمحى بنقله. */
   priorDoneDays: number;
+  /** من المتمّ: محتسبٌ من مساره السابق عند نقله (ش٢). */
+  creditedDays: number;
   /** يتبع الخطة الآن — لمن انتهت رحلته لا موعد. */
   followsPlan: boolean;
 };
@@ -65,6 +67,8 @@ export type ChangeRow = {
   /** `null` = لا تُعرف (لا صلاحية لقراءة الخطط والمادة). */
   targetHasPlan: boolean | null;
   targetHasContent: boolean | null;
+  /** ما يُحمل لو قُبل الآن (ش٢) — `null` = الإعداد مطفأ أو لا يُعرف. */
+  carry: { units: number; days: number; dayCount: number | null } | null;
 };
 
 const REQUEST_LABEL: Record<ChangeRow["status"], string> = {
@@ -138,7 +142,9 @@ export function ParticipantsView({
       sortable: true,
       render: (p) =>
         withPrior(
-          p.dayCount === 0 ? "لا خطة" : `أتمّ ${formatNumber(p.doneDays)} من ${formatNumber(p.dayCount)}`,
+          p.dayCount === 0
+            ? "لا خطة"
+            : `أتمّ ${formatNumber(p.doneDays)} من ${formatNumber(p.dayCount)}${p.creditedDays > 0 ? ` (منها ${formatNumber(p.creditedDays)} محتسبة)` : ""}`,
           p.priorDoneDays,
         ),
     },
@@ -286,9 +292,11 @@ export function ParticipantsView({
               <strong>{confirming.participantName}</strong>: {confirming.fromTrack} ← {confirming.toTrack}
             </p>
             <p>
-              {confirming.returning
-                ? `سبق له في «${confirming.toTrack}»، فيُكمل فيه من حيث توقّف.`
-                : `مادة «${confirming.toTrack}» تبدأ له من يومها الأول.`}{" "}
+              {confirming.carry
+                ? carryText(confirming.carry, confirming.toTrack, confirming.returning)
+                : confirming.returning
+                  ? `سبق له في «${confirming.toTrack}»، فيُكمل فيه من حيث توقّف.`
+                  : `مادة «${confirming.toTrack}» تبدأ له من يومها الأول.`}{" "}
               {confirming.recordDays > 0
                 ? `وسجلّه باقٍ ظاهر: ${formatNumber(confirming.recordDays)} يوماً.`
                 : null}
@@ -415,6 +423,16 @@ function paceText(p: ParticipantRow): string {
   if (lag > 0) return `متأخر ${daysText(lag)}`;
   if (lag < 0) return `متقدّم ${daysText(-lag)}`;
   return "في موعده";
+}
+
+/** حمل التقدّم (ش٢): ما يُحتسب له في الجديد ومن أين يبدأ — والعائد يُطرح منه ما أتمّه فيه سابقاً. */
+function carryText(c: NonNullable<ChangeRow["carry"]>, toTrack: string, returning: boolean): string {
+  const from = c.dayCount !== null && c.days >= c.dayCount ? "فتكتمل خطته" : `فيبدأ من اليوم ${formatNumber(c.days + 1)}`;
+  const base =
+    c.days > 0
+      ? `يُحتسب له ${formatNumber(c.days)} يوماً من خطة «${toTrack}» بما حفظه (${formatNumber(c.units)} من المادة)، ${from}.`
+      : `لا يُحتسب له يومٌ كامل من خطة «${toTrack}»، فيبدأ من يومها الأول.`;
+  return returning ? `${base} ولا يُعدّ مرتين ما أتمّه فيه سابقاً.` : base;
 }
 
 /** الرقم الحالي، ومعه ما جاء من مسارٍ سابق إن وُجد. */

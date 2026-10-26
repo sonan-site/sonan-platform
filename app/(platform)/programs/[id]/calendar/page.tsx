@@ -34,7 +34,7 @@ export default async function CalendarPage({
     db
       .from("programs")
       .select(
-        "id, start_date, work_days, daily_limit, credit_enabled, compensation_enabled, progress_measure, due_from, registration_opens_at, registration_closes_at",
+        "id, start_date, work_days, daily_limit, credit_enabled, compensation_enabled, progress_measure, due_from, carry_on_transfer, registration_opens_at, registration_closes_at",
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -94,6 +94,7 @@ export default async function CalendarPage({
     compensationEnabled: p.compensation_enabled,
     progressMeasure: p.progress_measure,
     dueFrom: p.due_from === "program_start" ? "program_start" : "join",
+    carryOnTransfer: p.carry_on_transfer,
   };
 
   const tracks: TrackSettings[] = (tracksResult.data ?? []).map((t) => {
@@ -123,6 +124,7 @@ export default async function CalendarPage({
         compensationEnabled: t.compensation_enabled ?? program.compensationEnabled,
         progressMeasure: t.progress_measure ?? program.progressMeasure,
         dueFrom: t.due_from === "program_start" || t.due_from === "join" ? t.due_from : program.dueFrom,
+        carryOnTransfer: program.carryOnTransfer,
       },
     };
   });

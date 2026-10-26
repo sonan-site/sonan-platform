@@ -105,6 +105,11 @@ export async function saveEngineSetting(_prev: FormState, form: FormData): Promi
       }
       return write(programId, trackId, key, limit, "حُفظ الحد اليومي.");
     }
+    case "carry_on_transfer": {
+      if (trackId) return { error: "حمل التقدّم عند النقل إعدادٌ للبرنامج كله." };
+      const on = form.get("value") === "on";
+      return write(programId, null, key, on, on ? "فُعّل حمل التقدّم عند النقل." : "عُطّل حمل التقدّم عند النقل.");
+    }
     case "credit_enabled":
     case "compensation_enabled": {
       const on = form.get("value") === "on";

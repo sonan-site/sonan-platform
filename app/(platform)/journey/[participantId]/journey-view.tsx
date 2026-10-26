@@ -805,7 +805,13 @@ export function JourneyView({
             ? ` · تعثّر ${formatNumber(state.stumbled)}${state.compensated > 0 ? ` عُوِّض منها ${formatNumber(state.compensated)}` : ""}`
             : ""}
         </summary>
-        {priorDays > 0 ? <p className={styles.muted}>وأيامٌ من مسارٍ سابق: {formatNumber(priorDays)}</p> : null}
+        {state.creditedDays > 0 ? (
+          <p className={styles.muted}>
+            محتسبٌ لك من مسارك السابق: {formatNumber(state.creditedDays)} يوماً من خطتك — بما حفظته فيه.
+          </p>
+        ) : priorDays > 0 ? (
+          <p className={styles.muted}>وأيامٌ من مسارٍ سابق: {formatNumber(priorDays)}</p>
+        ) : null}
         {archive.length === 0 ? (
           <p className={styles.muted}>يُكتب حكم كل يومٍ من أيام البرنامج عند وقت نهاية رصده.</p>
         ) : (

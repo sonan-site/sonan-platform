@@ -100,12 +100,26 @@ export default async function ParticipantsPage({
     stumbledDays: p.stumbled_days,
     compensatedDays: p.compensated_days,
     priorDoneDays: p.prior_done_days,
+    creditedDays: p.credited_days,
     followsPlan: followsPlan(p.status),
   }));
 
   const nameByParticipant = new Map(participants.map((p) => [p.id, p.name]));
 
-  const recordDays = new Map(participants.map((p) => [p.id, p.doneDays + p.priorDoneDays]));
+  // المحتسب داخلٌ في المتمّ ومصدره أيامه في المسار السابق — فلا يُعدّ مرتين في السجلّ.
+  const recordDays = new Map(participants.map((p) => [p.id, p.doneDays - p.creditedDays + p.priorDoneDays]));
+
+  // ما يُحمل لكل طلبٍ معلَّق لو قُبل الآن (ش٢) — لمن يقرأ المشاركين، والطلبات المعلَّقة قليلة.
+  const pending = (requestsResult.data ?? []).filter((r) => r.status === "pending");
+  const previews = new Map(
+    await Promise.all(
+      pending.map(async (r) => {
+        const { data } = await db.rpc("fn_track_change_carry_preview", { p_request_id: r.id });
+        const row = data?.[0];
+        return [r.id, row?.carry ? { units: row.credited_units, days: row.credited_days, dayCount: row.day_count } : null] as const;
+      }),
+    ),
+  );
   const approved = (requestsResult.data ?? []).filter((r) => r.status === "approved");
 
   const requests: ChangeRow[] = (requestsResult.data ?? [])
@@ -125,6 +139,7 @@ export default async function ParticipantsPage({
       ),
       targetHasPlan: withPlan ? hasDefaultPlan || withPlan.has(r.to_track_id) : null,
       targetHasContent: withContent ? withContent.has(r.to_track_id) : null,
+      carry: previews.get(r.id) ?? null,
     }));
 
   return (

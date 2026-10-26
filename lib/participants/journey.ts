@@ -56,6 +56,8 @@ export type JourneyState = {
   compensated: number;
   /** واجب يومه مرحَّل: تعثّر عليه في يومٍ تقويمي سبق. */
   carried: boolean;
+  /** أيامٌ من المتمّ محتسبةٌ من مسارٍ سابق عند نقله (ش٢) — داخلة في `doneDays`. */
+  creditedDays: number;
 };
 
 const STAGES: ReadonlySet<string> = new Set(["not_started", "tasks", "done_today", "limit", "finished"]);
@@ -94,6 +96,7 @@ export function parseJourneyState(raw: unknown): JourneyState | null {
     stumbled: num("stumbled"),
     compensated: num("compensated"),
     carried: r.carried === true,
+    creditedDays: num("credited_days"),
   };
 }
 
