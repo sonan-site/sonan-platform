@@ -1,4 +1,4 @@
-import { formatDateBoth, lastOpenDay, toDateInput } from "@/lib/format";
+import { dateParts, formatDateBoth, lastOpenDay, toDateInput } from "@/lib/format";
 
 /**
  * مواعيد البرنامج (`adr/0044`) — أيامٌ لا لحظات، وحالتها مشتقّة بـ«اليوم»
@@ -29,6 +29,23 @@ export const REGISTRATION_ENTRY_TITLE = "التسجيل";
 /** يومٌ مخزَّن `YYYY-MM-DD` بالتقويمين — ظهراً كي لا ينزلق بفارق المنطقة. */
 export function scheduleDayLabel(day: string): string {
   return formatDateBoth(`${day}T12:00:00Z`);
+}
+
+/**
+ * المدى بسطرين (قرار الراعي ٢٦ أكتوبر): الهجري ظاهراً والميلادي تحته — مختصراً، فالسنة مرةً حين لا
+ * تتغيّر والشهر مرةً حين لا يتغيّر: «14 جمادى الأولى – 4 جمادى الآخرة 1448هـ» · «4–8 رجب 1448هـ».
+ */
+export function scheduleRangeParts(entry: Pick<ScheduleEntry, "startsOn" | "endsOn">): { hijri: string; gregorian: string } {
+  const at = (day: string) => `${day}T12:00:00Z`;
+  const span = (calendar: "hijri" | "gregory", suffix: string) => {
+    const a = dateParts(at(entry.startsOn), calendar);
+    if (!entry.endsOn) return `${a.day} ${a.month} ${a.year}${suffix}`;
+    const b = dateParts(at(entry.endsOn), calendar);
+    if (a.year !== b.year) return `${a.day} ${a.month} ${a.year}${suffix} – ${b.day} ${b.month} ${b.year}${suffix}`;
+    if (a.month !== b.month) return `${a.day} ${a.month} – ${b.day} ${b.month} ${b.year}${suffix}`;
+    return `${a.day}–${b.day} ${a.month} ${a.year}${suffix}`;
+  };
+  return { hijri: span("hijri", "هـ"), gregorian: span("gregory", "م") };
 }
 
 /** «يومٌ» أو «من — إلى»، بالتقويمين. */

@@ -5,7 +5,7 @@
  */
 import { parseBlockContent, type BlockContent, type BlockType } from "./blocks";
 import type { PageBlock, BlockData } from "./public-page-server";
-import { scheduleRangeLabel, scheduleStatus, type ScheduleStatus } from "./schedule";
+import { scheduleRangeParts, scheduleStatus, type ScheduleStatus } from "./schedule";
 
 export type Blocks = { [K in BlockType]?: BlockContent[K][] };
 
@@ -22,7 +22,10 @@ export function collectBlocks(blocks: readonly PageBlock[]): Blocks {
 
 export type Stage = {
   title: string;
+  /** السطر الظاهر: الهجري من المواعيد، أو النصّ كما كُتب في الجدول اليدوي. */
   dates: string;
+  /** الميلادي تحته أصغر (قرار الراعي ٢٦ أكتوبر) — للمشتقّ من المواعيد وحده. */
+  datesSub: string | null;
   note: string;
   status: ScheduleStatus | null;
 };
@@ -32,12 +35,12 @@ export function campaignStages(timeline: BlockContent["timeline"] | undefined, d
   if (timeline?.source === "schedule") {
     return data.schedule.map((e) => ({
       title: e.title,
-      dates: scheduleRangeLabel(e),
+      ...(({ hijri, gregorian }) => ({ dates: hijri, datesSub: gregorian }))(scheduleRangeParts(e)),
       note: e.note,
       status: scheduleStatus(e, data.today),
     }));
   }
-  return (timeline?.stages ?? []).map((s) => ({ title: s.title, dates: s.dates, note: s.note, status: null }));
+  return (timeline?.stages ?? []).map((s) => ({ title: s.title, dates: s.dates, datesSub: null, note: s.note, status: null }));
 }
 
 export type CampaignTrack = {

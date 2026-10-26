@@ -88,6 +88,13 @@ export function formatHijri(value: string | Date): string {
   return hijri.format(toDate(value));
 }
 
+/** أجزاء التاريخ في تقويمٍ — اليوم والشهر والسنة بأرقامٍ لاتينية، لتركيب مدىً مختصر. */
+export function dateParts(value: string | Date, calendar: "hijri" | "gregory"): { day: string; month: string; year: string } {
+  const parts = (calendar === "hijri" ? hijri : gregorian).formatToParts(toDate(value));
+  const pick = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
+  return { day: pick("day"), month: pick("month"), year: pick("year") };
+}
+
 /** الاثنان معاً — الصيغة المعتمدة في الوثائق الرسمية للجمعية. */
 export function formatDateBoth(value: string | Date): string {
   return `${formatDate(value)} · ${formatHijri(value)}`;

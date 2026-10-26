@@ -3,7 +3,7 @@ import { formatNumber } from "@/lib/format";
 import { parseBlockContent, type BlockType } from "@/lib/programs/blocks";
 import { groupFaq } from "@/lib/programs/faq";
 import type { BlockData, PageBlock } from "@/lib/programs/public-page-server";
-import { scheduleRangeLabel, scheduleStatus } from "@/lib/programs/schedule";
+import { scheduleRangeParts, scheduleStatus } from "@/lib/programs/schedule";
 import { REGISTRATION_LABEL } from "@/lib/programs/registration";
 import { Countdown } from "./countdown";
 import styles from "./blocks.module.css";
@@ -154,7 +154,8 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
         c["source"] === "schedule"
           ? data.schedule.map((e) => ({
               title: e.title,
-              dates: scheduleRangeLabel(e),
+              dates: scheduleRangeParts(e).hijri,
+              datesSub: scheduleRangeParts(e).gregorian,
               note: e.note,
               status: scheduleStatus(e, data.today),
             }))
@@ -173,6 +174,7 @@ function renderBlock(type: BlockType, c: Record<string, unknown>, data: BlockDat
                   {stage["status"] === "now" ? <span className={styles.stageNow}>جارٍ الآن</span> : null}
                 </span>
                 {stage["dates"] ? <span className={styles.stageDates}>{stage["dates"]}</span> : null}
+                {stage["datesSub"] ? <span className={styles.stageDatesSub}>{stage["datesSub"]}</span> : null}
                 {stage["note"] ? <span className={styles.stageNote}>{stage["note"]}</span> : null}
               </li>
             ))}

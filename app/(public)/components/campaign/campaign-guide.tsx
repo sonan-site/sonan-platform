@@ -135,6 +135,7 @@ export function CampaignGuide({
                   <div>
                     <h3>{s.title}</h3>
                     {s.dates ? <p className={guide.dates}>{s.dates}</p> : null}
+                    {s.datesSub ? <p className={guide.datesSub}>{s.datesSub}</p> : null}
                     {s.note ? <p>{s.note}</p> : null}
                   </div>
                 </li>

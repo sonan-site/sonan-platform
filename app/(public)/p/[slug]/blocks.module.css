@@ -330,6 +330,11 @@
   color: var(--color-brand);
 }
 
+.stageDatesSub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 .stageNote {
   font-size: var(--text-sm);
   color: var(--color-text-muted);

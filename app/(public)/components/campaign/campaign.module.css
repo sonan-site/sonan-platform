@@ -420,6 +420,14 @@
   font-size: var(--text-sm);
 }
 
+/* الميلادي تحت الهجري — أصغر وأخفت (قرار الراعي ٢٦ أكتوبر). */
+.stageDatesSub {
+  display: block;
+  margin-block-start: var(--space-1);
+  color: var(--c-muted);
+  font-size: var(--text-xs);
+}
+
 .stage p {
   margin: var(--space-2) 0 0;
   color: var(--c-muted);
@@ -1104,8 +1112,14 @@
   }
 
   .dot {
-    grid-row: span 2;
+    grid-row: span 3;
     margin: 0;
+  }
+
+  /* التاريخان في عمود العنوان — الميلادي سطرٌ ثالث لا خانةٌ ضيّقة بجانب النقطة. */
+  .stageDates,
+  .stageDatesSub {
+    grid-column: 2;
   }
 
   .stage p {

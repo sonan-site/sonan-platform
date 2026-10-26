@@ -61,3 +61,23 @@ describe("إغلاقٌ عند منتصف الليل", () => {
     expect(e?.endsOn).toBe("2026-11-14");
   });
 });
+
+describe("المدى بسطرين", () => {
+  it("السنة مرةً، والشهر مرةً حين لا يتغيّر", async () => {
+    const { scheduleRangeParts } = await import("./schedule");
+    expect(scheduleRangeParts(entry("التسجيل", "2026-10-25", "2026-11-14"))).toEqual({
+      hijri: "14 جمادى الأولى – 4 جمادى الآخرة 1448هـ",
+      gregorian: "25 أكتوبر – 14 نوفمبر 2026م",
+    });
+    expect(scheduleRangeParts(entry("النهائي", "2026-12-13", "2026-12-17"))).toEqual({
+      hijri: "4–8 رجب 1448هـ",
+      gregorian: "13–17 ديسمبر 2026م",
+    });
+    expect(scheduleRangeParts(entry("الحفل", "2026-12-22"))).toEqual({ hijri: "13 رجب 1448هـ", gregorian: "22 ديسمبر 2026م" });
+  });
+
+  it("عبر سنتين: السنة في الطرفين", async () => {
+    const { scheduleRangeParts } = await import("./schedule");
+    expect(scheduleRangeParts(entry("مدى", "2026-12-28", "2027-01-03")).gregorian).toBe("28 ديسمبر 2026م – 3 يناير 2027م");
+  });
+});

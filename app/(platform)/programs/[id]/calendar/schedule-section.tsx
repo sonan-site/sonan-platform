@@ -9,7 +9,7 @@ import { Button, Field, Input } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import {
   SCHEDULE_STATUS_LABEL,
-  scheduleRangeLabel,
+  scheduleRangeParts,
   scheduleStatus,
   type ScheduleEntry,
 } from "@/lib/programs/schedule";
@@ -71,7 +71,9 @@ export function ScheduleSection({
               <li key={key} className={styles.scheduleRow}>
                 <div className={styles.scheduleMain}>
                   <strong>{e.title}</strong>
-                  <span className={styles.hint}>{scheduleRangeLabel(e)}</span>
+                  <span className={styles.hint}>
+                    {scheduleRangeParts(e).hijri} · {scheduleRangeParts(e).gregorian}
+                  </span>
                   {e.note ? <span className={styles.hint}>{e.note}</span> : null}
                   {e.id === null ? <span className={styles.hint}>نافذة التسجيل</span> : null}
                 </div>

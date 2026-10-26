@@ -185,6 +185,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
                     <span className={styles.dot} aria-hidden />
                     <h3>{s.title}</h3>
                     {s.dates ? <span className={styles.stageDates}>{s.dates}</span> : null}
+                    {s.datesSub ? <span className={styles.stageDatesSub}>{s.datesSub}</span> : null}
                     {s.note ? <p>{s.note}</p> : null}
                     {s.status === "now" ? <span className={styles.nowTag}>جارٍ الآن</span> : null}
                   </li>

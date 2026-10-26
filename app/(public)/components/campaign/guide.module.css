@@ -143,6 +143,12 @@
   color: var(--c-white);
 }
 
+/* الميلادي تحت الهجري — أصغر وأخفت (قرار الراعي ٢٦ أكتوبر). */
+.stages .datesSub {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
