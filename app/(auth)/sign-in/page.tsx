@@ -11,6 +11,7 @@ import styles from "../layout.module.css";
 import { signIn } from "./actions";
 import { ActionForm } from "@/components/shared/action-form";
 import { PasswordInput } from "@/components/shared/password-input";
+import { GateIntro, useCampaignGate } from "../campaign-gate";
 
 export default function SignInPage() {
   return (
@@ -34,14 +35,21 @@ const LINK_ERRORS: Record<string, string> = {
 function SignInForm() {
   const params = useSearchParams();
   const [state, action, pending] = useActionState(signIn, EMPTY_FORM_STATE);
+  const gate = useCampaignGate();
   const linkError = LINK_ERRORS[params.get("error") ?? ""];
   // رمز السبب لاتيني قصير يمرّره مسار الاستدعاء — يُعرض صغيراً للتشخيص لا للقراءة.
   const reason = (params.get("reason") ?? "").replace(/[^a-z0-9_]/gi, "").slice(0, 40);
 
   return (
     <>
-      <h1 className={styles.title}>دخول المشاركين</h1>
-      <p className={styles.lede}>ادخل ببريدك وكلمة مرورك، أو أنشئ حساباً إن كنت جديداً.</p>
+      {gate ? (
+        <GateIntro gate={gate} title="أكمل تسجيلك في المسابقة" lede="ادخل بحسابك، ثم تابع من حيث توقفت في التسجيل." />
+      ) : (
+        <>
+          <h1 className={styles.title}>دخول المشاركين</h1>
+          <p className={styles.lede}>ادخل ببريدك وكلمة مرورك، أو أنشئ حساباً إن كنت جديداً.</p>
+        </>
+      )}
 
       {state.error ? (
         <p className={styles.alert}>{state.error}</p>
@@ -90,7 +98,7 @@ function SignInForm() {
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>
-            دخول
+            {gate ? "ادخل وتابع التسجيل" : "دخول"}
           </Button>
         </FormActions>
       </ActionForm>
@@ -100,7 +108,7 @@ function SignInForm() {
         <Link
           href={`/sign-up?next=${encodeURIComponent(params.get("next") ?? DEFAULT_LANDING)}`}
         >
-          ليس لديك حساب؟ أنشئ حساباً
+          {gate ? "ليس لديك حساب؟ ابدأ التسجيل" : "ليس لديك حساب؟ أنشئ حساباً"}
         </Link>
       </div>
     </>

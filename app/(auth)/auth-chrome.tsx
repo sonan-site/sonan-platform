@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { skinForNext } from "@/lib/settings/campaign-skin";
 import type { Slide } from "@/lib/settings/showcase";
+import { CampaignGateProvider, type CampaignGate } from "./campaign-gate";
 import styles from "./layout.module.css";
 import { ShowcaseSlides } from "./showcase-slides";
 
@@ -18,11 +19,14 @@ import { ShowcaseSlides } from "./showcase-slides";
  */
 export function AuthChrome({
   featured,
+  gate,
   cookieNext,
   slides,
   children,
 }: {
   featured: string | null;
+  /** بوابة تسجيل الحملة — تُعطى للصفحات حين الجلد جلدها وحده. */
+  gate: CampaignGate | null;
   /** وجهة الاستعادة المحفوظة — `/activate` لا يحملها في رابطه. */
   cookieNext: string | null;
   slides: Slide[];
@@ -68,7 +72,9 @@ export function AuthChrome({
       </aside>
 
       <main className={styles.main}>
-        <div className={styles.card}>{children}</div>
+        <div className={styles.card}>
+          <CampaignGateProvider gate={skin ? gate : null}>{children}</CampaignGateProvider>
+        </div>
       </main>
     </div>
   );

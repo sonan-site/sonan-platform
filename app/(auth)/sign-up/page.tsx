@@ -13,6 +13,7 @@ import { signUpSchema } from "@/lib/validation/auth";
 import styles from "../layout.module.css";
 import { ActionForm } from "@/components/shared/action-form";
 import { PasswordInput } from "@/components/shared/password-input";
+import { GateIntro, useCampaignGate } from "../campaign-gate";
 
 export default function SignUpPage() {
   return (
@@ -38,6 +39,7 @@ function SignUpForm() {
   const [awaitingEmail, setAwaitingEmail] = useState(false);
   const [waitedLong, setWaitedLong] = useState(false);
   const [pending, startTransition] = useTransition();
+  const gate = useCampaignGate();
 
   /**
    * **مخرجٌ لمن لن تصله رسالة:** البريد المسجَّل سلفاً يُردّ عليه ردّاً مموّهاً
@@ -113,10 +115,16 @@ function SignUpForm() {
 
   return (
     <>
-      <h1 className={styles.title}>إنشاء حساب</h1>
-      <p className={styles.lede}>
-        حسابٌ واحد تسجّل به في برامج الجمعية وتتابع رحلتك. بعده خطوة واحدة لبياناتك.
-      </p>
+      {gate ? (
+        <GateIntro gate={gate} title="التسجيل في المسابقة" lede="أنشئ حسابك أولاً، ثم أكمل بياناتك واختر مسارك." />
+      ) : (
+        <>
+          <h1 className={styles.title}>إنشاء حساب</h1>
+          <p className={styles.lede}>
+            حسابٌ واحد تسجّل به في برامج الجمعية وتتابع رحلتك. بعده خطوة واحدة لبياناتك.
+          </p>
+        </>
+      )}
 
       {state.error ? <p className={styles.alert}>{state.error}</p> : null}
 
@@ -151,13 +159,13 @@ function SignUpForm() {
 
         <FormActions>
           <Button type="submit" variant="primary" pending={pending}>
-            أنشئ الحساب
+            {gate ? "أنشئ حسابي وتابع التسجيل" : "أنشئ الحساب"}
           </Button>
         </FormActions>
       </ActionForm>
 
       <div className={styles.links}>
-        <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>لديك حساب؟ ادخل</Link>
+        <Link href={`/sign-in?next=${encodeURIComponent(next)}`}>{gate ? "لديك حساب؟ ادخل وأكمل تسجيلك" : "لديك حساب؟ ادخل"}</Link>
       </div>
     </>
   );
