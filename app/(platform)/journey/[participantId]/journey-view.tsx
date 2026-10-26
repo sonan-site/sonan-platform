@@ -21,7 +21,7 @@ import {
   type Pace,
 } from "@/lib/participants/journey";
 import { countRepetition, markField, openNextDay, undoMark } from "../actions";
-import { FinalCard, type JourneyFinal } from "./final-card";
+import { EligibilityCard, FinalCard, type JourneyEligibility, type JourneyFinal } from "./final-card";
 import { attemptsLeft, isHotExam, lastExamMoment } from "@/lib/participants/exam-card";
 import styles from "./journey.module.css";
 import { HEAT_LABEL, type StripCell } from "@/lib/participants/progress-view";
@@ -161,6 +161,7 @@ export function JourneyView({
   exams,
   examsUnavailable,
   finals,
+  eligibility,
   serverClock,
 }: {
   /** شريط الأسبوع (المرحلة ب · ب١) — فارغ إن تعذّر تقويمه. */
@@ -194,6 +195,8 @@ export function JourneyView({
   examsUnavailable: boolean;
   /** النهائي: التأهّل والجلسة، والنتيجة بعد نشرها. */
   finals: JourneyFinal[];
+  /** حالة التأهل قبل حسم الفرز — مبدئية أو قرارٌ مسجَّل. */
+  eligibility: JourneyEligibility[];
   /** ساعة الخادم بتوقيت الرياض لحظة العرض (`HH:MM`) — العدّ التنازلي منها لا من ساعة الجهاز. */
   serverClock: string;
 }) {
@@ -687,6 +690,9 @@ export function JourneyView({
         .map((exam) => (
           <ExamCard key={exam.id} participantId={participantId} exam={exam} />
         ))}
+      {eligibility.map((e) => (
+        <EligibilityCard key={e.examId} eligibility={e} />
+      ))}
       {finals.map((f) => (
         <FinalCard key={f.examId} final={f} />
       ))}

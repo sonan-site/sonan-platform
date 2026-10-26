@@ -3170,6 +3170,15 @@ export type Database = {
         }
         Returns: number
       }
+      fn_eligibility_eval: {
+        Args: { p_at: string; p_exam_id: string; p_participant_id: string }
+        Returns: {
+          eligible: boolean
+          percent: number
+          prerequisite_passed: boolean
+          units: number
+        }[]
+      }
       fn_eligibility_scope: {
         Args: { p_exam_id: string }
         Returns: {
@@ -3469,6 +3478,19 @@ export type Database = {
           proposed_track: string
           status: Database["public"]["Enums"]["participant_status"]
           track_name: string
+        }[]
+      }
+      fn_my_eligibility: {
+        Args: { p_participant_id: string }
+        Returns: {
+          decided: boolean
+          eligible: boolean
+          entry_percentage: number
+          exam_id: string
+          exam_name: string
+          percent: number
+          prerequisite_name: string
+          prerequisite_passed: boolean
         }[]
       }
       fn_my_exams: {

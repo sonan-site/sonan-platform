@@ -20,7 +20,7 @@ import {
 import { countedText, spanParts, type TrackShare } from "@/lib/plans/engine";
 import { withStarts, type Material } from "@/lib/programs/material";
 import { weekRange, weekStrip } from "@/lib/participants/progress-view";
-import { FinalCard, toFinals } from "./final-card";
+import { EligibilityCard, FinalCard, toEligibility, toFinals } from "./final-card";
 import { JourneyView, type ArchiveRow, type TaskRow } from "./journey-view";
 
 export default async function JourneyDayPage({
@@ -95,11 +95,17 @@ export default async function JourneyDayPage({
   // النهائي: تأهّله وجلسته، ونتيجته بعد نشرها (الدفعة د). تعذّره يُخفي بطاقته ولا يُسقط الصفحة.
   const finalResult = await db.rpc("fn_my_final", { p_participant_id: participantId });
   const finals = toFinals(finalResult.data ?? []);
+  // حالة التأهل بين لحظة الأهلية وحسم الفرز (خطة دليل المشارك · هـ) — تعذّرها يُخفيها كذلك.
+  const eligibilityResult = await db.rpc("fn_my_eligibility", { p_participant_id: participantId });
+  const eligibility = toEligibility(eligibilityResult.data ?? []);
 
   // من انتهت رحلته يرى نتيجته أولاً — ثم المخرج.
   if (!followsPlan(participant.status)) {
     return (
       <>
+        {eligibility.map((e) => (
+          <EligibilityCard key={e.examId} eligibility={e} />
+        ))}
         {finals.map((f) => (
           <FinalCard key={f.examId} final={f} />
         ))}
@@ -275,6 +281,7 @@ export default async function JourneyDayPage({
       // الاختبار ميزةٌ ثانوية في يوم الحفظ: تعذّرها يُخفي بطاقتها ولا يُسقط الرحلة.
       examsUnavailable={examsResult.error !== null}
       finals={finals}
+      eligibility={eligibility}
       serverClock={clock}
       exams={(examsResult.data ?? []).map((e) => ({
         id: e.exam_id,
