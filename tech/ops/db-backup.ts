@@ -17,6 +17,10 @@ import { nowIso } from "../../lib/format/index.ts";
  * **والنسخة خارج المستودع عمداً:** فيها بيانات المشاركين وهوياتهم، والمستودع
  * عام. مجلدها `BACKUP_DIR` (افتراضاً `C:\dev\backups\sonan`) ولا يُرفع لأي خدمة.
  *
+ * **ومشفّرةٌ دائماً** (سياسة الخصوصية · البند السابع): gpg بتشفيرٍ متناظر AES-256 بعبارة
+ * `BACKUP_PASSPHRASE` من `.env` — النسخة الصريحة لا تبقى على القرص بعد تشفيرها، والتجربة
+ * تفكّها في مجلدٍ مؤقت يُحذف. وبلا العبارة لا تُستعاد نسخة: تُحفظ في مدير كلمات المرور.
+ *
  * **والتجربة تقيس ما يهمّ:** عدد صفوف كل جدول في `public` و`auth` و`storage`،
  * وعدد الدوال والسياسات والمنح والمشغّلات في `public` — حيّاً ومستعاداً. أي فرقٍ يُفشلها.
  * وأخطاء `supabase_vault` متوقَّعة: امتدادٌ داخلي لـSupabase لا يوجد خارجها،
@@ -34,6 +38,15 @@ if (!URL) throw new Error("SUPABASE_DB_URL غير مضبوط.");
 const PG_BIN = process.env.PG_BIN ?? "C:\\dev\\tools\\pgsql\\bin";
 const BACKUP_DIR = process.env.BACKUP_DIR ?? "C:\\dev\\backups\\sonan";
 const KEEP = 14;
+const PASSPHRASE = process.env.BACKUP_PASSPHRASE;
+if (!PASSPHRASE || PASSPHRASE.length < 20) throw new Error("BACKUP_PASSPHRASE غير مضبوطة في .env (٢٠ حرفاً فأكثر).");
+const GPG = process.env.GPG_BIN ?? (process.platform === "win32" ? "C:\\Program Files\\Git\\usr\\bin\\gpg.exe" : "gpg");
+/** العبارة من مدخلٍ معياري لا من سطر الأوامر — فلا تظهر في قائمة العمليات. */
+const gpg = (args: string[]) =>
+  execFileSync(GPG, ["--batch", "--yes", "--quiet", "--pinentry-mode", "loopback", "--passphrase-fd", "0", ...args], {
+    input: PASSPHRASE,
+    stdio: ["pipe", "inherit", "inherit"],
+  });
 const DRILL = process.argv.includes("--drill");
 const bin = (name: string) => join(PG_BIN, process.platform === "win32" ? `${name}.exe` : name);
 
@@ -42,13 +55,19 @@ if (!existsSync(bin("pg_dump"))) throw new Error(`pg_dump غير موجود في
 // ══ النسخ ══
 mkdirSync(BACKUP_DIR, { recursive: true });
 const stamp = nowIso().slice(0, 16).replace(/[:T]/g, "-");
-const file = join(BACKUP_DIR, `sonan-${stamp}.dump`);
+const plain = join(BACKUP_DIR, `sonan-${stamp}.dump`);
+const file = `${plain}.gpg`;
 // المنح تُنسخ (بلا `--no-privileges`): نسخةٌ بلا منحٍ تُعيد البيانات وتحجبها عن التطبيق.
-execFileSync(bin("pg_dump"), ["-Fc", "--no-owner", "-f", file, URL], { stdio: "inherit" });
-say(`النسخة: ${file} (${Math.round(statSync(file).size / 1024)} KB)`);
+execFileSync(bin("pg_dump"), ["-Fc", "--no-owner", "-f", plain, URL], { stdio: "inherit" });
+try {
+  gpg(["--symmetric", "--cipher-algo", "AES256", "--output", file, plain]);
+} finally {
+  rmSync(plain, { force: true });
+}
+say(`النسخة المشفّرة: ${file} (${Math.round(statSync(file).size / 1024)} KB)`);
 
 const old = readdirSync(BACKUP_DIR)
-  .filter((f) => /^sonan-.*\.dump$/.test(f))
+  .filter((f) => /^sonan-.*\.dump\.gpg$/.test(f))
   .sort()
   .reverse()
   .slice(KEEP);
@@ -105,7 +124,10 @@ try {
   for (const r of ROLES) psql(`create role ${r} nologin`);
   psql("create database restored");
 
-  const restore = spawnSync(bin("pg_restore"), ["-h", "localhost", "-p", PORT, "-U", "postgres", "-d", "restored", "--no-owner", file], { encoding: "utf8" });
+  // تُفكّ في المجلد المؤقت وحده — يُحذف معه في الختام.
+  const decrypted = join(work, "restore.dump");
+  gpg(["--decrypt", "--output", decrypted, file]);
+  const restore = spawnSync(bin("pg_restore"), ["-h", "localhost", "-p", PORT, "-U", "postgres", "-d", "restored", "--no-owner", decrypted], { encoding: "utf8" });
   const errors = restore.stderr.split(/\r?\n/).filter((l) => l.includes("error:"));
   const unexpected = errors.filter((l) => !/supabase_vault|\bvault\./.test(l));
   say(`أخطاء الاستعادة: ${errors.length} (غير المتوقَّع منها: ${unexpected.length})`);
