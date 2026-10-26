@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { BookOpen, Check } from "lucide-react";
 import { formatDate, formatDateBoth, formatNumber } from "@/lib/format";
 import { campaignStages, campaignTracks, collectBlocks, countWith, parseContact } from "@/lib/programs/campaign-content";
 import { groupFaq } from "@/lib/programs/faq";
@@ -37,6 +37,7 @@ const ATTEMPTS = { one: "محاولة واحدة", two: "محاولتان", few:
 export function CampaignGuide({
   program,
   sections,
+  materials,
   exams,
   updates,
   printedOn,
@@ -44,6 +45,8 @@ export function CampaignGuide({
   program: PublicProgram;
   /** أبواب كل مسار بعدد وحداته منها. */
   sections: Map<string, { name: string; units: number }[]>;
+  /** رابط مادة كل مسار (ملفّ الكتاب PDF) — ما لا رابط له لا يظهر له سطر. */
+  materials: Map<string, string>;
   exams: GuideExam[];
   /** الأحدث أولاً. */
   updates: GuideUpdate[];
@@ -166,6 +169,12 @@ export function CampaignGuide({
                         </li>
                       ))}
                     </ul>
+                  ) : null}
+                  {materials.get(t.id) ? (
+                    <a href={materials.get(t.id)} target="_blank" rel="noopener noreferrer" className={guide.material}>
+                      <BookOpen size={16} aria-hidden />
+                      مادة الحفظ (PDF)
+                    </a>
                   ) : null}
                   {t.prizes.length > 0 ? (
                     <>

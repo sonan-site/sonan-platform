@@ -23,7 +23,7 @@ export default async function TracksPage({ params }: { params: Promise<{ id: str
   const [tracksResult, usageResult, ready, plansResult, templatesResult] = await Promise.all([
     db
       .from("tracks")
-      .select("id, name, description, capacity")
+      .select("id, name, description, capacity, material_url")
       .eq("program_id", id)
       // الترتيب الثاني يحسم التساوي: `sort_order` بلا قيد فريد، ومساران
       // برقمٍ واحد كانا يتبادلان مواضعهما بين طلبٍ وطلب.
@@ -46,6 +46,7 @@ export default async function TracksPage({ params }: { params: Promise<{ id: str
     name: t.name,
     description: t.description,
     capacity: t.capacity,
+    materialUrl: t.material_url,
     participants: usage.get(t.id)?.live_participants ?? 0,
     plans: usage.get(t.id)?.plans ?? 0,
   }));

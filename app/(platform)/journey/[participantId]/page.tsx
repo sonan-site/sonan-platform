@@ -45,7 +45,7 @@ export default async function JourneyDayPage({
   const { data: participant, error: participantError } = await db
     .from("participants")
     .select(
-      "id, status, track_id, registration_no, programs!inner(id, name, slug, contact, registration_prefix, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name)",
+      "id, status, track_id, registration_no, programs!inner(id, name, slug, contact, registration_prefix, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name, material_url)",
     )
     .eq("id", participantId)
     .eq("user_id", session.userId)
@@ -68,7 +68,7 @@ export default async function JourneyDayPage({
     unit_few: string | null;
     unit_many: string | null;
   };
-  const track = participant.tracks as unknown as { id: string; name: string } | null;
+  const track = participant.tracks as unknown as { id: string; name: string; material_url: string | null } | null;
   // «رحلتي» تُدخل صاحب المشاركة الواحدة إلى هنا مباشرة — فرابطها في المخرج يدور به (ر١).
   const { count: participations } = await db
     .from("participants")
@@ -269,6 +269,7 @@ export default async function JourneyDayPage({
       registrationNo={formatRegistrationNo(program.registration_prefix, participant.registration_no)}
       programName={program.name}
       trackName={track.name}
+      materialUrl={track.material_url}
       state={state}
       pace={pace(state)}
       day={shown}

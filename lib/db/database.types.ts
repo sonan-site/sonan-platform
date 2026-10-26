@@ -2858,6 +2858,7 @@ export type Database = {
           due_from: string | null
           exceptions_overridden: boolean
           id: string
+          material_url: string | null
           name: string
           program_id: string
           progress_measure:
@@ -2880,6 +2881,7 @@ export type Database = {
           due_from?: string | null
           exceptions_overridden?: boolean
           id?: string
+          material_url?: string | null
           name: string
           program_id: string
           progress_measure?:
@@ -2902,6 +2904,7 @@ export type Database = {
           due_from?: string | null
           exceptions_overridden?: boolean
           id?: string
+          material_url?: string | null
           name?: string
           program_id?: string
           progress_measure?:

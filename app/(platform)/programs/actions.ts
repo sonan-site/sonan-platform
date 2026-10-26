@@ -332,12 +332,20 @@ const trackPatchSchema = z.object({
   name: z.string().trim().min(2).max(80).optional(),
   description: z.string().trim().max(500).optional(),
   capacity: z.number().int().positive().nullable().optional(),
+  // رابط مادة المسار (ملفّ الكتاب): https وحده — كقيد القاعدة.
+  material_url: z
+    .string()
+    .trim()
+    .max(500)
+    .regex(/^https:\/\/[^\s<>"]+$/)
+    .nullable()
+    .optional(),
 });
 
 export async function updateTrack(
   trackId: string,
   programId: string,
-  patch: { name?: string; description?: string; capacity?: number | null },
+  patch: { name?: string; description?: string; capacity?: number | null; material_url?: string | null },
 ): Promise<FormState> {
   if (!z.object({ trackId: z.uuid(), programId: z.uuid() }).safeParse({ trackId, programId }).success) {
     return { error: "مسار غير معروف." };
@@ -348,7 +356,9 @@ export async function updateTrack(
       error:
         patch.capacity !== undefined
           ? "السعة عدد صحيح موجب، أو اتركها فارغة لبلا سقف."
-          : "اسم المسار حرفان فأكثر.",
+          : patch.material_url !== undefined
+            ? "رابط المادة يبدأ بـ https:// — أو اتركه فارغاً."
+            : "اسم المسار حرفان فأكثر.",
     };
   }
 

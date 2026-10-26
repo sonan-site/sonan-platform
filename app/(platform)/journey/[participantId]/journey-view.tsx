@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2 } from "lucide-react";
+import { BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, ExternalLink, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
@@ -149,6 +149,7 @@ export function JourneyView({
   registrationNo,
   programName,
   trackName,
+  materialUrl,
   state,
   pace,
   day,
@@ -175,6 +176,8 @@ export function JourneyView({
   registrationNo: string | null;
   programName: string;
   trackName: string;
+  /** رابط مادة المسار (ملفّ الكتاب PDF) — زرٌّ ثابت تحت بطاقة اليوم. */
+  materialUrl: string | null;
   state: JourneyState;
   pace: Pace;
   /** اليوم المعروض من الخطة. */
@@ -678,6 +681,13 @@ export function JourneyView({
             لم يُتمّ اليوم {formatNumber(state.currentDay)} قبل نهاية رصده، فتأخّر موعدك. أتمّه الآن ليعود تقدّمك.
           </span>
         </p>
+      ) : null}
+      {materialUrl ? (
+        <a href={materialUrl} target="_blank" rel="noopener noreferrer" className={styles.material}>
+          <BookOpen size={18} aria-hidden />
+          <span>كتاب المادة (PDF)</span>
+          <ExternalLink size={14} aria-hidden />
+        </a>
       ) : null}
       {message.notice ? (
         <p role="status" className={styles.notice}>

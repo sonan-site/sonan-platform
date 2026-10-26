@@ -31,7 +31,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const featured = await getHomeFeatured();
   if (featured !== slug && program.data.registration !== "unpublished") redirect(`/p/${slug}`);
 
-  const [examsResult, sectionsResult, updatesResult] = await Promise.all([
+  const [examsResult, sectionsResult, updatesResult, materialsResult] = await Promise.all([
     db.rpc("fn_public_exams", { p_program_id: program.id }),
     db.rpc("fn_public_track_sections", { p_program_id: program.id }),
     // المحذوف صراحةً خارجاً — حامل programs.read يراه في سياسته فلا يصير «آخر تحديث» (مراجعة ج م١).
@@ -42,6 +42,8 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
       .is("deleted_at", null)
       .order("entry_date", { ascending: false })
       .order("created_at", { ascending: false }),
+    // رابط مادة كل مسار — سياسة قراءة المسارات تفتحها للبرنامج المنشور.
+    db.from("tracks").select("id, material_url").eq("program_id", program.id).is("deleted_at", null),
   ]);
   if (examsResult.error || sectionsResult.error || updatesResult.error) {
     return <ErrorState body="تعذّر جلب الدليل. أعد المحاولة." />;
@@ -68,9 +70,13 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
     awardPercentage: e.award_percentage === null ? null : Number(e.award_percentage),
   }));
 
+  const materials = new Map(
+    (materialsResult.data ?? []).flatMap((t) => (t.material_url ? [[t.id, t.material_url] as const] : [])),
+  );
+
   const updates: GuideUpdate[] = (updatesResult.data ?? []).map((u) => ({ id: u.id, date: u.entry_date, body: u.body }));
 
   return (
-    <CampaignGuide program={program} sections={sections} exams={exams} updates={updates} printedOn={toDateInput(now())} />
+    <CampaignGuide program={program} sections={sections} materials={materials} exams={exams} updates={updates} printedOn={toDateInput(now())} />
   );
 }

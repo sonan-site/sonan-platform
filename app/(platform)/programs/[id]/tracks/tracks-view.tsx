@@ -29,6 +29,8 @@ export type TrackRow = {
   name: string;
   description: string;
   capacity: number | null;
+  /** رابط مادة المسار (ملفّ الكتاب) — يراه طالبه في واجبه وفي الدليل. */
+  materialUrl: string | null;
   /** المشاركون فيه الآن — وجودهم يمنع الحذف، فيُعطَّل زرّه بسببه (`ق-٢٠`). */
   participants: number;
   /** خططه — تُحذف معه، والنافذة تقول ذلك قبل أن يقرّ. */
@@ -122,6 +124,27 @@ export function TracksView({
           "بلا سقف"
         ) : (
           formatNumber(t.capacity)
+        ),
+    },
+    {
+      key: "material",
+      header: "رابط المادة",
+      render: (t) =>
+        canWrite ? (
+          <InlineText
+            label={`رابط مادة المسار ${t.name} — ملفّ PDF يبدأ بـ https://`}
+            value={t.materialUrl ?? ""}
+            allowEmpty
+            latin
+            maxInlineSize="14rem"
+            onSave={(raw) => updateTrack(t.id, programId, { material_url: raw.trim() === "" ? null : raw.trim() })}
+          />
+        ) : t.materialUrl ? (
+          <a href={t.materialUrl} target="_blank" rel="noopener noreferrer">
+            فتح
+          </a>
+        ) : (
+          "—"
         ),
     },
     ...(canWrite
