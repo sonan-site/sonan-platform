@@ -904,7 +904,8 @@
   border-inline-start: 1px solid var(--c-line);
 }
 
-.logoSunan {
+/* بنطاق التذييل: `.root img` (حجمها الطبيعي) كانت تغلب المقاسات — فيضخم الشعار ويضمر شعارا الجهتين. */
+.foot .logoSunan {
   block-size: 84px;
   inline-size: auto;
 }
@@ -926,7 +927,7 @@
   block-size: 84px;
 }
 
-.logoGov {
+.foot .logoGov {
   block-size: 62px;
   inline-size: auto;
   filter: brightness(0) invert(1);
@@ -964,6 +965,11 @@
 .contact span {
   color: var(--c-muted);
   font-size: var(--text-xs);
+}
+
+.contact a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .contact b {
@@ -1175,9 +1181,33 @@
     border-inline-start: 0;
   }
 
+  /* الجوال (قرار الراعي ٢٦ أكتوبر): شعارٌ متوسط · الشريك والترخيص متقابلان · التواصل صفٌّ واحد. */
+  .foot .logoSunan {
+    block-size: 64px;
+  }
+
+  .logoTile {
+    inline-size: 64px;
+    block-size: 64px;
+  }
+
+  .logoRow {
+    gap: var(--space-3);
+    block-size: 64px;
+  }
+
+  .foot .logoGov {
+    block-size: 40px;
+  }
+
   .contact {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .contact b {
+    font-size: var(--text-sm);
   }
 }
 

@@ -46,7 +46,14 @@ export function CampaignFooter({ programName, contact }: { programName: string; 
             <li>
               <span>{own.label ?? "التواصل"}</span>
               <b>
-                <bdi dir="ltr">{own.value}</bdi>
+                {/* رقمٌ يُنقر للاتصال — صريحاً، فلا يلوّنه iOS ويخطّه وحده. */}
+                {/^\+?[0-9 ]{7,15}$/.test(own.value) ? (
+                  <a href={`tel:${own.value.replace(/\s/g, "")}`}>
+                    <bdi dir="ltr">{own.value}</bdi>
+                  </a>
+                ) : (
+                  <bdi dir="ltr">{own.value}</bdi>
+                )}
               </b>
             </li>
           ) : null}
