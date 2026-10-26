@@ -82,3 +82,12 @@ describe("التاريخ", () => {
     expect(formatClock("12:00")).toBe("12:00 م");
   });
 });
+
+describe("آخر يومٍ مفتوح", () => {
+  it("نهاية اليوم تعطي يومها، ومنتصف الليل يعطي السابق", async () => {
+    const { lastOpenDay } = await import("./index");
+    expect(lastOpenDay(riyadhDayEnd("2026-11-14"))).toBe("2026-11-14");
+    expect(lastOpenDay("2026-11-15T00:00:00+03:00")).toBe("2026-11-14");
+    expect(lastOpenDay("2026-11-15T09:00:00+03:00")).toBe("2026-11-15");
+  });
+});

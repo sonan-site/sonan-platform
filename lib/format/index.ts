@@ -117,6 +117,15 @@ export function toDateInput(value: string | Date): string {
   return parts;
 }
 
+/**
+ * آخر يومٍ مفتوح قبل لحظة إغلاق — `YYYY-MM-DD` بالرياض. الإغلاق المخزَّن نهايةَ يومٍ
+ * (`riyadhDayEnd`) يعطي يومه، والمخزَّن منتصفَ ليلٍ يعطي اليوم السابق: فلا يُعرض «15 نوفمبر»
+ * لنافذةٍ آخرُ أيامها 14، ولا يمدّها حفظُ النموذج يوماً كاملاً.
+ */
+export function lastOpenDay(closesAt: string | Date): string {
+  return toDateInput(new Date(toDate(closesAt).getTime() - 1));
+}
+
 /** الرياض بلا توقيت صيفي، فالإزاحة ثابتة طوال السنة. */
 const RIYADH_OFFSET = "+03:00";
 

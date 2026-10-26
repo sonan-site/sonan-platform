@@ -4,7 +4,7 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { skinForPath } from "@/lib/settings/campaign-skin";
+import { isBareCampaignPath, skinForPath } from "@/lib/settings/campaign-skin";
 import styles from "./layout.module.css";
 
 /**
@@ -12,7 +12,7 @@ import styles from "./layout.module.css";
  * في الخادم كان يعلق (زرّ «سجّل الآن» من الواجهة يفتح التسجيل بإطارٍ قديم — مراجعة خطة الألوان ح١).
  * ويُصيَّر في الخادم أولاً بالمسار نفسه، فلا وميض.
  *
- * - الواجهة (`/` حين المفتاح · `/p/<slug>/campaign`) تحمل رأسها وتذييلها، فلا تُلفّ.
+ * - الواجهة (`/` حين المفتاح · `/p/<slug>/campaign`) والدليل (`/p/<slug>/guide`) تحمل رأسها وتذييلها، فلا تُلفّ.
  * - صفحة تسجيل برنامج الحملة بجلدها (`adr/0045` ملحق): الشعار يعيد إلى الواجهة.
  * - وما سواها بإطار المنصة.
  */
@@ -27,7 +27,7 @@ export function PublicChrome({
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
-  if (path.startsWith("/p/") && path.endsWith("/campaign")) return <>{children}</>;
+  if (isBareCampaignPath(path)) return <>{children}</>;
   if (path === "/" && featured) return <>{children}</>;
 
   const signInHref = signedIn ? "/dashboard" : path && path !== "/" ? `/sign-in?next=${encodeURIComponent(path)}` : "/sign-in";

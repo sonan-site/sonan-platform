@@ -173,7 +173,8 @@ export default async function RegisterPage({
     const parsed = parseBlockContent("cta", r.content);
     return parsed.ok ? [parsed.content as { buttonHref: string; buttonLabel: string; heading: string }] : [];
   });
-  const guide = pickGuide(ctas);
+  // برنامج الحملة: الدليل صفحته في المنصة (خطة دليل المشارك · د). وغيره: عنصر الدعوة كما كان.
+  const guide = programHome === "/" ? { buttonHref: `/p/${slug}/guide`, buttonLabel: "اقرأ دليل المشارك" } : pickGuide(ctas);
 
   return (
     <RegisterForm

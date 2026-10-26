@@ -2,6 +2,8 @@ import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { BLOCK_LABEL, isBlockType } from "@/lib/programs/blocks";
+import { now, toDateInput } from "@/lib/format";
+import { GuideUpdates, type GuideUpdateRow } from "../guide-updates";
 import { PageBuilder, type AdmissionRow, type BlockRow } from "../page-builder";
 
 /** تبويب الصفحة المعلنة — عناصرها وأسئلة القبول. والأسئلة الشائعة في تبويبها (`adr/0029`). */
@@ -16,7 +18,7 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [programResult, blocksResult, admissionResult, tracksResult] = await Promise.all([
+  const [programResult, blocksResult, admissionResult, tracksResult, guideResult] = await Promise.all([
     db.from("programs").select("slug").eq("id", id).maybeSingle(),
     db
       .from("page_blocks")
@@ -38,6 +40,13 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .eq("program_id", id)
       .is("deleted_at", null)
       .order("sort_order"),
+    db
+      .from("guide_updates")
+      .select("id, entry_date, body")
+      .eq("program_id", id)
+      .is("deleted_at", null)
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false }),
   ]);
 
   if (blocksResult.error || !programResult.data) {
@@ -68,13 +77,26 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
     trackName: q.track_id ? (trackNames.get(q.track_id) ?? null) : null,
   }));
 
+  // خطأ القراءة لا يُعرض سجلاً فارغاً — «لا تحديثات بعد» خبرٌ كاذب حينها.
+  const guideRows: GuideUpdateRow[] | null = guideResult.error
+    ? null
+    : (guideResult.data ?? []).map((u) => ({ id: u.id, date: u.entry_date, body: u.body }));
+
   return (
-    <PageBuilder
-      programId={id}
-      programSlug={programResult.data.slug}
-      blocks={blocks}
-      admission={admission}
-      tracks={tracks}
-    />
+    <>
+      <PageBuilder
+        programId={id}
+        programSlug={programResult.data.slug}
+        blocks={blocks}
+        admission={admission}
+        tracks={tracks}
+      />
+      <GuideUpdates
+        programId={id}
+        programSlug={programResult.data.slug}
+        rows={guideRows}
+        today={toDateInput(now())}
+      />
+    </>
   );
 }

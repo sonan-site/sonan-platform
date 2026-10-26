@@ -5,17 +5,9 @@ import { useState } from "react";
 import { formatNumber } from "@/lib/format";
 import styles from "./campaign.module.css";
 
-export type CampaignTrack = {
-  id: string;
-  name: string;
-  description: string;
-  units: number;
-  /** فارغ = بلا سقف — فلا شريط مقاعد. */
-  capacity: number | null;
-  remaining: number | null;
-  prizes: { label: string; value: string }[];
-  prizeNote: string;
-};
+import type { CampaignTrack } from "@/lib/programs/campaign-content";
+
+export type { CampaignTrack };
 
 /**
  * بطاقات المسارات وجوائز المختار منها. المقاعد من `fn_public_tracks`، والجوائز

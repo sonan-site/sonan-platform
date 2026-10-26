@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
-import { toDateInput } from "@/lib/format";
+import { lastOpenDay, toDateInput } from "@/lib/format";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { kindAllowsExams } from "@/lib/programs/kinds";
 import { ExamsView, type CoverageRow, type CriterionRow, type ExamSettings, type QuestionRow, type ResultRow } from "./exams-view";
@@ -104,7 +104,7 @@ export default async function ExamsPage({
     scopeFromPct: e.scope_from_pct === null ? null : Number(e.scope_from_pct),
     scopeToPct: e.scope_to_pct === null ? null : Number(e.scope_to_pct),
     opensOn: e.opens_at ? toDateInput(e.opens_at) : "",
-    closesOn: e.closes_at ? toDateInput(e.closes_at) : "",
+    closesOn: e.closes_at ? lastOpenDay(e.closes_at) : "",
     eligibilityOn: e.eligibility_at ? toDateInput(e.eligibility_at) : "",
     judgeCount: e.judge_count,
     awardPercentage: e.award_percentage === null ? null : Number(e.award_percentage),

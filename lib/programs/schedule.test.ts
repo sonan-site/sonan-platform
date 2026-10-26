@@ -54,3 +54,10 @@ describe("ترتيب المواعيد", () => {
     expect(out.map((e) => e.title)).toEqual(["التسجيل", "الحفظ", "الحفل"]);
   });
 });
+
+describe("إغلاقٌ عند منتصف الليل", () => {
+  it("يُعرض آخر يومٍ مفتوح لا يوم الإغلاق", () => {
+    const e = registrationEntry(riyadhDayStart("2026-10-25"), "2026-11-15T00:00:00+03:00");
+    expect(e?.endsOn).toBe("2026-11-14");
+  });
+});

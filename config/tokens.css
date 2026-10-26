@@ -571,3 +571,55 @@ body:has([data-skin="campaign"]) {
   --color-chrome-current-text: #f4d59b;
   --color-chrome-focus: #f4d59b;
 }
+
+/* ══ طباعة واجهة الحملة ودليلها (خطة دليل المشارك · د) ══
+   المتصفح لا يطبع الخلفيات افتراضياً، فنصٌّ فاتح على حبرٍ داكن يخرج فاتحاً على ورقٍ أبيض لا يُقرأ.
+   فتُعاد رموز --c-* كلها فاتحةً: خلفيةٌ بيضاء ونصٌّ داكن، بلا توهّجٍ ولا تدرّجات. */
+@media print {
+  :root:has([data-campaign]) {
+    color-scheme: light;
+  }
+
+  body:has([data-campaign]) {
+    background: #ffffff;
+  }
+
+  [data-campaign] {
+    --c-ink-deep: #ffffff;
+    --c-ink: #ffffff;
+    --c-cyan: #0b5566;
+    --c-cyan-soft: #0b5566;
+    --c-gold: #7a5418;
+    --c-gold-light: #7a5418;
+    --c-gold-dark: #7a5418;
+    --c-on-gold: #1a1a1a;
+    --c-white: #111111;
+    --c-text: #1f1f1f;
+    --c-muted: #4a4a4a;
+    --c-danger: #9d3a2d;
+    --c-line: #c8c8c8;
+    --c-line-soft: #e0e0e0;
+    --c-line-field: #c8c8c8;
+    --c-line-strong: #9a9a9a;
+    --c-glass: transparent;
+    --c-track-fill: transparent;
+    --c-sunken: transparent;
+    --c-cyan-wash: transparent;
+    --c-gold-wash: transparent;
+    --c-gold-line: #c8c8c8;
+    --c-dot: #4a4a4a;
+    --c-bg: #ffffff;
+    --c-header-bg: #ffffff;
+    --c-footer-bg: #ffffff;
+    --c-gold-fill: #ffffff;
+    --c-gold-glow: none;
+    --c-now-glow: none;
+    --c-title-glow: none;
+    --c-pill-fill: none;
+    --c-track-fill-grad: none;
+    --c-track-on-grad: none;
+    --c-card-grad: none;
+    --c-card-shadow: none;
+    --c-halaqat-grad: none;
+  }
+}

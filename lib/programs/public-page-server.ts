@@ -49,6 +49,8 @@ export type BlockData = {
   /** «اليوم» بالرياض `YYYY-MM-DD` — لحالة كل موعد. */
   today: string;
   faq: { id: string; question: string; answer: string; category: string }[];
+  /** جهة التواصل كما كتبتها الإدارة («شؤون الطلاب: 05…») — في التذييل والدليل. */
+  contact: string;
   attachments: Map<string, string>;
 };
 
@@ -67,7 +69,7 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
   const { data: program, error } = await db
     .from("programs")
     .select(
-      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_many",
+      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_many, contact",
     )
     .eq("slug", slug)
     .is("deleted_at", null)
@@ -132,6 +134,7 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
       closesAt: program.registration_closes_at,
       opensAt: program.registration_opens_at,
       unitLabel: program.unit_many ?? "",
+      contact: program.contact ?? "",
       schedule: composeSchedule(
         (scheduleResult.data ?? []).map((r) => ({
           id: r.id,

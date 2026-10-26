@@ -1,4 +1,4 @@
-import { formatDateBoth, toDateInput } from "@/lib/format";
+import { formatDateBoth, lastOpenDay, toDateInput } from "@/lib/format";
 
 /**
  * مواعيد البرنامج (`adr/0044`) — أيامٌ لا لحظات، وحالتها مشتقّة بـ«اليوم»
@@ -56,7 +56,7 @@ export function registrationEntry(
   note = "",
 ): ScheduleEntry | null {
   const opens = opensAt ? toDateInput(opensAt) : null;
-  const closes = closesAt ? toDateInput(closesAt) : null;
+  const closes = closesAt ? lastOpenDay(closesAt) : null;
   const startsOn = opens ?? closes;
   if (!startsOn) return null;
   return {

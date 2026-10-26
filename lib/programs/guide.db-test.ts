@@ -93,11 +93,14 @@ beforeAll(async () => {
     ]),
   ]);
   await db.query("reset role");
-  for (const [name, to] of [
-    ["الأول", 4],
-    ["الثاني", 7],
+  // ترتيبٌ صريح: المسارات تُنشأ في معاملةٍ واحدة فيتساوى `created_at` ويضطرب الترتيب.
+  for (const [name, to, order] of [
+    ["الأول", 4, 0],
+    ["الثاني", 7, 1],
   ] as const) {
-    const t = (await one(`insert into public.tracks (program_id, name) values ($1, $2) returning id`, [publishedId, name])).id;
+    const t = (
+      await one(`insert into public.tracks (program_id, name, sort_order) values ($1, $2, $3) returning id`, [publishedId, name, order])
+    ).id;
     await db.query(`insert into public.track_content_ranges (track_id, from_sequence, to_sequence) values ($1, 1, $2)`, [t, to]);
   }
 

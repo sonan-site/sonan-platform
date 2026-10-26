@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Check, Plus } from "lucide-react";
-import { formatHijri } from "@/lib/format";
-import { parseBlockContent, pickGuide, type BlockContent, type BlockType } from "@/lib/programs/blocks";
+import { formatHijri, lastOpenDay } from "@/lib/format";
+import { campaignStages, campaignTracks, collectBlocks } from "@/lib/programs/campaign-content";
 import { groupFaq } from "@/lib/programs/faq";
 import type { PublicProgram } from "@/lib/programs/public-page-server";
-import { scheduleRangeLabel, scheduleStatus } from "@/lib/programs/schedule";
 import { CampaignCountdown } from "./campaign-countdown";
-import { CampaignTracks, type CampaignTrack } from "./campaign-tracks";
+import { CampaignFooter } from "./campaign-footer";
+import { CampaignTracks } from "./campaign-tracks";
 import styles from "./campaign.module.css";
 
 /**
@@ -20,18 +20,6 @@ import styles from "./campaign.module.css";
  * لأنه هيئة الجمعية لا محتوى البرنامج، وينقضي مع الواجهة.
  */
 
-type Blocks = { [K in BlockType]: BlockContent[K][] };
-
-function collect(program: PublicProgram): Blocks {
-  const out = {} as Blocks;
-  for (const block of program.blocks) {
-    const parsed = parseBlockContent(block.type, block.content);
-    if (!parsed.ok) continue;
-    (out[block.type] ??= [] as never[]).push(parsed.content as never);
-  }
-  return out;
-}
-
 /** العنوان بكلمته الأخيرة ملوّنة — كما في التصميم المعتمد. */
 function Accented({ text }: { text: string }) {
   const at = text.trim().lastIndexOf(" ");
@@ -43,16 +31,9 @@ function Accented({ text }: { text: string }) {
   );
 }
 
-const CONTACTS: [string, string][] = [
-  ["الجمعية", "0553088688"],
-  ["شؤون الطلاب", "0504555289"],
-  ["الحسابات", "Sonan_sa"],
-  ["الموقع", "sonan.sa"],
-];
-
 export function CampaignLanding({ program, signedIn }: { program: PublicProgram; signedIn: boolean }) {
   const { data } = program;
-  const blocks = collect(program);
+  const blocks = collectBlocks(program.blocks);
   const hero = blocks.hero?.[0];
   const pill = blocks.header?.[0];
   const stats = blocks.stats?.[0];
@@ -61,7 +42,6 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
   const terms = blocks.terms?.[0];
   const registration = blocks.registration?.[0];
   const faqBlock = blocks.faq?.[0];
-  const guide = pickGuide(blocks.cta ?? []);
   const invites = blocks.free_text ?? [];
   const prizesBlocks = blocks.prizes ?? [];
 
@@ -71,9 +51,10 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
   // العدّاد إلى الفتح قبله، وإلى الإغلاق بعده — ولا عدّاد لما أُغلق.
   const countdown =
     data.registration === "not_open_yet" && data.opensAt
-      ? { label: "يُفتح التسجيل", target: data.opensAt }
+      ? { label: "يُفتح التسجيل", target: data.opensAt, day: data.opensAt }
       : open && data.closesAt
-        ? { label: "يُغلق التسجيل", target: data.closesAt }
+        ? // التاريخ آخرُ يومٍ مفتوح لا لحظةُ الإغلاق — منتصف ليلٍ يُقرأ يوماً لاحقاً (ملحق `adr/0045`).
+          { label: "آخر يوم للتسجيل", target: data.closesAt, day: `${lastOpenDay(data.closesAt)}T12:00:00Z` }
         : null;
 
   const stateLine: Record<typeof data.registration, string> = {
@@ -84,29 +65,9 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
     unpublished: "أُغلق التسجيل",
   };
 
-  const stages =
-    timeline?.source === "schedule"
-      ? data.schedule.map((e) => ({
-          title: e.title,
-          dates: scheduleRangeLabel(e),
-          note: e.note,
-          status: scheduleStatus(e, data.today),
-        }))
-      : (timeline?.stages ?? []).map((s) => ({ ...s, status: null }));
-
-  const tracks: CampaignTrack[] = data.tracks.map((t) => {
-    const prizes = prizesBlocks.find((p) => p.trackId === t.id);
-    return {
-      id: t.id,
-      name: t.name,
-      description: t.description,
-      units: t.units,
-      capacity: t.capacity,
-      remaining: t.capacity === null ? null : Math.max(0, t.capacity - t.taken),
-      prizes: prizes?.places ?? [],
-      prizeNote: prizes?.note ?? "",
-    };
-  });
+  const stages = campaignStages(timeline, data);
+  const tracks = campaignTracks(data, prizesBlocks);
+  const guideHref = `/p/${data.slug}/guide`;
 
   const registerButton = open ? (
     <Link href={registerHref} className={`${styles.btn} ${styles.gold} ${styles.lg}`}>
@@ -132,6 +93,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
             {tracks.length > 0 ? <a href="#tracks">المسارات والجوائز</a> : null}
             <a href="#register">التسجيل</a>
             {data.faq.length > 0 ? <a href="#faq">الأسئلة الشائعة</a> : null}
+            <Link href={guideHref}>دليل المشارك</Link>
           </div>
           <div className={styles.topActions}>
             <Link href={signedIn ? "/dashboard" : `/sign-in?next=${encodeURIComponent(registerHref)}`} className={styles.signIn}>
@@ -172,7 +134,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
                 <div className={styles.countdown}>
                   <div className={styles.cdLabel}>
                     <b>{countdown.label}</b>
-                    {formatHijri(countdown.target)}
+                    {formatHijri(countdown.day)}
                   </div>
                   <CampaignCountdown target={countdown.target} />
                 </div>
@@ -265,12 +227,11 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
                       </li>
                     ))}
                   </ul>
-                  {guide ? (
-                    <div className={styles.guide}>
-                      <span>{guide.text}</span>
-                      <a href={guide.buttonHref}>{guide.buttonLabel || guide.heading}</a>
-                    </div>
-                  ) : null}
+                  {/* الدليل صفحةٌ في المنصة (خطة دليل المشارك · د) — لا رابطٌ خارجي يُضاف عنصراً. */}
+                  <div className={styles.guide}>
+                    <span>كل ما يلزمك عن المسابقة في صفحةٍ واحدة تُحفظ PDF.</span>
+                    <Link href={guideHref}>اقرأ دليل المشارك</Link>
+                  </div>
                 </aside>
               ) : null}
 
@@ -346,46 +307,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
         ) : null}
       </main>
 
-      <footer className={styles.foot}>
-        <div className={styles.wrap}>
-          <div className={styles.logos}>
-            <div className={styles.logoGroup}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
-              <img className={styles.logoSunan} src="/brand/sunan-logo.png" alt="جمعية سنن التعليمية" />
-            </div>
-            <div className={styles.logoGroup}>
-              <span className={styles.logoTile}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
-                <img src="/brand/hifaz-center.jpg" alt="مركز حفاظ السنة" />
-              </span>
-              <span className={styles.cap}>الشريك العلمي</span>
-            </div>
-            <div className={styles.logoGroup}>
-              <div className={styles.logoRow}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
-                <img className={styles.logoGov} src="/brand/moe.svg" alt="وزارة التعليم" />
-                {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
-                <img className={styles.logoGov} src="/brand/ncnp.svg" alt="المركز الوطني لتنمية القطاع غير الربحي" />
-              </div>
-              <span className={styles.cap}>
-                رقم الترخيص <b>ACTV16701</b>
-              </span>
-            </div>
-          </div>
-          <ul className={styles.contact}>
-            {CONTACTS.map(([label, value]) => (
-              <li key={label}>
-                <span>{label}</span>
-                <b>{value}</b>
-              </li>
-            ))}
-          </ul>
-          <p className={styles.copy}>{data.programName} — جمعية سنن التعليمية ببريدة</p>
-          <p className={styles.footLinks}>
-            <Link href="/terms">شروط الاستخدام</Link> · <Link href="/privacy">سياسة الخصوصية</Link>
-          </p>
-        </div>
-      </footer>
+      <CampaignFooter programName={data.programName} contact={data.contact} />
     </div>
   );
 }

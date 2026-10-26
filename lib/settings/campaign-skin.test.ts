@@ -33,3 +33,16 @@ describe("جلد الحملة", () => {
     expect(skinForNext(`https://evil.example/p/${F}/register`, F)).toBeNull();
   });
 });
+
+describe("الصفحات العارية من الإطار", () => {
+  it("المعاينة والدليل وحدهما", async () => {
+    const { isBareCampaignPath } = await import("./campaign-skin");
+    expect(isBareCampaignPath("/p/sunan/campaign")).toBe(true);
+    expect(isBareCampaignPath("/p/sunan/guide")).toBe(true);
+    expect(isBareCampaignPath("/p/sunan/guide/")).toBe(true);
+    expect(isBareCampaignPath("/p/sunan/guidebook")).toBe(false);
+    expect(isBareCampaignPath("/p/sunan/register")).toBe(false);
+    expect(isBareCampaignPath("/p/sunan")).toBe(false);
+    expect(isBareCampaignPath("/p/a/b/guide")).toBe(false);
+  });
+});

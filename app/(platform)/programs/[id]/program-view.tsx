@@ -11,7 +11,7 @@ import {
 } from "@/components/shared/steps";
 import { Button, Field, FormActions, Input, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatDateBoth, formatNumber, formatPercent, toDateInput } from "@/lib/format";
+import { formatDateBoth, formatNumber, formatPercent, lastOpenDay, toDateInput } from "@/lib/format";
 import { kindIsScored, kindLabel, type ProgramKind } from "@/lib/programs/kinds";
 import { FIX_TAB, type ReadinessItem } from "@/lib/programs/readiness";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
@@ -93,7 +93,7 @@ export function ProgramView({
         <span>
           نافذة التسجيل:{" "}
           {program.opensAt ? formatDateBoth(program.opensAt) : "بلا بداية محدَّدة"} —{" "}
-          {program.closesAt ? formatDateBoth(program.closesAt) : "بلا نهاية محدَّدة"}
+          {program.closesAt ? formatDateBoth(`${lastOpenDay(program.closesAt)}T12:00:00Z`) : "بلا نهاية محدَّدة"}
         </span>
         <span>حالة التسجيل: {REGISTRATION_LABEL[program.registration]}</span>
         <span>النمط: {kindLabel(program.kind)}</span>
@@ -257,7 +257,7 @@ export function ProgramView({
                 name="registrationClosesAt"
                 type="date"
                 latin
-                defaultValue={program.closesAt ? toDateInput(program.closesAt) : ""}
+                defaultValue={program.closesAt ? lastOpenDay(program.closesAt) : ""}
               />
             </Field>
             {kindIsScored(program.kind) ? (

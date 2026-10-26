@@ -25,3 +25,11 @@ export function skinForNext(next: string | null | undefined, featured: string | 
   if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return null;
   return skinForPath(next, featured);
 }
+
+/**
+ * صفحاتٌ تحمل رأسها وتذييلها من جلد الحملة فلا يلفّها إطار: المعاينة (`/p/<slug>/campaign`) والدليل
+ * (`/p/<slug>/guide`) — بنمطٍ صارم لا يطابق `/p/x/guidebook` ولا ما بعده.
+ */
+export function isBareCampaignPath(path: string): boolean {
+  return /^\/p\/[^/?#]+\/(?:campaign|guide)\/?$/.test(path);
+}

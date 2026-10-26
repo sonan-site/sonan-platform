@@ -1,0 +1,379 @@
+/* دليل المشارك (خطة دليل المشارك · د) — بجلد الحملة على الشاشة، ونسخةٌ فاتحة نظيفة للطباعة.
+   الألوان رموز --c-* من [data-campaign]، وتُعاد فاتحةً للطباعة في config/tokens.css. */
+
+.root {
+  padding-block-end: var(--space-12);
+}
+
+/* ══ الغلاف ══ */
+.cover {
+  padding-block: var(--space-12) var(--space-6);
+  border-block-end: 1px solid var(--c-line);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--c-gold);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-label);
+}
+
+.title {
+  margin: var(--space-2) 0 0;
+  color: var(--c-white);
+  font-size: var(--c-fs-h2);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.latest {
+  margin: var(--space-4) 0 0;
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+}
+
+.latest b {
+  color: var(--c-cyan);
+}
+
+.printedOn {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  color: var(--c-muted);
+}
+
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+
+.toc a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-4);
+  border: 1px solid var(--c-line);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  border-color: var(--c-cyan);
+}
+
+.toc a:active {
+  transform: scale(var(--press-scale));
+}
+
+/* ══ الأقسام ══ */
+.section {
+  padding-block-start: var(--space-10);
+  scroll-margin-block-start: var(--c-header-offset);
+}
+
+.section h2 {
+  margin: 0 0 var(--space-5);
+  color: var(--c-white);
+  font-size: var(--text-2xl);
+}
+
+.section h3 {
+  margin: 0;
+  color: var(--c-cyan);
+  font-size: var(--text-lg);
+}
+
+.lede {
+  max-inline-size: 68ch;
+  margin: 0;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-10);
+  margin: var(--space-6) 0 0;
+}
+
+.facts dt {
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--c-white);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+/* المراحل خطّاً عمودياً — يُقرأ ويُطبع، لا شريطاً أفقياً. */
+.stages {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stages li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.stageDot {
+  inline-size: 12px;
+  block-size: 12px;
+  margin-block-start: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--c-gold);
+}
+
+.stages p {
+  margin: var(--space-1) 0 0;
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+}
+
+.stages .dates {
+  color: var(--c-white);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--c-line);
+  border-radius: var(--c-radius-md);
+  background: var(--c-glass);
+}
+
+.card h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.card h4 {
+  margin: var(--space-2) 0 0;
+  color: var(--c-gold);
+  font-size: var(--text-sm);
+}
+
+.card p {
+  margin: 0;
+}
+
+.count {
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.sections {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.sections li,
+.prizes div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-1);
+  border-block-end: 1px solid var(--c-line-soft);
+}
+
+.prizes {
+  display: grid;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.prizes dd {
+  margin: 0;
+  color: var(--c-gold);
+  font-weight: var(--weight-bold);
+}
+
+.note {
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+}
+
+.rules,
+.terms {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rules li {
+  padding-inline-start: var(--space-4);
+  border-inline-start: 2px solid var(--c-line-strong);
+}
+
+.terms li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.terms li svg {
+  flex: none;
+  margin-block-start: var(--space-1);
+  color: var(--c-cyan);
+}
+
+.faqGroup {
+  margin-block-end: var(--space-6);
+}
+
+.qa {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+}
+
+.qa dt {
+  color: var(--c-white);
+  font-weight: var(--weight-bold);
+}
+
+.qa dd {
+  margin: var(--space-1) 0 0;
+  white-space: pre-line;
+}
+
+/* سجل التحديثات — خطٌّ زمنيٌّ مختصر بهيئة المراحل. */
+.updates {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.updates li {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--c-line-soft);
+}
+
+.updates time {
+  color: var(--c-gold);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══ زرّ الحفظ ══ */
+.print {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1) var(--space-3);
+}
+
+.printButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--c-gold-fill);
+  color: var(--c-on-gold);
+  font: inherit;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.printButton:active {
+  transform: scale(var(--press-scale));
+}
+
+.printHint {
+  color: var(--c-muted);
+  font-size: var(--text-xs);
+}
+
+.printOnly {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* التلميح للمتصفحات المدمجة (واتساب · إنستغرام) وهي على الجوال — يلتفّ تحت الزرّ ولا يُخفى. */
+  .print {
+    justify-content: flex-start;
+  }
+
+  .updates li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}
+
+/* ══ الطباعة ══ الألوان فاتحةٌ من tokens.css؛ هنا الهيئة: بلا رأسٍ ولا أزرار، والعناصر لا تنقسم. */
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+
+  .printOnly {
+    display: block;
+  }
+
+  .root {
+    min-block-size: 0;
+    padding: 0;
+  }
+
+  .cover {
+    padding-block-start: 0;
+  }
+
+  .section {
+    padding-block-start: var(--space-6);
+  }
+
+  .section h2,
+  .section h3 {
+    break-after: avoid;
+  }
+
+  .keep {
+    break-inside: avoid;
+  }
+
+  .card {
+    background: none;
+  }
+}
