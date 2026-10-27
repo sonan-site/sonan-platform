@@ -862,26 +862,49 @@ button.weekDay:active {
   outline-offset: 1px;
 }
 
-/* كتاب المادة (قرار الراعي ٢٦ أكتوبر): رابطٌ ثابت إلى ملفّ المسار — زرٌّ هادئ لا يزاحم واجب اليوم. */
-.material {
-  display: flex;
+/* كتاب المادة مرةً واحدة (قرار الراعي ٢٧ أكتوبر): بطاقةٌ تُغلق — وموضعه الثابت صفحة «الخطة». */
+.materialHint {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-block-size: var(--touch-target);
-  padding-inline: var(--space-4);
+  gap: 0 var(--space-2);
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
+}
+
+.materialHint a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--touch-target);
   color: var(--color-text);
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   text-decoration: none;
 }
 
-.material:hover {
-  border-color: var(--color-accent);
+.materialNote {
+  grid-column: 1;
+  padding-block-end: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 
-.material:active {
-  transform: scale(var(--press-scale));
+.materialClose {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target);
+  block-size: var(--touch-target);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.materialClose:hover {
+  color: var(--color-text);
 }

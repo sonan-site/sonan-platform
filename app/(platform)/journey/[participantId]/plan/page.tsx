@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Flag } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ExternalLink, Flag } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JourneyBail } from "@/components/shared/journey-bail";
@@ -52,7 +52,7 @@ export default async function JourneyPlanPage({
   const { data: participant, error } = await db
     .from("participants")
     .select(
-      "id, status, track_id, registration_no, programs!inner(id, name, slug, contact, registration_prefix, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name)",
+      "id, status, track_id, registration_no, programs!inner(id, name, slug, contact, registration_prefix, section_label, unit_singular, unit_one, unit_two, unit_few, unit_many), tracks(id, name, material_url)",
     )
     .eq("id", participantId)
     .eq("user_id", session.userId)
@@ -74,7 +74,7 @@ export default async function JourneyPlanPage({
     unit_few: string | null;
     unit_many: string | null;
   };
-  const track = participant.tracks as unknown as { id: string; name: string } | null;
+  const track = participant.tracks as unknown as { id: string; name: string; material_url: string | null } | null;
   const bail = (title: string, body: string) => (
     <JourneyBail
       title={title}
@@ -172,6 +172,14 @@ export default async function JourneyPlanPage({
           <span>أتممت {daysText(state.doneDays)}</span>
           <span>{formatPercent(state.progressPct / 100)}</span>
         </p>
+        {/* كتاب المادة مرجعُ الخطة كلها لا يومٍ بعينه — موضعه الثابت هنا (قرار الراعي ٢٧ أكتوبر). */}
+        {track.material_url ? (
+          <a href={track.material_url} target="_blank" rel="noopener noreferrer" className={styles.material}>
+            <BookOpen size={18} aria-hidden />
+            <span>كتاب المادة (PDF)</span>
+            <ExternalLink size={14} aria-hidden />
+          </a>
+        ) : null}
       </section>
 
       <div role="group" className={styles.filters} aria-label="عرض الأيام">

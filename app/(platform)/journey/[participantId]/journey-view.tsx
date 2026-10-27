@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, ExternalLink, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2 } from "lucide-react";
+import { BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, ExternalLink, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
@@ -682,13 +682,7 @@ export function JourneyView({
           </span>
         </p>
       ) : null}
-      {materialUrl ? (
-        <a href={materialUrl} target="_blank" rel="noopener noreferrer" className={styles.material}>
-          <BookOpen size={18} aria-hidden />
-          <span>كتاب المادة (PDF)</span>
-          <ExternalLink size={14} aria-hidden />
-        </a>
-      ) : null}
+      {materialUrl ? <MaterialHint participantId={participantId} url={materialUrl} /> : null}
       {message.notice ? (
         <p role="status" className={styles.notice}>
           {message.notice}
@@ -1047,5 +1041,62 @@ function ExamCard({ participantId, exam }: { participantId: string; exam: Journe
       {span ? <p className={styles.muted}>{span}</p> : null}
       <p>{line}</p>
     </section>
+  );
+}
+
+/**
+ * كتاب المادة في صفحة اليوم **مرةً واحدة** (قرار الراعي ٢٧ أكتوبر): بطاقةٌ تختفي بفتح الكتاب أو
+ * بإغلاقها، وتقول إنه في صفحة «الخطة» دائماً. والإخفاء محفوظٌ في هذا المتصفح (لكل مشاركة) — فتظهر
+ * مرةً على جهازٍ آخر، ولا ضرر. ولا تُرسم قبل قراءة المحفوظ، فلا تومض لمن أغلقها.
+ */
+const HINT_EVENT = "sonan:material-hint";
+const subscribeHint = (onChange: () => void) => {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(HINT_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(HINT_EVENT, onChange);
+  };
+};
+
+function MaterialHint({ participantId, url }: { participantId: string; url: string }) {
+  const key = `sonan.materialHint.${participantId}`;
+  // متصفحٌ يمنع التخزين: تختفي بالنقر الآن (الحال المحلية) وتعود في الزيارة التالية.
+  const [closed, setClosed] = useState(false);
+  const dismissedStored = useSyncExternalStore(
+    subscribeHint,
+    () => {
+      try {
+        return localStorage.getItem(key) === "1";
+      } catch {
+        return false;
+      }
+    },
+    // في الخادم مخفيّة — فلا تومض لمن أغلقها قبلُ.
+    () => true,
+  );
+  const shown = !closed && !dismissedStored;
+  const dismiss = () => {
+    setClosed(true);
+    try {
+      localStorage.setItem(key, "1");
+      window.dispatchEvent(new Event(HINT_EVENT));
+    } catch {
+      // لا تخزين — يكفي الإخفاء الآن.
+    }
+  };
+  if (!shown) return null;
+  return (
+    <div className={styles.materialHint}>
+      <a href={url} target="_blank" rel="noopener noreferrer" onClick={dismiss}>
+        <BookOpen size={18} aria-hidden />
+        <span>كتاب مادتك متاح (PDF)</span>
+        <ExternalLink size={14} aria-hidden />
+      </a>
+      <span className={styles.materialNote}>تجده دائماً في صفحة «الخطة».</span>
+      <button type="button" className={styles.materialClose} aria-label="إغلاق" onClick={dismiss}>
+        <X size={16} aria-hidden />
+      </button>
+    </div>
   );
 }
