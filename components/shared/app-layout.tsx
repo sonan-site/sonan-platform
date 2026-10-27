@@ -154,10 +154,20 @@ export function AppLayout({
           <header className={styles.header}>
             {/* قائمةٌ صريحة لا «كل ما خارج رحلته» — فلا يظهر الرجوع في الاختبار الموقوت (مراجعة الخطة ١). */}
             {!STUDENT_BACK_PAGES.has(pathname) ? (
-              <Link href="/journey" className={styles.headerBrand}>
-                <BookOpen size={ICON_SIZE} aria-hidden />
-                {brand}
-              </Link>
+              skin === "campaign-tint" ? (
+                // طالب المسابقة (قرار الراعي ٢٧ أكتوبر): رمز سنن واسم المسابقة كواجهتها، والنقر يعيده إليها —
+                // فلا يظنّ أنه انتقل إلى موقعٍ آخر. ويزول بإطفاء مفتاح الحملة كالجلد كله.
+                <Link href="/" className={styles.headerBrand}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
+                  <img src="/brand/sunan-mark.png" alt="" className={styles.headerMark} />
+                  مسابقة سنن
+                </Link>
+              ) : (
+                <Link href="/journey" className={styles.headerBrand}>
+                  <BookOpen size={ICON_SIZE} aria-hidden />
+                  {brand}
+                </Link>
+              )
             ) : (
               // خارج رحلته («حسابي» مثلاً): الرأس يحمل الرجوع إليها — لا رابطٌ نصّيٌّ فوق العنوان
               // (ملاحظات الجوال ٢ · ٣).

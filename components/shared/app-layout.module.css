@@ -409,3 +409,10 @@
 .headerBack:active {
   transform: scale(var(--press-scale));
 }
+
+/* رمز سنن في رأس طالب المسابقة (قرار الراعي ٢٧ أكتوبر) — أبيض على حبر الحملة. */
+.headerMark {
+  display: block;
+  block-size: 1.75rem;
+  inline-size: auto;
+}
