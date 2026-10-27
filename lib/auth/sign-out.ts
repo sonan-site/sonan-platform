@@ -17,3 +17,15 @@ export async function signOut(): Promise<void> {
 
   redirect(gate);
 }
+
+/**
+ * «لست أنت؟ خروج» في صفحات المسابقة (قرار الراعي ٢٧ أكتوبر): يُنهي الجلسة ويعيد إلى الواجهة، فيدخل
+ * بحسابٍ آخر أو ينشئه — وليّ أمرٍ يسجّل أبناءه، أو جوالٌ مشترك.
+ */
+export async function signOutToCampaign(): Promise<void> {
+  const jar = await cookies();
+  const db = await createClient();
+  await db.auth.signOut();
+  jar.delete(MODE_COOKIE);
+  redirect("/");
+}

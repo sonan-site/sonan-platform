@@ -6,6 +6,7 @@ import { ActionForm } from "@/components/shared/action-form";
 import { RegisterSteps } from "@/components/shared/register-steps";
 import { Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
+import { signOutToCampaign } from "@/lib/auth/sign-out";
 import { formatNumber } from "@/lib/format";
 import { registerInProgram } from "./actions";
 import styles from "./register.module.css";
@@ -36,6 +37,7 @@ export type TrackOption = {
  * فـ`fn_register` تحكم بها كما حكمت، والشكل وحده تغيّر.
  */
 export function RegisterForm({
+  accountEmail,
   guide,
   programId,
   programName,
@@ -45,6 +47,8 @@ export function RegisterForm({
   tracks,
   questions,
 }: {
+  /** بريد الحساب الذي يُسجَّل به — فلا يسجّل أحدٌ بحساب غيره دون أن ينتبه (قرار الراعي ٢٧ أكتوبر). */
+  accountEmail: string;
   /** رابط دليل المشارك — فارغ إن لم يُضبط في عناصر الصفحة (ملاحظات الجوال أ٥). */
   guide: { href: string; label: string } | null;
   programId: string;
@@ -74,6 +78,12 @@ export function RegisterForm({
         <p className={styles.lede}>
           أكمل ما يلي ليكتمل تسجيلك بصفة {participantLabel} — القبول فوريٌّ بلا مراجعة.
         </p>
+        <form action={signOutToCampaign} className={styles.account}>
+          <span>
+            تسجّل بحساب <bdi dir="ltr">{accountEmail}</bdi>
+          </span>
+          <button type="submit">لست أنت؟ خروج</button>
+        </form>
       </header>
 
       <RegisterSteps done={stepsDone} />

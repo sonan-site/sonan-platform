@@ -7,6 +7,8 @@ import { CampaignCountdown } from "./campaign-countdown";
 import { CampaignFooter } from "./campaign-footer";
 import { Accented, CampaignFaq, CampaignTimeline } from "./campaign-sections";
 import { CampaignTracks } from "./campaign-tracks";
+import { signOutToCampaign } from "@/lib/auth/sign-out";
+import type { CampaignVisitor } from "@/lib/settings/campaign-visitor-server";
 import styles from "./campaign.module.css";
 
 /**
@@ -21,12 +23,6 @@ import styles from "./campaign.module.css";
  */
 
 /** العنوان بكلمته الأخيرة ملوّنة — كما في التصميم المعتمد. */
-/**
- * حال الزائر في المسابقة: زائرٌ بلا حساب · له حسابٌ ولم يُكمل تسجيله · مسجَّلٌ برابط رحلته.
- * فالزرّ يقول خطوته التالية بالضبط — لا «لوحتي» تقود من لم يُكمل إلى صفحةٍ عامة (قرار الراعي ٢٧ أكتوبر).
- */
-export type CampaignVisitor = "guest" | "account" | { journey: string };
-
 export function CampaignLanding({ program, visitor }: { program: PublicProgram; visitor: CampaignVisitor }) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
@@ -97,6 +93,14 @@ export function CampaignLanding({ program, visitor }: { program: PublicProgram; 
             <Link href={guideHref}>دليل المشارك</Link>
           </div>
           <div className={styles.topActions}>
+            {visitor !== "guest" ? (
+              // لست أنت؟ — وليّ أمرٍ يسجّل أبناءه، أو جوالٌ مشترك (قرار الراعي ٢٧ أكتوبر).
+              <form action={signOutToCampaign}>
+                <button type="submit" className={styles.notYou}>
+                  لست أنت؟ خروج
+                </button>
+              </form>
+            ) : null}
             {journey ? (
               <Link href={journey} className={`${styles.btn} ${styles.gold} ${styles.sm}`}>
                 رحلتي

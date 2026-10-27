@@ -84,6 +84,22 @@
   color: var(--c-white);
 }
 
+/* «لست أنت؟ خروج» — خافتٌ لا يزاحم الزرّ الذهبي. */
+.notYou {
+  min-block-size: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--c-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.notYou:hover {
+  color: var(--c-white);
+}
+
 /* ══ الأزرار ══ */
 .btn {
   display: inline-flex;

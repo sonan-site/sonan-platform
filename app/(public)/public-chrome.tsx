@@ -4,7 +4,9 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { signOutToCampaign } from "@/lib/auth/sign-out";
 import { isBareCampaignPath, skinForPath } from "@/lib/settings/campaign-skin";
+import type { CampaignVisitor } from "@/lib/settings/campaign-visitor-server";
 import styles from "./layout.module.css";
 
 /**
@@ -19,11 +21,14 @@ import styles from "./layout.module.css";
 export function PublicChrome({
   featured,
   signedIn,
+  visitor,
   children,
 }: {
   /** رابط برنامج الحملة المنشور — أو لا شيء. */
   featured: string | null;
   signedIn: boolean;
+  /** حال الزائر في برنامج الحملة — رأس صفحاتها يقول خطوته التالية لا «لوحتي» (قرار الراعي ٢٧ أكتوبر). */
+  visitor: CampaignVisitor | null;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -45,9 +50,22 @@ export function PublicChrome({
             {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
             <img src="/brand/sunan-logo.png" alt="جمعية سنن التعليمية" />
           </Link>
-          <Link href={signInHref} className={styles.signIn}>
-            {signedIn ? "لوحتي" : "تسجيل الدخول"}
-          </Link>
+          {typeof visitor === "object" && visitor !== null ? (
+            <Link href={visitor.journey} className={styles.signIn}>
+              رحلتي
+            </Link>
+          ) : visitor === "account" ? (
+            // في منتصف التسجيل لا لوحة له بعد — فمكان «لوحتي» مخرجٌ لمن ليس صاحب الحساب.
+            <form action={signOutToCampaign} className={styles.skinOut}>
+              <button type="submit" className={styles.notYou}>
+                لست أنت؟ خروج
+              </button>
+            </form>
+          ) : (
+            <Link href={signInHref} className={styles.signIn}>
+              تسجيل الدخول
+            </Link>
+          )}
         </header>
         <main className={styles.main}>{children}</main>
         {footer}

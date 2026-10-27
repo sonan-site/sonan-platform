@@ -178,6 +178,7 @@ export default async function RegisterPage({
 
   return (
     <RegisterForm
+      accountEmail={session.email}
       guide={guide ? { href: guide.buttonHref, label: guide.buttonLabel || "اقرأ دليل المشارك" } : null}
       programId={program.id}
       programName={program.name}

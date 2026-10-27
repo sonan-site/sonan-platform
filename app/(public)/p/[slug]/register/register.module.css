@@ -38,6 +38,32 @@
   color: var(--color-text-muted);
 }
 
+/* «تسجّل بحساب … لست أنت؟ خروج» (قرار الراعي ٢٧ أكتوبر). */
+.account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.account bdi {
+  color: var(--color-text);
+}
+
+.account button {
+  min-block-size: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* ══ النموذج ══ */
 
 .form {

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/db/server";
 import { formatNumber } from "@/lib/format";
 import { REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
 import { registrationStates } from "@/lib/programs/registration-server";
-import { getSession } from "@/lib/auth/session";
+import { getCampaignVisitor } from "@/lib/settings/campaign-visitor-server";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { CampaignLanding } from "./components/campaign/campaign-landing";
@@ -37,20 +37,7 @@ export default async function StorePage() {
   if (featured) {
     const program = await loadPublicProgram(db, featured).catch(() => null);
     if (program) {
-      // حال الزائر في المسابقة (قرار الراعي ٢٧ أكتوبر): زائر · له حسابٌ ولم يُكمل · مسجَّل برحلته.
-      const session = await getSession();
-      let visitor: "guest" | "account" | { journey: string } = "guest";
-      if (session.status !== "anonymous") {
-        const { data: own } = await db
-          .from("participants")
-          .select("id")
-          .eq("program_id", program.id)
-          .eq("user_id", session.userId)
-          .is("deleted_at", null)
-          .maybeSingle();
-        visitor = own ? { journey: `/journey/${own.id}` } : "account";
-      }
-      return <CampaignLanding program={program} visitor={visitor} />;
+      return <CampaignLanding program={program} visitor={await getCampaignVisitor(featured)} />;
     }
   }
 

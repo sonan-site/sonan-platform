@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { getSession } from "@/lib/auth/session";
+import { getCampaignVisitor } from "@/lib/settings/campaign-visitor-server";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { PublicChrome } from "./public-chrome";
 
@@ -13,8 +14,9 @@ import { PublicChrome } from "./public-chrome";
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   // الرأس يعرف من دخل: كان يعرض «تسجيل الدخول» لمن هو داخلٌ أصلاً بلا طريق إلى لوحته.
   const [featured, session] = await Promise.all([getHomeFeatured(), getSession()]);
+  const visitor = featured ? await getCampaignVisitor(featured) : null;
   return (
-    <PublicChrome featured={featured} signedIn={session.status === "active"}>
+    <PublicChrome featured={featured} signedIn={session.status === "active"} visitor={visitor}>
       {children}
     </PublicChrome>
   );

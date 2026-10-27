@@ -52,6 +52,26 @@
   border-color: var(--color-accent);
 }
 
+/* «لست أنت؟ خروج» في رأس صفحات المسابقة — خافتٌ مكان «لوحتي» لمن في منتصف التسجيل. */
+.skinOut {
+  margin-inline-start: auto;
+}
+
+.notYou {
+  min-block-size: var(--touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.notYou:hover {
+  color: var(--color-text);
+}
+
 .main {
   flex: 1;
   inline-size: 100%;
