@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { EmptyState, ErrorState } from "@/components/shared/states";
+import { NoParticipation } from "@/components/shared/no-participation";
+import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { cardStatus, defaultDay, followsPlan, parseJourneyState, remainingText, type CardTone, type JourneyState } from "@/lib/participants/journey";
@@ -96,12 +97,7 @@ export default async function JourneyListPage() {
       <h1 className={styles.title}>رحلتي</h1>
 
       {cards.length === 0 ? (
-        <EmptyState
-          kind="no-data"
-          title="لست مشاركاً في أي برنامج"
-          body="تصفّح البرامج المعلنة وسجّل في أحدها، ثم يظهر واجبك اليومي هنا."
-          action={<Link href="/">تصفّح البرامج</Link>}
-        />
+        <NoParticipation />
       ) : (
         <ul className={styles.list}>
           {cards.map((c) => (

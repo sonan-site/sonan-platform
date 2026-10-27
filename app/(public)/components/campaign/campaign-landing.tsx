@@ -21,7 +21,13 @@ import styles from "./campaign.module.css";
  */
 
 /** العنوان بكلمته الأخيرة ملوّنة — كما في التصميم المعتمد. */
-export function CampaignLanding({ program, signedIn }: { program: PublicProgram; signedIn: boolean }) {
+/**
+ * حال الزائر في المسابقة: زائرٌ بلا حساب · له حسابٌ ولم يُكمل تسجيله · مسجَّلٌ برابط رحلته.
+ * فالزرّ يقول خطوته التالية بالضبط — لا «لوحتي» تقود من لم يُكمل إلى صفحةٍ عامة (قرار الراعي ٢٧ أكتوبر).
+ */
+export type CampaignVisitor = "guest" | "account" | { journey: string };
+
+export function CampaignLanding({ program, visitor }: { program: PublicProgram; visitor: CampaignVisitor }) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
   const hero = blocks.hero?.[0];
@@ -59,9 +65,14 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
   const tracks = campaignTracks(data, prizesBlocks);
   const guideHref = `/p/${data.slug}/guide`;
 
-  const registerButton = open ? (
+  const journey = typeof visitor === "object" ? visitor.journey : null;
+  const registerButton = journey ? (
+    <Link href={journey} className={`${styles.btn} ${styles.gold} ${styles.lg}`}>
+      رحلتي
+    </Link>
+  ) : open ? (
     <Link href={registerHref} className={`${styles.btn} ${styles.gold} ${styles.lg}`}>
-      {registration?.buttonLabel || "سجّل الآن"}
+      {visitor === "account" ? "أكمل تسجيلك" : registration?.buttonLabel || "سجّل الآن"}
     </Link>
   ) : (
     <span className={`${styles.btn} ${styles.gold} ${styles.lg} ${styles.disabled}`} aria-disabled>
@@ -86,14 +97,32 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
             <Link href={guideHref}>دليل المشارك</Link>
           </div>
           <div className={styles.topActions}>
-            <Link href={signedIn ? "/dashboard" : `/sign-in?next=${encodeURIComponent(registerHref)}`} className={styles.signIn}>
-              {signedIn ? "لوحتي" : "تسجيل الدخول"}
-            </Link>
-            {open ? (
-              <Link href={registerHref} className={`${styles.btn} ${styles.gold} ${styles.sm}`}>
-                سجّل الآن
+            {journey ? (
+              <Link href={journey} className={`${styles.btn} ${styles.gold} ${styles.sm}`}>
+                رحلتي
               </Link>
-            ) : null}
+            ) : visitor === "account" ? (
+              open ? (
+                <Link href={registerHref} className={`${styles.btn} ${styles.gold} ${styles.sm}`}>
+                  أكمل تسجيلك
+                </Link>
+              ) : (
+                <Link href="/dashboard" className={styles.signIn}>
+                  لوحتي
+                </Link>
+              )
+            ) : (
+              <>
+                <Link href={`/sign-in?next=${encodeURIComponent(registerHref)}`} className={styles.signIn}>
+                  تسجيل الدخول
+                </Link>
+                {open ? (
+                  <Link href={registerHref} className={`${styles.btn} ${styles.gold} ${styles.sm}`}>
+                    سجّل الآن
+                  </Link>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -205,7 +234,7 @@ export function CampaignLanding({ program, signedIn }: { program: PublicProgram;
                   التسجيل بحسابٍ في منصة سنن — به تتابع واجبك اليومي وترصد حفظك طوال المسابقة.
                 </p>
                 <ol className={styles.steps}>
-                  <li>{signedIn ? "أنت داخلٌ بحسابك" : "أنشئ حسابك، أو ادخل بحساب Google"}</li>
+                  <li>{visitor === "guest" ? "أنشئ حسابك، أو ادخل بحساب Google" : "أنت داخلٌ بحسابك"}</li>
                   <li>أكمل بياناتك</li>
                   <li>اختر مسارك وأقرّ بالشروط</li>
                 </ol>

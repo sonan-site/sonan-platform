@@ -25,5 +25,5 @@ export default async function CampaignPreviewPage({ params }: { params: Promise<
   if (!program) notFound();
 
   const session = await getSession();
-  return <CampaignLanding program={program} signedIn={session.status === "active"} />;
+  return <CampaignLanding program={program} visitor={session.status === "anonymous" ? "guest" : "account"} />;
 }

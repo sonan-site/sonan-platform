@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHead } from "@/components/shared/steps";
-import { EmptyState, ErrorState } from "@/components/shared/states";
+import { NoParticipation } from "@/components/shared/no-participation";
+import { ErrorState } from "@/components/shared/states";
 import { visibleNavigation } from "@/config/navigation";
 import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
 import { getSession } from "@/lib/auth/session";
@@ -30,14 +30,7 @@ export default async function DashboardPage() {
   // له يُقال له ذلك هنا بلا تحويل — فـ«رحلتي» لا تعيده إلى هنا فيدور (المراجعة ح١).
   if (mode === "participant") {
     if (session.isParticipant) redirect("/journey");
-    return (
-      <EmptyState
-        kind="no-data"
-        title="لست مشاركاً في أي برنامج"
-        body="تصفّح البرامج المعلنة وسجّل في أحدها، ثم يظهر واجبك اليومي في «رحلتي»."
-        action={<Link href="/">تصفّح البرامج</Link>}
-      />
-    );
+    return <NoParticipation />;
   }
 
   const [attention, counts] = await Promise.all([staffAttention(), dashboardCounts()]);

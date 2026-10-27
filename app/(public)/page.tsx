@@ -37,8 +37,20 @@ export default async function StorePage() {
   if (featured) {
     const program = await loadPublicProgram(db, featured).catch(() => null);
     if (program) {
+      // حال الزائر في المسابقة (قرار الراعي ٢٧ أكتوبر): زائر · له حسابٌ ولم يُكمل · مسجَّل برحلته.
       const session = await getSession();
-      return <CampaignLanding program={program} signedIn={session.status === "active"} />;
+      let visitor: "guest" | "account" | { journey: string } = "guest";
+      if (session.status !== "anonymous") {
+        const { data: own } = await db
+          .from("participants")
+          .select("id")
+          .eq("program_id", program.id)
+          .eq("user_id", session.userId)
+          .is("deleted_at", null)
+          .maybeSingle();
+        visitor = own ? { journey: `/journey/${own.id}` } : "account";
+      }
+      return <CampaignLanding program={program} visitor={visitor} />;
     }
   }
 
