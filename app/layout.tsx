@@ -1,10 +1,20 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "@/config/tokens.css";
+import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 
-export const metadata = {
-  title: "منصة سنن",
-  description: "منصة إدارة رحلة المشارك في برامج جمعية سنن التعليمية",
-};
+/**
+ * اسم الموقع في التبويب: «مسابقة سنن» ما دامت المسابقة واجهة المنصة (قرار الراعي ٢٧ أكتوبر ·
+ * `adr/0045`)، و«منصة سنن» بعد إطفاء مفتاحها — يزول بزوالها كالجلد كله. والأيقونة `app/icon.png`
+ * (رمز شعار الجمعية) ثابتةٌ في الحالين.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const name = (await getHomeFeatured()) ? "مسابقة سنن" : "منصة سنن";
+  return {
+    title: { default: name, template: `%s · ${name}` },
+    description: "منصة إدارة رحلة المشارك في برامج جمعية سنن التعليمية",
+  };
+}
 
 /**
  * يُطبّق السمة المحفوظة **قبل الرسم**. بدونه يرى من اختار الداكنة ومضةً بيضاء
