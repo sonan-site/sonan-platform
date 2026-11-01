@@ -12,6 +12,7 @@ import { authorizeRequest } from "@/lib/permissions/server";
 import { inviteSchema } from "@/lib/validation/auth";
 import { PURGE_PHRASE } from "@/lib/accounts/bin";
 import { userMessage } from "@/lib/db/messages";
+import { drainStoragePurge } from "@/lib/voices/storage-purge";
 
 /**
  * كل إجراء هنا يمرّ بالترتيب نفسه:
@@ -172,9 +173,19 @@ export async function purgeAccount(_prev: FormState, form: FormData): Promise<Fo
   const db = await createClient();
   const { error } = await db.rpc("fn_purge_account", { p_user_id: parsed.data.userId });
   if (error) return { error: userMessage(error, "تعذّر محو الحساب.") };
+  // صوره في «صوتك» دوّنها المحو، وتُحذف هنا بواجهة التخزين — مع ما بقي من محوٍ سابق (adr/0054 د٤).
+  // والمحو تمّ قبله: استثناءٌ هنا لا يُسقط الإجراء — يبقى الطابور ويُستدرَك.
+  const files = await drainStoragePurge(db).catch(() => ({ removed: 0, failed: 0, incomplete: true }));
 
   revalidatePath("/team");
   revalidatePath("/team/trash");
   revalidatePath("/participants");
+  if (files.failed > 0 || files.incomplete) {
+    console.error("[purgeAccount] بقيت ملفاتٌ في طابور الحذف", files);
+    revalidatePath("/team");
+    revalidatePath("/team/trash");
+    revalidatePath("/participants");
+    return { notice: "مُحي الحساب نهائياً، وبقيت بعض الملفات المرفقة لم تُحذف بعد — تُحذف مع المحو التالي." };
+  }
   return { notice: "مُحي الحساب نهائياً. سجلّه باقٍ باسمٍ مطموس." };
 }

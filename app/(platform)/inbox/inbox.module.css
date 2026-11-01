@@ -80,3 +80,15 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
+
+/* الصورة المرفقة: بعرض البطاقة، ولا تطول الصفحة بها. */
+.image {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: 32rem;
+  margin-block-start: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  background: var(--color-surface-sunken);
+}

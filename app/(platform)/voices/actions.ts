@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "@/lib/validation/z";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
 import { submitVoiceSchema } from "@/lib/voices/voices";
@@ -12,7 +13,7 @@ export async function markVoicesSeen(): Promise<void> {
 }
 
 /** إرسال رسالة «صوتك» (adr/0054) — المشاركة والبرنامج تشتقّهما القاعدة، والحدّ اليومي فيها. */
-export async function submitVoice(_prev: FormState, form: FormData): Promise<FormState> {
+export async function submitVoice(_prev: FormState, form: FormData): Promise<FormState & { voiceId?: string }> {
   const parsed = submitVoiceSchema.safeParse({
     kind: form.get("kind"),
     title: form.get("title"),
@@ -24,7 +25,7 @@ export async function submitVoice(_prev: FormState, form: FormData): Promise<For
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
 
   const db = await createClient();
-  const { error } = await db.rpc("fn_submit_voice", {
+  const { data, error } = await db.rpc("fn_submit_voice", {
     p_kind: parsed.data.kind,
     p_title: parsed.data.title,
     p_body: parsed.data.body,
@@ -36,5 +37,17 @@ export async function submitVoice(_prev: FormState, form: FormData): Promise<For
   }
 
   revalidatePath("/voices");
-  return { notice: "وصلت رسالتك — تجد الرد هنا حين يصل." };
+  // المعرّف لرفع الصورة بعدها من المتصفح (adr/0054 د٢) — الملف لا يمرّ بالخادم.
+  return { notice: "وصلت رسالتك — تجد الرد هنا حين يصل.", voiceId: data };
+}
+
+/** تسجيل صورةٍ رُفعت للتوّ على رسالتها — القاعدة تتحقّق أن الملف موجودٌ وأنه لصاحبها، ومرّةً واحدة. */
+export async function attachVoiceImage(voiceId: string, path: string): Promise<{ ok: boolean }> {
+  const parsed = z.object({ voiceId: z.uuid(), path: z.string().min(1).max(200) }).safeParse({ voiceId, path });
+  if (!parsed.success) return { ok: false };
+  const db = await createClient();
+  const { error } = await db.rpc("fn_attach_voice_image", { p_voice_id: parsed.data.voiceId, p_path: parsed.data.path });
+  if (error) return { ok: false };
+  revalidatePath("/voices");
+  return { ok: true };
 }

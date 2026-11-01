@@ -29,6 +29,10 @@ export type VoiceDetail = {
   path: string | null;
   ua: string | null;
   viewport: string | null;
+  /** رابطٌ موقّع قصير العمر للصورة المرفقة، إن كانت. */
+  imageUrl: string | null;
+  /** للرسالة صورة وتعذّر توليد رابطها. */
+  imageFailed: boolean;
 };
 
 /** زرّ الانتقال إلى الحال — والمغلقة يعيد فتحها المشرف (قرار الراعي). */
@@ -48,6 +52,12 @@ export function VoiceDetailView({ voice }: { voice: VoiceDetail }) {
     <div className={styles.detail}>
       <section className={styles.card} aria-label="الرسالة">
         <p className={styles.body}>{voice.body}</p>
+        {voice.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- مرفق برفع المستخدم برابطٍ موقّع قصير العمر: لا محسّن صور يخزّنه أبعد منه
+          <img className={styles.image} src={voice.imageUrl} alt="الصورة المرفقة بالرسالة" />
+        ) : voice.imageFailed ? (
+          <p className={styles.muted}>للرسالة صورةٌ مرفقة تعذّر عرضها الآن. حدّث الصفحة.</p>
+        ) : null}
       </section>
 
       <section className={styles.card} aria-label="المرسِل والسياق">

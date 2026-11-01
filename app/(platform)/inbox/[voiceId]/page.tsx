@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { formatDateTime } from "@/lib/format";
 import { formatRegistrationNo } from "@/lib/programs/registration";
+import { VOICE_BUCKET, VOICE_IMAGE_URL_TTL } from "@/lib/voices/image";
 import { isVoiceKind, isVoiceStatus, VOICE_KIND_LABEL } from "@/lib/voices/voices";
 import { VoiceDetailView } from "./voice-detail-view";
 
@@ -20,6 +21,8 @@ export default async function VoiceDetailPage({ params }: { params: Promise<{ vo
 
   const ctx = (v.context ?? {}) as Record<string, unknown>;
   const text = (k: string) => (typeof ctx[k] === "string" ? (ctx[k] as string) : null);
+  // الرابط بهوية المعالِج — سياسة القراءة تحصره في نطاقه، كـfn_voice_detail (adr/0054).
+  const image = v.image_path ? (await db.storage.from(VOICE_BUCKET).createSignedUrl(v.image_path, VOICE_IMAGE_URL_TTL)).data : null;
 
   return (
     <>
@@ -46,6 +49,8 @@ export default async function VoiceDetailPage({ params }: { params: Promise<{ vo
           path: text("path"),
           ua: text("ua"),
           viewport: text("viewport"),
+          imageUrl: image?.signedUrl ?? null,
+          imageFailed: Boolean(v.image_path) && !image?.signedUrl,
         }}
       />
     </>

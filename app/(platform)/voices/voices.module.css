@@ -178,6 +178,29 @@
   font-size: var(--text-sm);
 }
 
+/* المرفق: مصغّرةٌ لا تتجاوز عرض البطاقة، ومعاينةٌ بزرّ إزالتها. */
+.thumb {
+  display: block;
+  max-inline-size: min(100%, 16rem);
+  max-block-size: 16rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  background: var(--color-surface-sunken);
+}
+
+.imageField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
 @media (max-width: 640px) {
   .kinds {
     grid-template-columns: repeat(2, minmax(0, 1fr));

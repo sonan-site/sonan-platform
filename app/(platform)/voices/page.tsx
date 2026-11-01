@@ -1,6 +1,7 @@
 import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
+import { VOICE_BUCKET, VOICE_IMAGE_URL_TTL } from "@/lib/voices/image";
 import { isVoiceKind, isVoiceStatus } from "@/lib/voices/voices";
 import { VoicesView, type MyVoice } from "./voices-view";
 
@@ -18,6 +19,15 @@ export default async function VoicesPage({ searchParams }: { searchParams: Promi
   const db = await createClient();
   const { data, error } = await db.rpc("fn_my_voices");
   if (error) return <ErrorState body="تعذّر جلب رسائلك. أعد المحاولة." />;
+
+  // روابط الصور دفعةً واحدة، بهوية الطالب — فالسياسة تحرسها كما تحرس الرفع (adr/0054).
+  const paths = (data ?? []).flatMap((v) => (v.image_path ? [v.image_path] : []));
+  const urls = new Map<string, string>();
+  if (paths.length > 0) {
+    const signed = await db.storage.from(VOICE_BUCKET).createSignedUrls(paths, VOICE_IMAGE_URL_TTL);
+    for (const s of signed.data ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl);
+  }
+
   const voices: MyVoice[] = (data ?? []).flatMap((v) =>
     isVoiceKind(v.kind) && isVoiceStatus(v.status)
       ? [
@@ -32,9 +42,10 @@ export default async function VoicesPage({ searchParams }: { searchParams: Promi
             repliedAt: v.replied_at,
             replyNew: v.reply_unseen,
             team: v.team,
+            imageUrl: v.image_path ? (urls.get(v.image_path) ?? null) : null,
           },
         ]
       : [],
   );
-  return <VoicesView voices={voices} from={from} />;
+  return <VoicesView voices={voices} from={from} userId={session.userId} />;
 }
