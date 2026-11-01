@@ -129,8 +129,9 @@ file_size_limit = "50MiB"
 enabled = true
 
 # Image transformation API is available to Supabase Pro plan.
-# [storage.image_transformation]
-# enabled = true
+# مطفأة صراحةً: imgproxy مستثنى في CI، ولا تحويل صور في المنصة (adr/0054).
+[storage.image_transformation]
+enabled = false
 
 # Store analytical data in S3 for running ETL jobs over Iceberg Catalog
 # This feature is only available on the hosted platform.

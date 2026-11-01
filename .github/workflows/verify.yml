@@ -29,12 +29,35 @@ jobs:
         with:
           version: 2.115.0
 
-      # يُقلع القاعدة والمصادقة وواجهة REST ويُطبّق الهجرات.
-      # ما لا تحتاجه الاختبارات يُستثنى: البدء أسرع والسطح أضيق.
+      # يُقلع القاعدة والمصادقة وواجهة REST والتخزين ويُطبّق الهجرات.
+      # ما لا تحتاجه الاختبارات يُستثنى: البدء أسرع والسطح أضيق. والتخزين
+      # لا يُستثنى منذ مرفق «صوتك» (adr/0054): حاويته وسياساته تُختبر عليه.
       - name: إقلاع Supabase محلّياً
         run: >
           supabase start
-          -x realtime,storage-api,imgproxy,inbucket,studio,edge-runtime,logflare,vector,supavisor,mailpit
+          -x realtime,imgproxy,inbucket,studio,edge-runtime,logflare,vector,supavisor,mailpit
+
+      # نسخة التخزين هنا نسخة الأداة لا نسخة الحيّ — فما تعتمد عليه الهجرات
+      # يُفحص صراحةً، ويفشل CI بسببٍ مقروء لا بخطأ هجرةٍ غامض.
+      - name: فحص مخطط التخزين
+        run: |
+          DB_URL=$(supabase status -o json | jq -r .DB_URL)
+          MISSING=$(psql "$DB_URL" -Atc "
+            select string_agg(c, ', ') from unnest(array[
+              'buckets.file_size_limit', 'buckets.allowed_mime_types',
+              'objects.owner_id', 'objects.metadata'
+            ]) c
+            where not exists (
+              select 1 from information_schema.columns
+              where table_schema = 'storage'
+                and table_name = split_part(c, '.', 1)
+                and column_name = split_part(c, '.', 2)
+            )")
+          if [ -n "$MISSING" ]; then
+            echo "::error::مخطط التخزين ينقصه: $MISSING"
+            exit 1
+          fi
+          psql "$DB_URL" -Atc "select 'آخر هجرة تخزين: ' || name from storage.migrations order by id desc limit 1"
 
       - uses: pnpm/action-setup@v4
         with:
