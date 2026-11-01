@@ -14,13 +14,14 @@ describe("التنقّل بحسب من يدخل", () => {
       "team",
       "participants",
       "programs",
+      "voices",
       "audit",
       "account",
     ]);
   });
 
   it("المشارك بلا صلاحية يرى لوحته ورحلته فقط", () => {
-    expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey", "account"]);
+    expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey", "voices", "account"]);
   });
 
   it("**وفي وضع الطالب «رحلتي» وحدها** — لا لوحة متابعة (ملاحظات الجوال ب١)", () => {
@@ -32,24 +33,32 @@ describe("التنقّل بحسب من يدخل", () => {
       "dashboard",
       "programs",
       "journey",
+      "voices",
       "account",
     ]);
   });
 
   it("الحساب الجديد بلا صلاحية ولا مشاركة يرى لوحته فقط", () => {
-    expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "account"]);
+    expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "voices", "account"]);
   });
 });
 
 describe("وضع الجلسة يحكم ما يُعرض", () => {
   it("**وضع المشارك لا شاشات عمل فيه** — ولو كان صاحبه مديراً", () => {
-    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual(["journey", "account"]);
+    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual(["journey", "voices", "account"]);
   });
 
   it("**ووضع الإدارة لا «رحلتي» فيه** — ولو كان صاحبه مشاركاً", () => {
     const shown = keys({ granted: ADMIN_CODES, isParticipant: true, mode: "staff" });
     expect(shown).toContain("team");
     expect(shown).not.toContain("journey");
+  });
+
+  it("**«صوتك»:** الصندوق لحامل صلاحيته في وضع الإدارة، وزرّ الطالب في رأسه لا في قائمته (adr/0054)", () => {
+    expect(keys({ granted: perms("voices.manage"), isParticipant: false, mode: "staff" })).toContain("inbox");
+    expect(keys({ granted: perms("voices.manage"), isParticipant: true, mode: "participant" })).not.toContain("inbox");
+    expect(keys({ granted: perms(), isParticipant: true, mode: "staff" })).not.toContain("inbox");
+    expect(listNavigation(visibleNavigation({ granted: perms(), isParticipant: true, mode: "participant" })).map((i) => i.key)).not.toContain("voices");
   });
 
   it("وبلا وضعٍ يُعرض ما تسمح به الصلاحيات كما كان", () => {

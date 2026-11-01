@@ -29,7 +29,7 @@ export function resolveMode(cookie: string | undefined, hasRole: boolean): Sessi
 }
 
 /** المسارات التي لا معنى لها في وضع المشارك — شاشات عمل الإدارة. */
-const STAFF_PREFIXES = ["/programs", "/team", "/participants", "/settings", "/audit"];
+const STAFF_PREFIXES = ["/programs", "/team", "/participants", "/settings", "/audit", "/inbox"];
 
 export function isStaffPath(path: string): boolean {
   return STAFF_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));

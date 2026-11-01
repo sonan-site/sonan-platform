@@ -16,6 +16,7 @@ export const ATTENTION_KINDS = [
   "no_contact",
   "full",
   "profile_missing",
+  "voice_new",
 ] as const;
 
 export type AttentionKind = (typeof ATTENTION_KINDS)[number];
@@ -46,10 +47,12 @@ const SEVERITY: Record<AttentionKind, number> = {
   orphan_track: 1,
   track_without_plan: 2,
   track_change: 3,
-  closed_with_followers: 4,
-  no_contact: 5,
-  full: 6,
-  profile_missing: 7,
+  // طالبٌ ينتظر رداً كمن ينتظر نقله — وفيها بلاغات أعطالٍ قد تمسّ غيره (قرار الراعي، adr/0054).
+  voice_new: 4,
+  closed_with_followers: 5,
+  no_contact: 6,
+  full: 7,
+  profile_missing: 8,
 };
 
 function isKind(value: string): value is AttentionKind {
@@ -100,6 +103,13 @@ const SHAPE: Record<AttentionKind, Shape> = {
     consequence: "مدعوٌّ لم يُفعّل حسابه، أو داخلٌ لم يُكمل بياناته — ولا يظهر في أي قائمة.",
     href: "/team",
     cta: "افتح الإدارة",
+  }),
+  // «صوتك» (adr/0054) — وما بلا برنامج رسائلُ من لا مشاركة له.
+  voice_new: (r) => ({
+    title: `${formatNumber(r.amount)} رسالة جديدة في «صوتك»${r.programName ? ` — ${r.programName}` : ""}`,
+    consequence: "طلابٌ ينتظرون رداً — استفسارٌ أو شكوى أو بلاغ عطل.",
+    href: r.programId ? `/inbox?status=new&program=${r.programId}` : "/inbox?status=new",
+    cta: "افتح صوتك",
   }),
 };
 

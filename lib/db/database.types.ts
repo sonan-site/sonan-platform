@@ -2971,6 +2971,84 @@ export type Database = {
           },
         ]
       }
+      voices: {
+        Row: {
+          body: string
+          closed_at: string | null
+          context: Json
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: string
+          participant_id: string | null
+          program_id: string | null
+          replied_at: string | null
+          replied_by: string | null
+          replied_by_label: string | null
+          reply: string | null
+          reply_seen_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          closed_at?: string | null
+          context?: Json
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind: string
+          participant_id?: string | null
+          program_id?: string | null
+          replied_at?: string | null
+          replied_by?: string | null
+          replied_by_label?: string | null
+          reply?: string | null
+          reply_seen_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          closed_at?: string | null
+          context?: Json
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: string
+          participant_id?: string | null
+          program_id?: string | null
+          replied_at?: string | null
+          replied_by?: string | null
+          replied_by_label?: string | null
+          reply?: string | null
+          reply_seen_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voices_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voices_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3001,6 +3079,7 @@ export type Database = {
       }
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
+      fn_archive_voice: { Args: { p_id: string }; Returns: undefined }
       fn_attempt_deadline: { Args: { p_attempt_id: string }; Returns: string }
       fn_attempt_done: { Args: { p_attempt_id: string }; Returns: boolean }
       fn_attempt_score: {
@@ -3385,6 +3464,23 @@ export type Database = {
         Args: { p_program_id: string; p_rows: Json }
         Returns: number
       }
+      fn_inbox_list: {
+        Args: { p_kind?: string; p_program_id?: string; p_status?: string }
+        Returns: {
+          created_at: string
+          has_reply: boolean
+          id: string
+          kind: string
+          program_id: string
+          program_name: string
+          registration_no: number
+          registration_prefix: string
+          sender_name: string
+          status: string
+          title: string
+          track_name: string
+        }[]
+      }
       fn_inherit_engine_setting: {
         Args: { p_key: string; p_track_id: string }
         Returns: undefined
@@ -3478,6 +3574,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_mark_voices_seen: { Args: never; Returns: number }
       fn_move_participant: {
         Args: { p_participant_id: string; p_session_id: string }
         Returns: undefined
@@ -3604,6 +3701,22 @@ export type Database = {
           stumbled_days: number
         }[]
       }
+      fn_my_voices: {
+        Args: never
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          replied_at: string
+          reply: string
+          reply_unseen: boolean
+          status: string
+          team: string
+          title: string
+        }[]
+      }
+      fn_my_voices_unseen: { Args: never; Returns: number }
       fn_open_next_day: { Args: { p_participant_id: string }; Returns: Json }
       fn_open_next_day_at: {
         Args: { p_at: string; p_participant_id: string }
@@ -3854,6 +3967,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_reply_voice: {
+        Args: { p_close?: boolean; p_id: string; p_reply: string }
+        Returns: undefined
+      }
       fn_restore_plan_version: {
         Args: { p_version_id: string }
         Returns: number
@@ -3953,6 +4070,10 @@ export type Database = {
         Args: { p_labels: string[]; p_program_id: string; p_start: number }
         Returns: number
       }
+      fn_set_voice_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
       fn_settle_commitment_at: {
         Args: { p_participant_id: string; p_until: string }
         Returns: number
@@ -3987,6 +4108,16 @@ export type Database = {
         }[]
       }
       fn_start_attempt: { Args: { p_exam_id: string }; Returns: string }
+      fn_submit_voice: {
+        Args: {
+          p_body: string
+          p_context?: Json
+          p_kind: string
+          p_participant_id?: string
+          p_title: string
+        }
+        Returns: string
+      }
       fn_track_change_carry_preview: {
         Args: { p_request_id: string }
         Returns: {
@@ -4069,6 +4200,59 @@ export type Database = {
       fn_unpublish_results: {
         Args: { p_exam_id: string; p_reason: string; p_track_id: string }
         Returns: undefined
+      }
+      fn_voice_detail: {
+        Args: { p_id: string }
+        Returns: {
+          body: string
+          closed_at: string
+          context: Json
+          created_at: string
+          id: string
+          kind: string
+          program_id: string
+          program_name: string
+          registration_no: number
+          registration_prefix: string
+          replied_at: string
+          replied_by_label: string
+          reply: string
+          reply_seen: boolean
+          sender_name: string
+          sender_phone: string
+          status: string
+          title: string
+          track_name: string
+        }[]
+      }
+      fn_voice_guard: {
+        Args: { p_id: string }
+        Returns: {
+          body: string
+          closed_at: string | null
+          context: Json
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: string
+          participant_id: string | null
+          program_id: string | null
+          replied_at: string | null
+          replied_by: string | null
+          replied_by_label: string | null
+          reply: string | null
+          reply_seen_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "voices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       fn_withdraw_participation: {
         Args: { p_participant_id: string }

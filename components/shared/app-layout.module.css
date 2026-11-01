@@ -416,3 +416,18 @@
   block-size: 1.75rem;
   inline-size: auto;
 }
+
+/* «صوتك» (adr/0054): نقطةٌ لردٍّ لم يُقرأ. */
+.voicesButton {
+  position: relative;
+}
+
+.voicesDot {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}

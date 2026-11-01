@@ -18,7 +18,8 @@ export type IconName =
   | "BookOpen"
   | "CalendarDays"
   | "UserRound"
-  | "Gavel";
+  | "Gavel"
+  | "MessageSquare";
 
 export type NavItem = {
   /** مفتاح ثابت — لا يتغيّر بتغيّر العنوان، فيصلح للاختبار وحفظ الحالة. */
@@ -113,6 +114,27 @@ export const NAVIGATION: readonly NavItem[] = [
     permission: "exams.judge",
     primary: false,
     mode: "staff",
+  },
+  {
+    key: "inbox",
+    title: "صوتك",
+    href: "/inbox",
+    icon: "MessageSquare",
+    // رسائل الطلاب (adr/0054) — بنطاق الصلاحية: على برنامج يرى رسائل طلابه.
+    permission: "voices.manage",
+    primary: false,
+    mode: "staff",
+  },
+  {
+    key: "voices",
+    title: "صوتك",
+    href: "/voices",
+    icon: "MessageSquare",
+    // للطالب الداخل (adr/0054) — زرٌّ في رأس صفحاته، ولو بلا مشاركة بعد.
+    permission: null,
+    primary: false,
+    headerOnly: true,
+    mode: "participant",
   },
   {
     key: "settings",

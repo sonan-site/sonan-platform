@@ -8,6 +8,7 @@ import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
 import { safeNext } from "@/lib/auth/safe-next";
 import { getSession } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth/sign-out";
+import { createClient } from "@/lib/db/server";
 import { switchMode } from "@/lib/auth/switch-mode";
 import { currentViewer } from "@/lib/permissions/granted";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
@@ -54,12 +55,16 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   // بهوية المنصة. ومشاركاته من الجلسة نفسها، فالسؤال الوحيد الزائد عن المفتاح وفي وضع الطالب فقط.
   const featured = mode === "participant" && session.status === "active" ? await getHomeFeatured() : null;
   const skin = featured && session.status === "active" && session.programSlugs.includes(featured) ? "campaign-tint" : null;
+  // نقطة «صوتك» في وضع الطالب وحده — سؤالٌ واحد صغير.
+  const voicesUnseen =
+    mode === "participant" ? ((await (await createClient()).rpc("fn_my_voices_unseen")).data ?? 0) : 0;
 
   return (
     <AppLayout
       items={items}
       mode={mode}
       skin={skin}
+      voicesUnseen={voicesUnseen}
       onSignOut={signOut}
       onSwitchMode={
         bothWays

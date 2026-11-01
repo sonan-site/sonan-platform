@@ -7,6 +7,7 @@ import {
   ChartNoAxesColumn,
   CalendarDays,
   Gavel,
+  MessageSquare,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -56,6 +57,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   CalendarDays,
   UserRound,
   Gavel,
+  MessageSquare,
 };
 
 const ICON_SIZE = 20;
@@ -66,7 +68,7 @@ const ICON_SIZE = 20;
  * (`/exam/*`) فتنقله ضغطةٌ خاطئة أثناء محاولته (المراجعة ح٣).
  */
 /** صفحات الطالب خارج رحلته التي يحمل رأسها الرجوعَ إليها بدل الشعار (ملاحظات الجوال ٢ · ٣). */
-const STUDENT_BACK_PAGES: ReadonlySet<string> = new Set(["/account"]);
+const STUDENT_BACK_PAGES: ReadonlySet<string> = new Set(["/account", "/voices"]);
 
 const JOURNEY_PATH = /^\/journey\/([0-9a-f-]{36})(?:\/(plan|progress))?\/?$/;
 
@@ -92,6 +94,7 @@ export function AppLayout({
   onSwitchMode,
   mode,
   skin,
+  voicesUnseen = 0,
   children,
 }: {
   /** مرشَّحة بصلاحيات المستخدم قبل الوصول هنا — المحجوب **يُخفى لا يُعطَّل**. */
@@ -106,6 +109,8 @@ export function AppLayout({
   mode?: "staff" | "participant";
   /** إطار الطالب بلون الحملة (ملحق `adr/0045`) — لمن يشارك في برنامجها، في وضع الطالب وحده. */
   skin?: "campaign-tint" | null;
+  /** ردودٌ في «صوتك» لم يقرأها الطالب — نقطةٌ على زرّه (adr/0054). */
+  voicesUnseen?: number;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -202,6 +207,18 @@ export function AppLayout({
                     الإدارة
                   </button>
                 </form>
+              ) : null}
+              {/* لا في الاختبار الموقوت: ضغطةٌ خاطئة تُخرجه من محاولته (مراجعة البناء ١٥). */}
+              {!/\/exam\//.test(pathname) ? (
+              <Link
+                href={`/voices?from=${encodeURIComponent(pathname)}`}
+                className={`${styles.iconButton} ${styles.voicesButton}`}
+                aria-label={voicesUnseen > 0 ? "صوتك — وصلك رد" : "صوتك"}
+                title="صوتك"
+              >
+                <MessageSquare size={ICON_SIZE} aria-hidden />
+                {voicesUnseen > 0 ? <span className={styles.voicesDot} aria-hidden /> : null}
+              </Link>
               ) : null}
               <ThemeToggle className={styles.iconButton} />
               <Link href="/account" className={styles.iconButton} aria-label="حسابي" title="حسابي">

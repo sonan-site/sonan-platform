@@ -17,6 +17,7 @@ export const PERMISSION_SECTIONS = {
   programs: "البرامج",
   participants: "المشاركون",
   exams: "الاختبارات",
+  voices: "صوتك",
 } as const;
 
 export type PermissionSection = keyof typeof PERMISSION_SECTIONS;
@@ -59,6 +60,9 @@ export const PERMISSIONS = {
   "exams.judge": { section: "exams", label: "التحكيم في الجلسات المسندة" },
   // نشر نتائج النهائي يوم الحفل — مستقلٌّ عن إدارتها (الدفعة د).
   "exams.publish": { section: "exams", label: "نشر نتائج الاختبارات وسحب نشرها" },
+
+  // «صوتك» (adr/0054): رسائل الطلاب والرد عليها — على المنصة كلها أو على برنامج.
+  "voices.manage": { section: "voices", label: "قراءة رسائل «صوتك» والرد عليها" },
 } as const satisfies Record<string, Entry>;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

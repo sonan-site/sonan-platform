@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   UserRound,
   Gavel,
+  MessageSquare,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   CalendarDays,
   UserRound,
   Gavel,
+  MessageSquare,
 };
 
 const ICON_SIZE = 20;

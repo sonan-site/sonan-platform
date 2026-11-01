@@ -34,6 +34,7 @@ describe("ما يحتاج انتباهك", () => {
       "no_contact",
       "full",
       "profile_missing",
+      "voice_new",
     ]) {
       const [item] = attentionItems([row({ kind, amount: 1 })]);
       expect(item?.href, kind).toMatch(/^\/[a-z]/);
