@@ -340,17 +340,28 @@ const trackPatchSchema = z.object({
     .regex(/^https:\/\/[^\s<>"]+$/)
     .nullable()
     .optional(),
+  // حدّا العمر (adr/0047): بالسنوات الكاملة يوم التسجيل — كقيد القاعدة.
+  min_age: z.number().int().min(1).max(100).nullable().optional(),
+  max_age: z.number().int().min(1).max(100).nullable().optional(),
 });
 
 export async function updateTrack(
   trackId: string,
   programId: string,
-  patch: { name?: string; description?: string; capacity?: number | null; material_url?: string | null },
+  patch: {
+    name?: string;
+    description?: string;
+    capacity?: number | null;
+    material_url?: string | null;
+    min_age?: number | null;
+    max_age?: number | null;
+  },
 ): Promise<FormState> {
   if (!z.object({ trackId: z.uuid(), programId: z.uuid() }).safeParse({ trackId, programId }).success) {
     return { error: "مسار غير معروف." };
   }
   const parsed = trackPatchSchema.safeParse(patch);
+  const agePatch = patch.min_age !== undefined || patch.max_age !== undefined;
   if (!parsed.success) {
     return {
       error:
@@ -358,7 +369,9 @@ export async function updateTrack(
           ? "السعة عدد صحيح موجب، أو اتركها فارغة لبلا سقف."
           : patch.material_url !== undefined
             ? "رابط المادة يبدأ بـ https:// — أو اتركه فارغاً."
-            : "اسم المسار حرفان فأكثر.",
+            : agePatch
+              ? "العمر عدد صحيح بين 1 و100، أو اتركه فارغاً بلا حدّ."
+              : "اسم المسار حرفان فأكثر.",
     };
   }
 
@@ -370,6 +383,26 @@ export async function updateTrack(
   if (!authz.ok) return { error: authz.message };
 
   const db = await createClient();
+
+  // الحقلان يُحفظ كلٌّ وحده، فيُقرأ الآخر من الصفّ لتُقال رسالة التعارض بالعربية قبل قيد القاعدة.
+  let before: { min_age: number | null; max_age: number | null } | null = null;
+  let ages: { min_age: number | null; max_age: number | null } | null = null;
+  if (agePatch) {
+    const { data: current } = await db
+      .from("tracks")
+      .select("min_age, max_age")
+      .eq("id", trackId)
+      .eq("program_id", programId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!current) return { error: "تعذّر تعديل المسار." };
+    before = current;
+    ages = { min_age: current.min_age, max_age: current.max_age, ...parsed.data };
+    if (ages.min_age !== null && ages.max_age !== null && ages.min_age > ages.max_age) {
+      return { error: "أدنى عمر لا يزيد على أعلى عمر." };
+    }
+  }
+
   const { data, error } = await db
     .from("tracks")
     .update(parsed.data)
@@ -378,6 +411,17 @@ export async function updateTrack(
     .is("deleted_at", null)
     .select("id");
   if (error || !data?.length) return { error: userMessage(error, "تعذّر تعديل المسار.") };
+
+  // حدّ العمر شرط أهلية — يُدقَّق كشروط البرنامج.
+  if (ages && before && (ages.min_age !== before.min_age || ages.max_age !== before.max_age)) {
+    await db.rpc("fn_write_audit", {
+      p_action: "track_age_updated",
+      p_entity_table: "tracks",
+      p_entity_id: trackId,
+      p_before: before,
+      p_after: { min_age: ages.min_age, max_age: ages.max_age },
+    });
+  }
 
   revalidatePath(`/programs/${programId}`);
   return { notice: "عُدِّل المسار." };

@@ -130,9 +130,11 @@ export default async function RegisterPage({
     );
   }
 
-  const [tracksResult, questionsResult] = await Promise.all([
+  const [tracksResult, fitResult, questionsResult] = await Promise.all([
     // المقاعد المتبقية من القاعدة — عدّ المشاركين محجوبٌ عن المسجِّل بسياسته.
     db.rpc("fn_public_tracks", { p_program_id: program.id }),
+    // ما يناسب عمره من المسارات (adr/0047) — وما سواه لا يُعرض، والقاعدة ترفضه أصلاً.
+    db.rpc("fn_my_tracks_for_age", { p_program_id: program.id }),
     db
       .from("admission_questions")
       .select("id, question, is_required, track_id, kind")
@@ -142,7 +144,10 @@ export default async function RegisterPage({
       .order("created_at"),
   ]);
 
-  const tracks: TrackOption[] = (tracksResult.data ?? []).map((t) => ({
+  // تعذّر القائمة لا يُقرأ «بلا مسارات» — فيُخفى الاختيار ويُرفض بسببٍ مضلِّل.
+  if (tracksResult.error || fitResult.error) return <ErrorState body="تعذّر جلب المسارات المتاحة لك. أعد تحميل الصفحة." />;
+  const fits = new Set<string>(fitResult.data ?? []);
+  const tracks: TrackOption[] = (tracksResult.data ?? []).filter((t) => fits.has(t.id)).map((t) => ({
     id: t.id,
     name: t.name,
     description: t.description ?? "",

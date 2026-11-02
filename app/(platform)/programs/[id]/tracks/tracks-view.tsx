@@ -9,12 +9,14 @@ import { Button, Field, FormActions, Input, Textarea } from "@/components/shared
 import { InlineText } from "@/components/shared/inline-edit";
 import { Modal } from "@/components/shared/modal";
 import { ScreenActions } from "@/components/shared/screen-actions";
-import { Messages, Step, StepForm } from "@/components/shared/steps";
+import { Messages, Muted, Step, StepForm } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, toLatinDigits } from "@/lib/format";
 import { createTrack, deleteTrack, moveTrack, updateTrack } from "../../actions";
 
 const ICON = 14;
+
+const AGE_HINT = "بالسنوات الكاملة يوم التسجيل — فارغ بلا حدّ";
 
 /** أزرار الصفّ في سطرٍ واحد بفواصلها — كما في شاشة النشر. */
 const ROW_ACTIONS = {
@@ -31,6 +33,9 @@ export type TrackRow = {
   capacity: number | null;
   /** رابط مادة المسار (ملفّ الكتاب) — يراه طالبه في واجبه وفي الدليل. */
   materialUrl: string | null;
+  /** حدّا العمر بالسنوات الكاملة يوم التسجيل — فارغ بلا حدّ، والأعلى شامل (`adr/0047`). */
+  minAge: number | null;
+  maxAge: number | null;
   /** المشاركون فيه الآن — وجودهم يمنع الحذف، فيُعطَّل زرّه بسببه (`ق-٢٠`). */
   participants: number;
   /** خططه — تُحذف معه، والنافذة تقول ذلك قبل أن يقرّ. */
@@ -126,6 +131,30 @@ export function TracksView({
           formatNumber(t.capacity)
         ),
     },
+    ...(["min_age", "max_age"] as const).map((key) => ({
+      key,
+      header: key === "min_age" ? "أدنى عمر" : "أعلى عمر",
+      align: "end" as const,
+      render: (t: TrackRow) => {
+        const value = key === "min_age" ? t.minAge : t.maxAge;
+        return canWrite ? (
+          <InlineText
+            label={`${key === "min_age" ? "أدنى عمر" : "أعلى عمر"} في المسار ${t.name} — ${AGE_HINT}`}
+            value={value === null ? "" : String(value)}
+            allowEmpty
+            latin
+            maxInlineSize="5rem"
+            onSave={(raw) =>
+              updateTrack(t.id, programId, { [key]: raw.trim() === "" ? null : Number(toLatinDigits(raw.trim())) })
+            }
+          />
+        ) : value === null ? (
+          "بلا حدّ"
+        ) : (
+          formatNumber(value)
+        );
+      },
+    })),
     {
       key: "material",
       header: "رابط المادة",
@@ -238,6 +267,7 @@ export function TracksView({
               : "لم تُضَف مسارات لهذا البرنامج.",
           }}
         />
+        {tracks.length > 0 ? <Muted>أدنى عمر وأعلى عمر: {AGE_HINT}.</Muted> : null}
 
         {canWrite && adding ? (
           <StepForm title="أضِف مساراً" action={action} state={state}>

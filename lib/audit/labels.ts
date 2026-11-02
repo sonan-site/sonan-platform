@@ -65,6 +65,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   guide_update_updated: "تعديل سطر في سجل تحديثات الدليل",
   registration_window_updated: "تعديل نافذة التسجيل",
   program_eligibility_updated: "تعديل شروط التسجيل في برنامج",
+  track_age_updated: "تعديل حدّ العمر في مسار",
   home_featured_updated: "تغيير واجهة الحملة في الصفحة الرئيسية",
   help_entry_added: "إضافة سؤال شائع",
   help_entry_removed: "حذف سؤال شائع",

@@ -2859,6 +2859,8 @@ export type Database = {
           exceptions_overridden: boolean
           id: string
           material_url: string | null
+          max_age: number | null
+          min_age: number | null
           name: string
           program_id: string
           progress_measure:
@@ -2882,6 +2884,8 @@ export type Database = {
           exceptions_overridden?: boolean
           id?: string
           material_url?: string | null
+          max_age?: number | null
+          min_age?: number | null
           name: string
           program_id: string
           progress_measure?:
@@ -2905,6 +2909,8 @@ export type Database = {
           exceptions_overridden?: boolean
           id?: string
           material_url?: string | null
+          max_age?: number | null
+          min_age?: number | null
           name?: string
           program_id?: string
           progress_measure?:
@@ -3054,6 +3060,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_age_fits: {
+        Args: { p_age: number; p_max: number; p_min: number }
+        Returns: boolean
+      }
+      fn_age_years: { Args: { p_birth: string }; Returns: number }
       fn_answer_correct: {
         Args: { p_question_id: string; p_selected: string[] }
         Returns: boolean
@@ -3700,6 +3711,10 @@ export type Database = {
           streak: number
           stumbled_days: number
         }[]
+      }
+      fn_my_tracks_for_age: {
+        Args: { p_program_id: string }
+        Returns: string[]
       }
       fn_my_voices: {
         Args: never
