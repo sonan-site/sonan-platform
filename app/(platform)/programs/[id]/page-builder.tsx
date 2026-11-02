@@ -5,9 +5,10 @@ import { reportAction } from "@/components/shared/action-notice";
 import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import { ActionForm } from "@/components/shared/action-form";
-import { Button, Field, FormActions, Input, Select } from "@/components/shared/form";
+import { Button, Field, FormActions, Input, Select, Textarea } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
+import { formatNumber } from "@/lib/format";
 import { BLOCK_LABEL, BLOCK_TYPES, type BlockType } from "@/lib/programs/blocks";
 import {
   addAdmissionQuestion,
@@ -30,7 +31,11 @@ export type AdmissionRow = {
   question: string;
   required: boolean;
   /** شكل الإجابة في نموذج التسجيل. */
-  kind: "text" | "choice" | "consent";
+  kind: "text" | "choice" | "consent" | "list";
+  /** خيارات سؤال القائمة بترتيبها — `null` لغيره. */
+  options: string[] | null;
+  /** عدد من اختار كل خيار (سؤال القائمة) — `null` لمن لا يقرأ المشاركين أو تعذّر العدّ. */
+  counts: { option: string; answered: number }[] | null;
   trackId: string | null;
   trackName: string | null;
 };
@@ -39,7 +44,10 @@ const KIND_LABEL: Record<AdmissionRow["kind"], string> = {
   text: "إجابة مكتوبة",
   choice: "نعم أو لا",
   consent: "إقرار يُؤشَّر",
+  list: "اختيار من قائمة",
 };
+
+const OPTIONS_HINT = "لشكل «اختيار من قائمة» وحده — سطرٌ لكل خيار بترتيب عرضه";
 
 const PANEL = { maxInlineSize: "var(--form-max)", marginBlockEnd: "var(--space-6)" } as const;
 const H2 = { fontSize: "var(--text-lg)", marginBlockStart: "var(--space-10)" } as const;
@@ -250,6 +258,11 @@ export function PageBuilder({
                 {q.required ? "إلزامي" : "اختياري"} · {KIND_LABEL[q.kind]}
                 {q.trackName ? ` · ${q.trackName}` : " · عام للبرنامج"}
               </span>
+              {q.kind === "list" && q.counts ? (
+                <span style={META}>
+                  من أجاب: {q.counts.map((c) => `${c.option} ${formatNumber(c.answered)}`).join(" · ")}
+                </span>
+              ) : null}
               <div style={SPACER}>
                 <Button
                   aria-label="تحريك لأعلى"
@@ -338,7 +351,22 @@ export function PageBuilder({
                 <option value="text">إجابة مكتوبة</option>
                 <option value="choice">نعم أو لا</option>
                 <option value="consent">إقرار يُؤشَّر</option>
+                <option value="list">اختيار من قائمة</option>
               </Select>
+            </Field>
+            <Field
+              id="admEditOptions"
+              label="الخيارات"
+              hint={OPTIONS_HINT}
+              error={qShown.fieldErrors?.["options"]}
+              span="full"
+            >
+              <Textarea
+                id="admEditOptions"
+                name="options"
+                rows={6}
+                defaultValue={(editingQ.options ?? []).join("\n")}
+              />
             </Field>
             <Field id="admEditRequired" label="إلزامي" hint="الإلزامي وحده شرط القبول">
               <input
@@ -393,7 +421,11 @@ export function PageBuilder({
               <option value="text">إجابة مكتوبة</option>
               <option value="choice">نعم أو لا</option>
               <option value="consent">إقرار يُؤشَّر</option>
+              <option value="list">اختيار من قائمة</option>
             </Select>
+          </Field>
+          <Field id="admOptions" label="الخيارات" hint={OPTIONS_HINT} error={admState.fieldErrors?.["options"]}>
+            <Textarea id="admOptions" name="options" rows={6} />
           </Field>
           <Field id="admRequired" label="إلزامي" hint="الإلزامي وحده شرط القبول">
             <input id="admRequired" name="isRequired" type="checkbox" defaultChecked />

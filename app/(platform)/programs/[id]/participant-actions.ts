@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "@/lib/validation/z";
 import { EMPTY_FORM_STATE, toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { createClient } from "@/lib/db/server";
+import { userMessage } from "@/lib/db/messages";
 import { nowIso } from "@/lib/format";
 import { followsPlan } from "@/lib/participants/journey";
 import { type ParticipantStatus } from "@/lib/programs/kinds";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { optionsError, parseOptions } from "@/lib/programs/admission-options";
 
 /** إجراءات المشاركين وأسئلة القبول وطلبات تغيير المسار. */
 
@@ -31,8 +33,18 @@ const questionSchema = z.object({
     .transform((v) => (v === "" ? null : v))
     .nullable(),
   isRequired: z.boolean(),
-  kind: z.enum(["text", "choice", "consent"]).default("text"),
+  kind: z.enum(["text", "choice", "consent", "list"]).default("text"),
+  // «سطرٌ لكل خيار» — لسؤال القائمة وحده، ويُهمل لغيره.
+  options: z.string().default(""),
 });
+
+/** خيارات القائمة لصفّ القاعدة: مصفوفةٌ لسؤال القائمة، وفارغٌ لغيره — أو رسالة خطأٍ للحقل. */
+function questionOptions(kind: string, raw: string): { options: string[] | null } | { error: string } {
+  if (kind !== "list") return { options: null };
+  const options = parseOptions(raw);
+  const error = optionsError(options);
+  return error ? { error } : { options };
+}
 
 export async function addAdmissionQuestion(
   _prev: FormState,
@@ -44,8 +56,11 @@ export async function addAdmissionQuestion(
     trackId: form.get("trackId") ?? "",
     isRequired: form.get("isRequired") === "on",
     kind: form.get("kind") ?? undefined,
+    options: form.get("options") ?? "",
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+  const listed = questionOptions(parsed.data.kind, parsed.data.options);
+  if ("error" in listed) return { fieldErrors: { options: listed.error } };
 
   const authz = await authorizeRequest({
     permission: "programs.write",
@@ -71,9 +86,10 @@ export async function addAdmissionQuestion(
     question: parsed.data.question,
     is_required: parsed.data.isRequired,
     kind: parsed.data.kind,
+    options: listed.options,
     sort_order: (last?.sort_order ?? -1) + 1,
   });
-  if (error) return { error: "تعذّر إضافة السؤال." };
+  if (error) return { error: userMessage(error, "تعذّر إضافة السؤال.") };
 
   revalidatePath(`/programs/${parsed.data.programId}/page`);
   return { notice: "أُضيف سؤال القبول." };
@@ -93,8 +109,11 @@ export async function editAdmissionQuestion(
     trackId: form.get("trackId") ?? "",
     isRequired: form.get("isRequired") === "on",
     kind: form.get("kind") ?? undefined,
+    options: form.get("options") ?? "",
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+  const listed = questionOptions(parsed.data.kind, parsed.data.options);
+  if ("error" in listed) return { fieldErrors: { options: listed.error } };
 
   const authz = await authorizeRequest({
     permission: "programs.write",
@@ -111,12 +130,13 @@ export async function editAdmissionQuestion(
       track_id: parsed.data.trackId,
       is_required: parsed.data.isRequired,
       kind: parsed.data.kind,
+      options: listed.options,
     })
     .eq("id", questionId)
     .eq("program_id", parsed.data.programId)
     .is("deleted_at", null)
     .select("id");
-  if (error || !data?.length) return { error: "تعذّر حفظ السؤال." };
+  if (error || !data?.length) return { error: userMessage(error, "تعذّر حفظ السؤال.") };
 
   revalidatePath(`/programs/${parsed.data.programId}/page`);
   return { notice: "حُفظ السؤال." };

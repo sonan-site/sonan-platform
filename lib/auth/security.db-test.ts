@@ -460,6 +460,7 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
        order by 1`,
     );
     expect(rows.map((r) => r.name)).toEqual([
+      "fn_admission_option_counts",
       "fn_answer_question",
       "fn_apply_sorting",
       "fn_approve_track_results",

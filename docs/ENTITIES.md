@@ -352,7 +352,8 @@
 | `track_id` | uuid · قابل للإفراغ | **NULL = عام للبرنامج** |
 | `question` | text | |
 | `is_required` | boolean | |
-| `kind` | enum `admission_kind` | `text` · `choice` · `consent` — **شكل الإجابة عرضٌ لا قاعدة**: `fn_register` تشترط جواباً غير فارغ للإلزامي مهما كان |
+| `kind` | enum `admission_kind` | `text` · `choice` · `consent` · `list` — `fn_register` تشترط جواباً للإلزامي، وتحكم بالصيغة: «نعم/لا» للاختيار، و«أقرّ» للإقرار، وخيارٌ من `options` بنصّه للقائمة (`adr/0047`) |
+| `options` | text[] · قابل للإفراغ | خيارات سؤال القائمة بترتيب عرضها — له وحده (`chk_admission_questions_options`: ٢–٣٠، مشذَّبة، بلا تكرار). **تُقفل بعد أول إجابة** إلا الإضافة في آخرها (`trg_admission_questions_options_lock`)، لأن الجواب نصّ الخيار. وعدد من اختار كل خيار: `fn_admission_option_counts` لمن يقرأ المشاركين (الهجرتان `20261103090000`/`090100`) |
 | `sort_order` | int | |
 
 **كيان منفصل تماماً عن بنك الأسئلة.**

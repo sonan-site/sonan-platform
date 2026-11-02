@@ -18,7 +18,7 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [programResult, blocksResult, admissionResult, tracksResult, guideResult] = await Promise.all([
+  const [programResult, blocksResult, admissionResult, tracksResult, guideResult, countsResult] = await Promise.all([
     db.from("programs").select("slug").eq("id", id).maybeSingle(),
     db
       .from("page_blocks")
@@ -30,7 +30,7 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .order("created_at"),
     db
       .from("admission_questions")
-      .select("id, question, is_required, track_id, kind")
+      .select("id, question, is_required, track_id, kind, options")
       .eq("program_id", id)
       .is("deleted_at", null)
       .order("sort_order"),
@@ -47,6 +47,8 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .is("deleted_at", null)
       .order("entry_date", { ascending: false })
       .order("created_at", { ascending: false }),
+    // عدد من اختار كل خيار من أسئلة القائمة — لمن يقرأ المشاركين وحده، وتعذّره يُخفي العدّ.
+    db.rpc("fn_admission_option_counts", { p_program_id: id }),
   ]);
 
   if (blocksResult.error || !programResult.data) {
@@ -68,11 +70,16 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
 
   const tracks = (tracksResult.data ?? []).map((t) => ({ id: t.id, name: t.name }));
   const trackNames = new Map(tracks.map((t) => [t.id, t.name]));
+  const counts = countsResult.error ? null : (countsResult.data ?? []);
   const admission: AdmissionRow[] = (admissionResult.data ?? []).map((q) => ({
     id: q.id,
     question: q.question,
     required: q.is_required,
     kind: q.kind,
+    options: q.options,
+    counts: counts
+      ? counts.filter((c) => c.question_id === q.id).map((c) => ({ option: c.option, answered: c.answered }))
+      : null,
     trackId: q.track_id,
     trackName: q.track_id ? (trackNames.get(q.track_id) ?? null) : null,
   }));

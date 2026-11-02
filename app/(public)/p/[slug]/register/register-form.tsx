@@ -4,7 +4,7 @@ import { BookOpen, ExternalLink } from "lucide-react";
 import { useActionState, useState } from "react";
 import { ActionForm } from "@/components/shared/action-form";
 import { RegisterSteps } from "@/components/shared/register-steps";
-import { Textarea } from "@/components/shared/form";
+import { Select, Textarea } from "@/components/shared/form";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { signOutToCampaign } from "@/lib/auth/sign-out";
 import { formatNumber } from "@/lib/format";
@@ -16,7 +16,9 @@ export type QuestionRow = {
   question: string;
   required: boolean;
   /** شكل الإجابة — عرضٌ لا قاعدة (الهجرة ٠٥٤). */
-  kind: "text" | "choice" | "consent";
+  kind: "text" | "choice" | "consent" | "list";
+  /** خيارات سؤال القائمة بترتيبها — `null` لغيره. */
+  options: string[] | null;
   trackId: string | null;
 };
 
@@ -33,8 +35,8 @@ export type TrackOption = {
  * صفحة التسجيل بخطوات (رحلة التسجيل ت٨): ترويسة المسابقة · مؤشّر الخطوات · بطاقات
  * المسارات · الأسئلة · الإقرارات كلٌّ في سطره · زرٌّ رئيسي.
  *
- * **أسماء الحقول وقيمها كما كانت حرفياً** — `trackId` و`q:<id>` و«أقرّ» و«نعم/لا» —
- * فـ`fn_register` تحكم بها كما حكمت، والشكل وحده تغيّر.
+ * **أسماء الحقول وقيمها كما كانت حرفياً** — `trackId` و`q:<id>` و«أقرّ» و«نعم/لا» ونصّ
+ * خيار القائمة — فـ`fn_register` تحكم بها كما حكمت، والشكل وحده تغيّر.
  */
 export function RegisterForm({
   accountEmail,
@@ -156,6 +158,26 @@ export function RegisterForm({
                       ))}
                     </div>
                   </fieldset>
+                );
+              }
+              if (q.kind === "list") {
+                return (
+                  <div key={q.id} className={styles.question}>
+                    <label htmlFor={id}>
+                      {q.question}
+                      {q.required ? <span className={styles.req}> *</span> : null}
+                    </label>
+                    <Select id={id} name={id} required={q.required} defaultValue="">
+                      <option value="" disabled={q.required}>
+                        اختر…
+                      </option>
+                      {(q.options ?? []).map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                 );
               }
               return (

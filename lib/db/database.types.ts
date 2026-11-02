@@ -66,6 +66,7 @@ export type Database = {
           id: string
           is_required: boolean
           kind: Database["public"]["Enums"]["admission_kind"]
+          options: string[] | null
           program_id: string
           question: string
           sort_order: number
@@ -78,6 +79,7 @@ export type Database = {
           id?: string
           is_required?: boolean
           kind?: Database["public"]["Enums"]["admission_kind"]
+          options?: string[] | null
           program_id: string
           question: string
           sort_order?: number
@@ -90,6 +92,7 @@ export type Database = {
           id?: string
           is_required?: boolean
           kind?: Database["public"]["Enums"]["admission_kind"]
+          options?: string[] | null
           program_id?: string
           question?: string
           sort_order?: number
@@ -3060,6 +3063,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_admission_option_counts: {
+        Args: { p_program_id: string }
+        Returns: {
+          answered: number
+          option: string
+          ordinal: number
+          question_id: string
+        }[]
+      }
+      fn_admission_options_valid: {
+        Args: { p_options: string[] }
+        Returns: boolean
+      }
       fn_age_fits: {
         Args: { p_age: number; p_max: number; p_min: number }
         Returns: boolean
@@ -4289,7 +4305,7 @@ export type Database = {
       }
     }
     Enums: {
-      admission_kind: "text" | "choice" | "consent"
+      admission_kind: "text" | "choice" | "consent" | "list"
       block_type:
         | "header"
         | "free_text"
@@ -4453,7 +4469,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      admission_kind: ["text", "choice", "consent"],
+      admission_kind: ["text", "choice", "consent", "list"],
       block_type: [
         "header",
         "free_text",

@@ -137,15 +137,17 @@ export default async function RegisterPage({
     db.rpc("fn_my_tracks_for_age", { p_program_id: program.id }),
     db
       .from("admission_questions")
-      .select("id, question, is_required, track_id, kind")
+      .select("id, question, is_required, track_id, kind, options")
       .eq("program_id", program.id)
       .is("deleted_at", null)
       .order("sort_order")
       .order("created_at"),
   ]);
 
-  // تعذّر القائمة لا يُقرأ «بلا مسارات» — فيُخفى الاختيار ويُرفض بسببٍ مضلِّل.
-  if (tracksResult.error || fitResult.error) return <ErrorState body="تعذّر جلب المسارات المتاحة لك. أعد تحميل الصفحة." />;
+  // تعذّر القائمة لا يُقرأ «بلا مسارات» ولا «بلا أسئلة» — فيُخفى الاختيار أو يُرفض بسببٍ مضلِّل.
+  if (tracksResult.error || fitResult.error || questionsResult.error) {
+    return <ErrorState body="تعذّر تحميل نموذج التسجيل. أعد تحميل الصفحة." />;
+  }
   const fits = new Set<string>(fitResult.data ?? []);
   const tracks: TrackOption[] = (tracksResult.data ?? []).filter((t) => fits.has(t.id)).map((t) => ({
     id: t.id,
@@ -159,6 +161,7 @@ export default async function RegisterPage({
     question: q.question,
     required: q.is_required,
     kind: q.kind,
+    options: q.options,
     trackId: q.track_id,
   }));
 
