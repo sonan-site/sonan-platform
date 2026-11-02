@@ -228,17 +228,18 @@ describe("رقم التسجيل", () => {
       [MINOR, programId],
     );
     await db.query(`delete from public.participants where user_id = $1 and program_id = $2`, [MINOR, programId]);
+    // الإدراج المباشر برقمٍ مكتوب مسحوبٌ أصلاً (د-١٣)، و`fn_register` لا تقبل رقماً —
+    // فاستبدالُ المشغّل لرقمٍ مرسَل صار فرعاً دفاعياً لا طريق إليه اليوم.
     const { error } = await as(
       MINOR,
       `insert into public.participants (user_id, program_id, track_id, registration_no) values ($1, $2, $3, 999)`,
       [MINOR, programId, trackId],
     );
-    expect(error).toBeNull();
-    const { rows } = await db.query<{ registration_no: number }>(
-      `select registration_no from public.participants where user_id = $1 and program_id = $2`,
+    expect(error).toMatch(/permission denied/);
+    const { rows } = await db.query(
+      `select 1 from public.participants where user_id = $1 and program_id = $2`,
       [MINOR, programId],
     );
-    // الأعلى بين الصفوف كلها + 1 — والمحذوف بالحذف الفعلي في الاختبار خرج من العدّ.
-    expect(rows[0]!.registration_no).not.toBe(999);
+    expect(rows).toHaveLength(0);
   });
 });

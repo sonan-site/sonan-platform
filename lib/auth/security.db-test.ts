@@ -57,13 +57,18 @@ async function commitAs(userId: string, sql: string, params: unknown[], client: 
   }
 }
 
-async function register(userId: string, extra = "", client: Client = db) {
+/** التسجيل الذاتي **بابُه الوحيد** `fn_register` (د-١٣) — الإدراج المباشر مسحوبٌ من authenticated. */
+async function register(userId: string, client: Client = db) {
+  return commitAs(userId, `select public.fn_register($1, $2, '{}'::jsonb) as id`, [programId, trackId], client);
+}
+
+/** الإدراج المباشر عبر REST — ما يُثبَت رفضه. */
+async function directInsert(userId: string, status = "") {
   return commitAs(
     userId,
-    `insert into public.participants (user_id, program_id, track_id${extra ? ", status" : ""})
-     values ($1, $2, $3${extra ? ", $4::public.participant_status" : ""}) returning id`,
-    extra ? [userId, programId, trackId, extra] : [userId, programId, trackId],
-    client,
+    `insert into public.participants (user_id, program_id, track_id${status ? ", status" : ""})
+     values ($1, $2, $3${status ? ", $4::public.participant_status" : ""}) returning id`,
+    status ? [userId, programId, trackId, status] : [userId, programId, trackId],
   );
 }
 
@@ -238,12 +243,13 @@ describe("٢ · عدّاد المحاولات للخادم وحده", () => {
 });
 
 describe("٣ · التسجيل الذاتي", () => {
-  it("**لا يسجّل أحدٌ نفسه «مجتازاً»**", async () => {
-    await expect(register(PLAYER, "passed")).rejects.toThrow(/row-level security|يبدأ مسجَّلاً/);
+  it("**لا يسجّل أحدٌ نفسه «مجتازاً»** — ولا يُدرج صفّه مباشرةً أصلاً (د-١٣)", async () => {
+    await expect(directInsert(PLAYER, "passed")).rejects.toThrow(/permission denied/);
+    await expect(directInsert(PLAYER)).rejects.toThrow(/permission denied/);
     await clearParticipants();
   });
 
-  it("والتسجيل بحالة البداية يمرّ — لا نفي زائد", async () => {
+  it("والتسجيل عبر fn_register يمرّ — لا نفي زائد", async () => {
     const { rowCount } = await register(PLAYER);
     expect(rowCount).toBe(1);
     await clearParticipants();
@@ -261,13 +267,10 @@ describe("٣ · التسجيل الذاتي", () => {
       await first.query(`select set_config('request.jwt.claims', $1, true)`, [
         JSON.stringify({ sub: PLAYER, role: "authenticated" }),
       ]);
-      await first.query(
-        `insert into public.participants (user_id, program_id) values ($1, $2)`,
-        [PLAYER, programId],
-      );
+      await first.query(`select public.fn_register($1, $2, '{}'::jsonb)`, [programId, trackId]);
 
       const pid = (await second.query<{ pid: number }>(`select pg_backend_pid() as pid`)).rows[0]!.pid;
-      const racing = register(PLAYER_2, "", second).then(
+      const racing = register(PLAYER_2, second).then(
         () => "accepted",
         (error: Error) => error.message,
       );
@@ -351,10 +354,15 @@ describe("٥ · سجل التدقيق", () => {
   });
 
   it("**وتدقيق التسجيل: على تسجيله هو، ومرّة واحدة**", async () => {
+    // fn_register كتبه مرّة — فلا يُكتب ثانيةً بيد صاحبه ولا غيره.
     const mine = await register(PLAYER);
     const id = (mine.rows[0] as { id: string }).id;
     try {
-      await commitAs(PLAYER, `select public.fn_write_audit('participant_registered', 'participants', $1)`, [id]);
+      const { rows } = await db.query<{ n: number }>(
+        `select count(*)::int n from public.audit_log where action = 'participant_registered' and entity_id = $1`,
+        [id],
+      );
+      expect(rows[0]!.n).toBe(1);
       await expect(
         commitAs(PLAYER, `select public.fn_write_audit('participant_registered', 'participants', $1)`, [id]),
       ).rejects.toThrow(/غير مطابق/);
@@ -531,6 +539,7 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
       "fn_purge_account",
       "fn_record_tiebreak",
       "fn_redraw_oral",
+      "fn_register",
       "fn_registration_state",
       "fn_remove_custom_plan",
       "fn_reopen_evaluation",

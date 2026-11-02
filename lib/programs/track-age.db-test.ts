@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  * حدّا العمر لكل مسار (`adr/0047`، الهجرة `20261102090000_track_age`).
  *
  * بالسنوات الكاملة يوم التسجيل بتوقيت الرياض، والأعلى شامل. والإنفاذ مشغّلٌ على
- * `participants` يغطي `fn_register` والإدراج المباشر والإسناد من فراغ — والنقل من مسارٍ
+ * `participants` يغطي `fn_register` (بابُ الإدراج الوحيد منذ د-١٣) والإسناد من فراغ — والنقل من مسارٍ
  * إلى مسار خارج النطاق (البند ١١ من التعليمة: يُذكر ولا يُعالَج).
  */
 
@@ -61,12 +61,18 @@ const needs = async (uid: string) =>
     (r) => r.code,
   );
 
-const selfInsert = (uid: string, trackId: string | null) =>
-  as<{ id: string }>(
-    uid,
-    `insert into public.participants (user_id, program_id, track_id) values ($1, $2, $3) returning id`,
-    [uid, programId, trackId],
-  );
+/** التسجيل الذاتي ببابه الوحيد (د-١٣) — الإدراج المباشر مسحوب. */
+const selfInsert = (uid: string, trackId: string) =>
+  as<{ id: string }>(uid, `select public.fn_register($1, $2, '{}'::jsonb) as id`, [programId, trackId]);
+
+/** صفٌّ بلا مسار — لا يصنعه إلا المالك؛ لاختبار الإسناد من فراغ. */
+const ownerInsert = async (uid: string) =>
+  (
+    await db.query<{ id: string }>(
+      `insert into public.participants (user_id, program_id) values ($1, $2) returning id`,
+      [uid, programId],
+    )
+  ).rows[0]!.id;
 
 const clearParticipants = () => db.query(`delete from public.participants where program_id = $1`, [programId]);
 
@@ -167,23 +173,24 @@ describe("حدّا العمر لكل مسار", () => {
     expect(rows[0]).toEqual({ a: true, b: false });
   });
 
-  it("**الإدراج المباشر** خارج الحد يُرفض، وداخله يمرّ، وما لا حدّ له يمرّ", async () => {
+  it("**التسجيل** خارج الحد يُرفض، وداخله يمرّ، وما لا حدّ له يمرّ", async () => {
     const out = await selfInsert(userOf(16), tracks[0]!);
     expect(out.error).toMatch(/عمر المشارك خارج حدّ هذا المسار/);
     expect((await selfInsert(userOf(16), tracks[1]!)).error).toBeNull();
     await clearParticipants();
-    expect((await selfInsert(userOf(6), tracks[5]!)).error).toBeNull();
+    expect((await selfInsert(userOf(19), tracks[5]!)).error).toBeNull();
     await clearParticipants();
   });
 
-  it("صفّ غيره يُرفض بالسياسة لا برسالة العمر — فلا يكشف الفرقُ شريحة عمره", async () => {
-    const out = await as(
-      userOf(19),
-      `insert into public.participants (user_id, program_id, track_id) values ($1, $2, $3)`,
-      [userOf(16), programId, tracks[0]],
-    );
-    expect(out.error).toMatch(/row-level security/);
-    expect(out.error).not.toMatch(/عمر المشارك/);
+  it("الإدراج المباشر — لصفّه أو صفّ غيره — مرفوضٌ بالمنحة قبل أي رسالة عمر (د-١٣)", async () => {
+    for (const owner of [userOf(19), userOf(16)]) {
+      const out = await as(
+        userOf(19),
+        `insert into public.participants (user_id, program_id, track_id) values ($1, $2, $3)`,
+        [owner, programId, tracks[0]],
+      );
+      expect(out.error).toMatch(/permission denied/);
+    }
   });
 
   it("الرفض بالعمر يسبق «اكتمل العدد» (المشغّل قبل حارس السعة)", async () => {
@@ -212,8 +219,7 @@ describe("حدّا العمر لكل مسار", () => {
   });
 
   it("**الإسناد من فراغ** يُفحص، و**النقل** من مسارٍ إلى مسار لا يُفحص (البند ١١)", async () => {
-    const { rows } = await selfInsert(userOf(16), null);
-    const pid = rows[0]!.id;
+    const pid = await ownerInsert(userOf(16));
     await expect(db.query(`update public.participants set track_id = $1 where id = $2`, [tracks[0], pid])).rejects.toThrow(
       /عمر المشارك خارج حدّ هذا المسار/,
     );
