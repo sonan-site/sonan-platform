@@ -5,5 +5,5 @@ import { LegalPage } from "../legal";
 export const metadata: Metadata = { title: "شروط الاستخدام" };
 
 export default function TermsPage() {
-  return <LegalPage title="شروط الاستخدام" items={TERMS} />;
+  return <LegalPage title="شروط الاستخدام" clauses={TERMS} />;
 }

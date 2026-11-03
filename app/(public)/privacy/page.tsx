@@ -5,5 +5,5 @@ import { LegalPage } from "../legal";
 export const metadata: Metadata = { title: "سياسة الخصوصية" };
 
 export default function PrivacyPage() {
-  return <LegalPage title="سياسة الخصوصية" items={PRIVACY} />;
+  return <LegalPage title="سياسة الخصوصية" clauses={PRIVACY} />;
 }

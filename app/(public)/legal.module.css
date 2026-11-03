@@ -1,24 +1,44 @@
 .page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
   max-inline-size: 42rem;
   margin-inline: auto;
   padding-block: var(--space-8);
 }
 
 .title {
-  margin: 0 0 var(--space-6);
+  margin: 0;
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
 }
 
-.list {
+.clause {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+}
+
+.text {
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   margin: 0;
   padding-inline-start: var(--space-6);
   line-height: var(--leading-relaxed);
 }
 
-.item::marker {
+.points li::marker {
   color: var(--color-text-muted);
 }
