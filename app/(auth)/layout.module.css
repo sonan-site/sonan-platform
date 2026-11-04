@@ -267,6 +267,17 @@
   font-size: var(--text-sm);
 }
 
+/* تحت موعد الإغلاق إن وُجد، وبلونٍ ينبّه: من لا تنطبق عليه الشروط يعرف قبل أن يُنشئ حسابه. */
+.gateEligibility {
+  margin: calc(-1 * var(--space-3)) 0 var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
 .skinTitle {
   font-family: var(--font-display);
   font-weight: var(--weight-medium);

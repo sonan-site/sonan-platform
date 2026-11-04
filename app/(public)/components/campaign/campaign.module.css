@@ -258,6 +258,12 @@
   margin-block-start: var(--space-8);
 }
 
+.eligibility {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  opacity: 0.85;
+}
+
 .countdown {
   display: flex;
   align-items: center;

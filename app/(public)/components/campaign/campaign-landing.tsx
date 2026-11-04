@@ -158,6 +158,8 @@ export function CampaignLanding({ program, visitor }: { program: PublicProgram; 
                   </a>
                 ) : null}
               </div>
+              {/* الشروط قبل إنشاء الحساب، لا بعده (قرار الراعي ٥ نوفمبر). */}
+              {open && data.eligibility ? <p className={styles.eligibility}>{data.eligibility}</p> : null}
               {countdown ? (
                 <div className={styles.countdown}>
                   <div className={styles.cdLabel}>
@@ -248,6 +250,7 @@ export function CampaignLanding({ program, visitor }: { program: PublicProgram; 
                   <li>اختر مسارك وأقرّ بالشروط</li>
                 </ol>
                 <div className={styles.submitRow}>{registerButton}</div>
+                {open && data.eligibility ? <p className={styles.eligibility}>{data.eligibility}</p> : null}
               </div>
             </div>
           </div>

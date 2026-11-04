@@ -5,6 +5,7 @@ import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { getShowcase } from "@/lib/settings/showcase-server";
 import { createClient } from "@/lib/db/server";
 import { dateParts, lastOpenDay, now } from "@/lib/format";
+import { eligibilityNote } from "@/lib/programs/eligibility-note";
 import { AuthChrome } from "./auth-chrome";
 import type { CampaignGate } from "./campaign-gate";
 
@@ -14,19 +15,28 @@ async function campaignGate(slug: string | null): Promise<CampaignGate | null> {
   const db = await createClient();
   const { data } = await db
     .from("programs")
-    .select("name, registration_opens_at, registration_closes_at")
+    .select("name, registration_opens_at, registration_closes_at, min_age, allowed_gender, require_saudi_phone")
     .eq("slug", slug)
     .maybeSingle();
   if (!data) return null;
+  const eligibility = eligibilityNote({
+    minAge: data.min_age,
+    allowedGender: data.allowed_gender,
+    requireSaudiPhone: data.require_saudi_phone,
+  });
   const at = now();
   const open =
     (!data.registration_opens_at || at >= new Date(data.registration_opens_at)) &&
     (!data.registration_closes_at || at < new Date(data.registration_closes_at));
   const day = data.registration_closes_at ? `${lastOpenDay(data.registration_closes_at)}T12:00:00Z` : null;
-  if (!open || !day) return { name: data.name, closing: null };
+  if (!open || !day) return { name: data.name, closing: null, eligibility };
   const h = dateParts(day, "hijri");
   const g = dateParts(day, "gregory");
-  return { name: data.name, closing: `آخر يوم للتسجيل ${h.day} ${h.month} ${h.year}هـ (${g.day} ${g.month})` };
+  return {
+    name: data.name,
+    closing: `آخر يوم للتسجيل ${h.day} ${h.month} ${h.year}هـ (${g.day} ${g.month})`,
+    eligibility,
+  };
 }
 
 /**

@@ -14,6 +14,8 @@ export type CampaignGate = {
   name: string;
   /** «يُغلق التسجيل …» والتسجيل مفتوح — وإلا فارغ. */
   closing: string | null;
+  /** شروط الأهلية قبل إنشاء الحساب (`lib/programs/eligibility-note.ts`) — فارغ = بلا شرط. */
+  eligibility: string | null;
 };
 
 const GateContext = createContext<CampaignGate | null>(null);

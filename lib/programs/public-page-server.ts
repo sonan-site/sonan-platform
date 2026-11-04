@@ -5,6 +5,7 @@ import { isBlockType, type BlockType } from "./blocks";
 import { registrationStates } from "./registration-server";
 import type { RegistrationState } from "./registration";
 import { composeSchedule, type ScheduleEntry } from "./schedule";
+import { eligibilityNote } from "./eligibility-note";
 
 /**
  * بيانات الصفحة المعلنة لبرنامج — **مصدرٌ واحد** لعارض العناصر (`/p/[slug]`)
@@ -51,6 +52,8 @@ export type BlockData = {
   faq: { id: string; question: string; answer: string; category: string }[];
   /** جهة التواصل كما كتبتها الإدارة («شؤون الطلاب: 05…») — في التذييل والدليل. */
   contact: string;
+  /** سطر شروط الأهلية تحت زرّ التسجيل — فارغ = بلا شرط (`eligibility-note.ts`). */
+  eligibility?: string | null;
   attachments: Map<string, string>;
 };
 
@@ -69,7 +72,7 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
   const { data: program, error } = await db
     .from("programs")
     .select(
-      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_many, contact",
+      "id, name, summary, participant_label, registration_opens_at, registration_closes_at, unit_many, contact, min_age, allowed_gender, require_saudi_phone",
     )
     .eq("slug", slug)
     .is("deleted_at", null)
@@ -135,6 +138,11 @@ export async function loadPublicProgram(db: Db, slug: string): Promise<PublicPro
       opensAt: program.registration_opens_at,
       unitLabel: program.unit_many ?? "",
       contact: program.contact ?? "",
+      eligibility: eligibilityNote({
+        minAge: program.min_age,
+        allowedGender: program.allowed_gender,
+        requireSaudiPhone: program.require_saudi_phone,
+      }),
       schedule: composeSchedule(
         (scheduleResult.data ?? []).map((r) => ({
           id: r.id,

@@ -116,7 +116,11 @@ function SignUpForm() {
   return (
     <>
       {gate ? (
-        <GateIntro gate={gate} title="التسجيل في المسابقة" lede="أنشئ حسابك أولاً، ثم أكمل بياناتك واختر مسارك." />
+        <>
+          <GateIntro gate={gate} title="التسجيل في المسابقة" lede="أنشئ حسابك أولاً، ثم أكمل بياناتك واختر مسارك." />
+          {/* فوق زرَّي البريد وGoogle معاً: آخر نقطة قبل إنشاء الحساب (قرار الراعي ٥ نوفمبر). */}
+          {gate.eligibility ? <p className={styles.gateEligibility}>{gate.eligibility}</p> : null}
+        </>
       ) : (
         <>
           <h1 className={styles.title}>إنشاء حساب</h1>
