@@ -1,0 +1,29 @@
+name: health
+
+# ══ جاهزية الموقع الحيّ كل ساعة (قرار الراعي ٥ نوفمبر) ══
+#
+# صامتٌ ما دام كل شيء سليماً؛ وإن فشل أرسل GitHub بريداً إلى آخر من عدّل
+# جدولته. بلا سرّ ولا تثبيت حزم: يقرأ ما يراه الزائر بـ`fetch`.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: فحص الموقع
+        run: node tech/ops/health-check.ts
