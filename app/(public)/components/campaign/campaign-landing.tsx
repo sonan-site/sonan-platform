@@ -145,6 +145,11 @@ export function CampaignLanding({ program, visitor }: { program: PublicProgram; 
               <h1 className={styles.title}>{hero?.title ?? data.programName}</h1>
               {pill ? <div className={styles.pill}>{pill.title}</div> : null}
               <p className={styles.lede}>{hero?.subtitle || data.programSummary}</p>
+              {/* الداعم بعيداً عن صفّ جهتَي الإشراف، بلا عبارة: الاسم في الشعار (قرار الراعي ٤ نوفمبر). */}
+              <div className={styles.sponsor}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
+                <img src="/brand/aldohyan-white.webp" alt="أوقاف الضحيان" />
+              </div>
               <div className={styles.heroCta}>
                 {registerButton}
                 {tracks.length > 0 ? (

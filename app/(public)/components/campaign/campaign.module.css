@@ -241,6 +241,15 @@
   font-size: var(--c-fs-lede);
 }
 
+.sponsor {
+  margin-block-start: var(--space-6);
+}
+
+.sponsor img {
+  block-size: 84px;
+  inline-size: auto;
+}
+
 .heroCta {
   display: flex;
   flex-wrap: wrap;
@@ -943,6 +952,11 @@
   block-size: 84px;
 }
 
+.foot .logoSponsor {
+  block-size: 84px;
+  inline-size: auto;
+}
+
 .foot .logoGov {
   block-size: 62px;
   inline-size: auto;
@@ -1071,6 +1085,15 @@
     block-size: 54px;
   }
 
+  .sponsor {
+    display: flex;
+    justify-content: center;
+  }
+
+  .sponsor img {
+    block-size: 68px;
+  }
+
   .title {
     white-space: normal;
   }
@@ -1195,6 +1218,16 @@
 
   .logoGroup:nth-child(2) {
     border-inline-start: 0;
+  }
+
+  /* الداعم صفٌّ وحده تحت الشريك والترخيص، كشعار الجمعية فوقهما. */
+  .logoGroup:has(.logoSponsor) {
+    flex-basis: 100%;
+    border: 0;
+  }
+
+  .foot .logoSponsor {
+    block-size: 64px;
   }
 
   /* الجوال (قرار الراعي ٢٦ أكتوبر): شعارٌ متوسط · الشريك والترخيص متقابلان · التواصل صفٌّ واحد. */

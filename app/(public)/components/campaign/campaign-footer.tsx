@@ -40,6 +40,10 @@ export function CampaignFooter({ programName, contact }: { programName: string; 
               رقم الترخيص <b>ACTV16701</b>
             </span>
           </div>
+          <div className={styles.logoGroup}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
+            <img className={styles.logoSponsor} src="/brand/aldohyan-white.webp" alt="أوقاف الضحيان" />
+          </div>
         </div>
         <ul className={styles.contact}>
           {own ? (
