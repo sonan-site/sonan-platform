@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { birthYears, daysInMonth, monthGrid, parseDateInput, toDateValue } from "./calendar";
+import { ageLabel, ageOn, birthYears, daysInMonth, initialMonth, monthGrid, parseDateInput, toDateValue } from "./calendar";
 
 describe("حساب التقويم", () => {
   it("يقرأ التاريخ الصحيح ويرفض ما ليس تاريخاً", () => {
@@ -37,5 +37,26 @@ describe("حساب التقويم", () => {
     const years = birthYears();
     expect(years).toHaveLength(101);
     expect(years[0]! - years[100]!).toBe(100);
+  });
+
+  it("الميلاد الفارغ يُفتح بلا سنة، وذو القيمة على شهرها", () => {
+    expect(initialMonth("", "birth")).toEqual({ year: null, month: 1 });
+    expect(initialMonth("2016-05-20", "birth")).toEqual({ year: 2016, month: 5 });
+    expect(initialMonth("", "event").year).not.toBeNull();
+  });
+
+  it("العمر بالسنوات الكاملة يوم الحساب", () => {
+    const at = new Date("2026-11-05T09:00:00Z");
+    expect(ageOn("2016-11-05", at)).toBe(10);
+    expect(ageOn("2016-11-06", at)).toBe(9);
+    expect(ageOn("2027-01-01", at)).toBeNull();
+    expect(ageOn("", at)).toBeNull();
+  });
+
+  it("نص العمر تحت الحقل", () => {
+    const at = new Date("2026-11-05T09:00:00Z");
+    expect(ageLabel("2016-01-01", at)).toBe("العمر: 10 سنوات");
+    expect(ageLabel("2006-01-01", at)).toBe("العمر: 20 سنة");
+    expect(ageLabel("", at)).toBeNull();
   });
 });

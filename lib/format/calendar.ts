@@ -75,15 +75,35 @@ export function eventYears(): number[] {
   return Array.from({ length: 5 }, (_, i) => current - 1 + i);
 }
 
+/** ما يعرضه التقويم: السنة فارغة حتى تُختار في تقويم ميلادٍ لا قيمة له. */
+export type PickerView = { year: number | null; month: number };
+
 /**
- * الشهر المفتوح عند فتح التقويم: شهر القيمة، وإلا فسنةٌ معقولة لميلاد بالغ —
- * أو الشهر الجاري لموعدٍ قريب.
+ * الشهر المفتوح عند فتح التقويم: شهر القيمة، وإلا فالشهر الجاري لموعدٍ قريب.
+ * والميلاد الفارغ بلا سنة: كان يُفتح على سنةٍ لبالغ (قبل عشرين عاماً)، فيضغط وليّ الأمر يوماً
+ * ولا ينتبه للسنة، فيُسجَّل ابنه ذو العشر سنين ابنَ عشرين (٥ نوفمبر).
  */
-export function initialMonth(value: string, kind: "birth" | "event" = "birth"): YearMonth {
+export function initialMonth(value: string, kind: "birth" | "event" = "birth"): PickerView {
   const parsed = parseDateInput(value);
   if (parsed) return { year: parsed.year, month: parsed.month };
   const today = toDateInput(now());
-  const current = Number(today.slice(0, 4));
-  if (kind === "event") return { year: current, month: Number(today.slice(5, 7)) };
-  return { year: current - 20, month: 1 };
+  if (kind === "event") return { year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) };
+  return { year: null, month: 1 };
+}
+
+/** العمر بالسنوات الكاملة يوم `at` — أو `null` لما ليس تاريخاً أو كان بعده. */
+export function ageOn(value: string, at: Date): number | null {
+  const birth = parseDateInput(value);
+  if (!birth) return null;
+  const day = toDateInput(at);
+  const [y, m, d] = [Number(day.slice(0, 4)), Number(day.slice(5, 7)), Number(day.slice(8, 10))];
+  const age = y - birth.year - (m < birth.month || (m === birth.month && d < birth.day) ? 1 : 0);
+  return age < 0 ? null : age;
+}
+
+/** «العمر: 10 سنوات» تحت حقل الميلاد — فالسنة الخاطئة تُرى رقماً قبل الحفظ. */
+export function ageLabel(value: string, at: Date = now()): string | null {
+  const age = ageOn(value, at);
+  if (age === null) return null;
+  return `العمر: ${age} ${age >= 3 && age <= 10 ? "سنوات" : "سنة"}`;
 }

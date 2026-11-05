@@ -4,6 +4,7 @@ import { CalendarDays, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
+  ageLabel,
   birthYears,
   eventYears,
   initialMonth,
@@ -21,6 +22,8 @@ import styles from "./date-field.module.css";
  * تقويم المتصفح شكله من نظام التشغيل لا من المنصة، وارتفاعه يخالف بقية
  * الخانات. وهنا: **الشهر والسنة قائمتان** لا أسهم تُضغط مئة مرة — فسنة الميلاد
  * نقرتان. والقيمة تُرسَل `YYYY-MM-DD` كما كانت، فلا تتغيّر قواعد التحقق.
+ *
+ * والميلاد الفارغ يُفتح بلا سنة: الأيام لا تظهر حتى تُختار، والعمر يظهر تحت الحقل بعد الاختيار.
  */
 export function DateField({
   id,
@@ -58,10 +61,13 @@ export function DateField({
   }, [open]);
 
   const selected = parseDateInput(value);
-  const weeks = monthGrid(view.year, view.month);
+  const year = view.year;
+  const weeks = year === null ? [] : monthGrid(year, view.month);
+  const age = kind === "birth" ? ageLabel(value) : null;
 
   function pick(day: number) {
-    setValue(toDateValue({ year: view.year, month: view.month, day }));
+    if (year === null) return;
+    setValue(toDateValue({ year, month: view.month, day }));
     setOpen(false);
   }
 
@@ -106,23 +112,32 @@ export function DateField({
             <select
               className={styles.pick}
               aria-label="السنة"
-              value={view.year}
+              value={view.year ?? ""}
               onChange={(e) => setView((v) => ({ ...v, year: Number(e.target.value) }))}
             >
-              {(kind === "event" ? eventYears() : birthYears()).map((year) => (
-                <option key={year} value={year}>
+              {view.year === null ? (
+                <option value="" disabled>
+                  اختر السنة
+                </option>
+              ) : null}
+              {(kind === "event" ? eventYears() : birthYears()).map((y) => (
+                <option key={y} value={y}>
                   {/* السنة تسميةٌ لا كمّية: بلا فاصل الآلاف («2,006»). */}
-                  {String(year)}
+                  {String(y)}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className={styles.weekdays} aria-hidden>
-            {WEEKDAYS.map((day) => (
-              <span key={day}>{day.slice(0, 3)}</span>
-            ))}
-          </div>
+          {year === null ? (
+            <p className={styles.yearFirst}>اختر السنة أولاً</p>
+          ) : (
+            <div className={styles.weekdays} aria-hidden>
+              {WEEKDAYS.map((day) => (
+                <span key={day}>{day.slice(0, 3)}</span>
+              ))}
+            </div>
+          )}
 
           <div className={styles.grid}>
             {weeks.flat().map((day, i) =>
@@ -136,7 +151,7 @@ export function DateField({
                   aria-current={
                     selected?.day === day &&
                     selected.month === view.month &&
-                    selected.year === view.year
+                    selected.year === year
                       ? "date"
                       : undefined
                   }
@@ -149,6 +164,8 @@ export function DateField({
           </div>
         </div>
       ) : null}
+
+      {age ? <p className={styles.age}>{age}</p> : null}
     </div>
   );
 }

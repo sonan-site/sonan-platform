@@ -116,3 +116,19 @@
   outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
+
+/* الميلاد الفارغ: مكان الأيام حتى تُختار السنة. */
+.yearFirst {
+  margin: 0;
+  padding-block: var(--space-6);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* «العمر: 10 سنوات» تحت الحقل — السنة الخاطئة تُرى رقماً قبل الحفظ. */
+.age {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
