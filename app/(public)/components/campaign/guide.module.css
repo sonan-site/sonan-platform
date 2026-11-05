@@ -186,6 +186,48 @@
   font-size: var(--text-sm);
 }
 
+/* معايير التقييم — بطاقاتٌ بعرض الصفحة بدل شبكة المسارات، فجدول الخصم يطول. */
+.stack {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
+.criteria {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criteria li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-4);
+  padding-block-end: var(--space-3);
+  border-block-end: 1px solid var(--c-line-soft);
+}
+
+.criteria b {
+  color: var(--c-white);
+}
+
+.criteria span {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: start;
+  color: var(--c-gold);
+  font-weight: var(--weight-bold);
+  white-space: nowrap;
+}
+
+.criteria p {
+  grid-column: 1;
+  color: var(--c-muted);
+  font-size: var(--text-sm);
+}
+
 .rules,
 .terms {
   display: grid;
@@ -281,6 +323,15 @@
   .updates li {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-1);
+  }
+
+  .criteria li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .criteria span {
+    grid-column: 1;
+    grid-row: auto;
   }
 }
 

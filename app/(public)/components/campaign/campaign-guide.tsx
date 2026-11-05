@@ -2,6 +2,18 @@ import Link from "next/link";
 import { BookOpen, Check } from "lucide-react";
 import { formatDate, formatDateBoth, formatNumber } from "@/lib/format";
 import { campaignStages, campaignTracks, collectBlocks, countWith, parseContact } from "@/lib/programs/campaign-content";
+import {
+  AWARD_INTRO,
+  CRITERIA_INTRO,
+  DEDUCTIONS,
+  DEDUCTIONS_INTRO,
+  DEDUCTIONS_NOTE,
+  SCORING_STEPS,
+  awardNotes,
+  awardRules,
+  deductionLabel,
+  questionCountRows,
+} from "@/lib/programs/judging-criteria";
 import type { PublicProgram } from "@/lib/programs/public-page-server";
 import { Accented, CampaignFaq, CampaignTimeline } from "./campaign-sections";
 import { GuidePrint } from "./guide-print";
@@ -64,12 +76,16 @@ export function CampaignGuide({
   const contact = parseContact(data.contact);
   const latest = updates[0] ?? null;
   const trackName = new Map(data.tracks.map((t) => [t.id, t.name]));
+  /** معايير التقييم تخصّ الاختبار الشفهي — فلا قسم لبرنامجٍ بلا نهائيٍّ شفهي. */
+  const finalExam = exams.find((e) => e.examType === "oral") ?? null;
+  const questionRows = questionCountRows(data.tracks);
 
   const toc: [string, string, boolean][] = [
     ["about", "عن المسابقة", true],
     ["stages", timeline?.heading || "مراحل المسابقة", stages.length > 0],
     ["tracks", "المسارات والجوائز", tracks.length > 0],
     ["exams", "الاختبارات", exams.length > 0],
+    ["criteria", "معايير التقييم", finalExam !== null],
     ["terms", terms?.heading || "الشروط والأحكام", Boolean(terms && terms.items.length > 0)],
     ["faq", faqBlock?.heading || "الأسئلة الشائعة", data.faq.length > 0],
     ["contact", "التواصل", contact !== null],
@@ -226,6 +242,75 @@ export function CampaignGuide({
                 ))}
               </div>
               <p className={guide.note}>مواعيد الاختبارات في «{timeline?.heading || "مراحل المسابقة"}» أعلاه.</p>
+            </div>
+          </section>
+        ) : null}
+
+        {finalExam ? (
+          <section className={styles.block} id="criteria">
+            <div className={styles.wrap}>
+              <div className={styles.head}>
+                <h2>
+                  <Accented text="معايير التقييم" />
+                </h2>
+              </div>
+              <p className={guide.lede}>{CRITERIA_INTRO}</p>
+              <div className={guide.stack}>
+                {questionRows ? (
+                  <article className={`${guide.card} ${guide.keep}`} aria-labelledby="criteria-counts">
+                    <h3 id="criteria-counts">عدد الأسئلة</h3>
+                    <dl className={guide.prizes}>
+                      {questionRows.map((r) => (
+                        <div key={r.id}>
+                          <dt>{r.name}</dt>
+                          <dd>{countWith(r.count, QUESTIONS, formatNumber)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </article>
+                ) : null}
+
+                <article className={`${guide.card} ${guide.keep}`} aria-labelledby="criteria-deductions">
+                  <h3 id="criteria-deductions">معايير الخصم</h3>
+                  <p>{DEDUCTIONS_INTRO}</p>
+                  <ul className={guide.criteria}>
+                    {DEDUCTIONS.map((d) => (
+                      <li key={d.name}>
+                        <b>{d.name}</b>
+                        <span>{deductionLabel(d.points)}</span>
+                        <p>{d.description}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className={guide.note}>{DEDUCTIONS_NOTE}</p>
+                </article>
+
+                <article className={`${guide.card} ${guide.keep}`} aria-labelledby="criteria-scoring">
+                  <h3 id="criteria-scoring">كيف تُحتسب درجتك</h3>
+                  <ul className={guide.rules}>
+                    {SCORING_STEPS.map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ul>
+                </article>
+
+                {finalExam.awardPercentage ? (
+                  <article className={`${guide.card} ${guide.keep}`} aria-labelledby="criteria-award">
+                    <h3 id="criteria-award">شروط الجائزة</h3>
+                    <p>{AWARD_INTRO}</p>
+                    <ul className={guide.rules}>
+                      {awardRules(finalExam.awardPercentage).map((r) => (
+                        <li key={r}>{r}</li>
+                      ))}
+                    </ul>
+                    {awardNotes(finalExam.awardPercentage).map((n) => (
+                      <p key={n} className={guide.note}>
+                        {n}
+                      </p>
+                    ))}
+                  </article>
+                ) : null}
+              </div>
             </div>
           </section>
         ) : null}
