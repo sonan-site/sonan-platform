@@ -45,7 +45,15 @@ async function signedInUser(tag: string): Promise<{ id: string; db: Db }> {
     email,
     password: PASSWORD,
     email_confirm: true,
-    user_metadata: { full_name: `حساب اختبار ${tag}`, phone },
+    user_metadata: {
+      first_name: "حساب",
+      father_name: "اختبار",
+      family_name: tag,
+      gender: "male",
+      birth_date: "2010-01-01",
+      nationality: "SA",
+      phone,
+    },
   });
   if (error || !data.user) throw error ?? new Error("createUser");
   created.push(data.user.id);
