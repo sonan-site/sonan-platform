@@ -2676,6 +2676,33 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_purge_queue: {
+        Row: {
+          bucket: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       task_fields: {
         Row: {
           count_unit: string | null
@@ -2980,33 +3007,6 @@ export type Database = {
           },
         ]
       }
-      storage_purge_queue: {
-        Row: {
-          bucket: string
-          created_at: string
-          deleted_at: string | null
-          id: string
-          path: string
-          updated_at: string
-        }
-        Insert: {
-          bucket: string
-          id?: string
-          path: string
-          created_at?: string
-          deleted_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bucket?: string
-          id?: string
-          path?: string
-          created_at?: string
-          deleted_at?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       voices: {
         Row: {
           body: string
@@ -3140,6 +3140,10 @@ export type Database = {
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_archive_voice: { Args: { p_id: string }; Returns: undefined }
+      fn_attach_voice_image: {
+        Args: { p_path: string; p_voice_id: string }
+        Returns: undefined
+      }
       fn_attempt_deadline: { Args: { p_attempt_id: string }; Returns: string }
       fn_attempt_done: { Args: { p_attempt_id: string }; Returns: boolean }
       fn_attempt_score: {
@@ -3151,10 +3155,6 @@ export type Database = {
         }[]
       }
       fn_attempt_state: { Args: { p_attempt_id: string }; Returns: Json }
-      fn_attach_voice_image: {
-        Args: { p_path: string; p_voice_id: string }
-        Returns: undefined
-      }
       fn_attention_items: {
         Args: never
         Returns: {
@@ -3775,10 +3775,10 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          image_path: string
           kind: string
           replied_at: string
           reply: string
-          image_path: string
           reply_unseen: boolean
           status: string
           team: string
