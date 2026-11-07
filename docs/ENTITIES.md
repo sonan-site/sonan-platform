@@ -121,7 +121,7 @@
 | `entity_table` | text | الكيان المرتبط |
 | `entity_id` | uuid | |
 
-### `storage_purge_queue` — ملفاتٌ تنتظر الحذف · جديد (الهجرة `20261102100000` · `adr/0054`)
+### `storage_purge_queue` — ملفاتٌ تنتظر الحذف · جديد (الهجرة `20261107100000` · `adr/0054`)
 
 | العمود | النوع | ملاحظات |
 |---|---|---|
@@ -301,7 +301,7 @@ SQL لا يحذف ملفاً من التخزين — فـ`fn_purge_account` يد
 | `reply` | text · قابل للإفراغ | ردٌّ واحد (٢–١٠٠٠) يُعدَّل — والتعديل يعيده غير مقروء |
 | `replied_by` · `replied_by_label` | uuid · text | الرادّ واسمه نصاً — للإدارة وحدها؛ الطالب يرى «فريق {البرنامج}». ومحو الرادّ يطمس اسمه |
 | `replied_at` · `reply_seen_at` · `closed_at` | timestamptz | `reply_seen_at` فارغٌ مع ردٍّ = نقطةٌ على زرّ «صوتك» |
-| `image_path` · `image_bytes` | text · bigint · قابلان للإفراغ معاً | الصورة المرفقة (الهجرة `20261102100000`): `<user_id>/<id>/<uuid>.jpg` في حاوية `voices`، والحجم كما قاسه التخزين. يكتبهما `fn_attach_voice_image` وحده، مرّةً واحدة |
+| `image_path` · `image_bytes` | text · bigint · قابلان للإفراغ معاً | الصورة المرفقة (الهجرة `20261107100000`): `<user_id>/<id>/<uuid>.jpg` في حاوية `voices`، والحجم كما قاسه التخزين. يكتبهما `fn_attach_voice_image` وحده، مرّةً واحدة |
 
 **بلا منفذٍ مباشر:** قراءةٌ ممنوحة بسياسةٍ لا تُرجع صفّاً، وكل قراءة وكتابة بدوالّ `security definer`: `fn_submit_voice` (حدّ ٥ رسائل في يوم الرياض بقفلٍ على المستخدم) · `fn_my_voices` · `fn_my_voices_unseen` · `fn_mark_voices_seen` — للطالب؛ و`fn_inbox_list` · `fn_voice_detail` (ومعها هوية المرسِل وإن لم يملك القارئ `participants.read`) · `fn_reply_voice` · `fn_set_voice_status` · `fn_archive_voice` (تخرج من الصندوق وتبقى عند صاحبها «مغلقة») — لحامل **`voices.manage`** على برنامج الرسالة، والعام يرى ما بلا برنامج. والجديدة في «ما يحتاج انتباهك» (`voice_new`).
 
