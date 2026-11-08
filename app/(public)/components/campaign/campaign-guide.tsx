@@ -15,7 +15,7 @@ import {
   questionCountRows,
 } from "@/lib/programs/judging-criteria";
 import type { PublicProgram } from "@/lib/programs/public-page-server";
-import { Accented, CampaignFaq, CampaignTimeline } from "./campaign-sections";
+import { Accented, AskLink, CampaignFaq, CampaignTimeline } from "./campaign-sections";
 import { GuidePrint } from "./guide-print";
 import styles from "./campaign.module.css";
 import guide from "./guide.module.css";
@@ -52,6 +52,7 @@ export function CampaignGuide({
   exams,
   updates,
   printedOn,
+  ask,
 }: {
   program: PublicProgram;
   /** أبواب كل مسار بعدد وحداته منها. */
@@ -63,6 +64,8 @@ export function CampaignGuide({
   updates: GuideUpdate[];
   /** «اليوم» — لسطر «طُبع في» في النسخة المطبوعة. */
   printedOn: string;
+  /** رابط المساعد (adr/0057) — غيابه = موقوف فلا زرّ. */
+  ask?: string | undefined;
 }) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
@@ -128,6 +131,11 @@ export function CampaignGuide({
                   </a>
                 ))}
             </div>
+            {ask ? (
+              <div className={guide.noPrint}>
+                <AskLink href={ask} />
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -335,7 +343,7 @@ export function CampaignGuide({
           </section>
         ) : null}
 
-        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} /> : null}
+        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} ask={ask} /> : null}
 
         {contact ? (
           <section className={styles.block} id="contact">

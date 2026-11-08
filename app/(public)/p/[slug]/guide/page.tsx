@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { now, toDateInput } from "@/lib/format";
+import { askHref } from "@/lib/ask/ask-server";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { CampaignGuide, type GuideExam, type GuideUpdate } from "../../../components/campaign/campaign-guide";
@@ -77,6 +78,6 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const updates: GuideUpdate[] = (updatesResult.data ?? []).map((u) => ({ id: u.id, date: u.entry_date, body: u.body }));
 
   return (
-    <CampaignGuide program={program} sections={sections} materials={materials} exams={exams} updates={updates} printedOn={toDateInput(now())} />
+    <CampaignGuide program={program} sections={sections} materials={materials} exams={exams} updates={updates} printedOn={toDateInput(now())} ask={await askHref(slug)} />
   );
 }

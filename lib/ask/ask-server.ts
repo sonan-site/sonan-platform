@@ -2,6 +2,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
+import { cache } from "react";
 import { getSession } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/db/service-role";
 import { createClient } from "@/lib/db/server";
@@ -44,6 +45,14 @@ async function config(): Promise<{ enabled: boolean; model: string }> {
     model: typeof model === "string" && model ? model : "claude-haiku-5-5",
   };
 }
+
+/**
+ * رابط المساعد لبرنامجٍ — أو لا شيء فلا يظهر زرّه: المساعد الموقوف (أو بلا مفتاح) لا مدخل له،
+ * ولا يُعلن ما لا يعمل.
+ */
+export const askHref = cache(async (slug: string): Promise<string | undefined> =>
+  (await config()).enabled ? `/p/${slug}/ask` : undefined,
+);
 
 /** دلو الزائر ملخّصُ عنوانه لا العنوان نفسه — السجلّ يميّز ولا يعرف. */
 async function visitorKey(): Promise<string> {

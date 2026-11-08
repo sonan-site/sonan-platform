@@ -1283,3 +1283,22 @@
 .trackGo:active {
   transform: scale(0.98);
 }
+
+/* ══ المساعد (adr/0057) ══ */
+.askRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-6);
+  color: var(--c-cyan-soft);
+}
+
+.beta {
+  padding: 0 var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+}

@@ -23,7 +23,16 @@ import styles from "./campaign.module.css";
  */
 
 /** العنوان بكلمته الأخيرة ملوّنة — كما في التصميم المعتمد. */
-export function CampaignLanding({ program, visitor }: { program: PublicProgram; visitor: CampaignVisitor }) {
+export function CampaignLanding({
+  program,
+  visitor,
+  ask,
+}: {
+  program: PublicProgram;
+  visitor: CampaignVisitor;
+  /** رابط المساعد (adr/0057) — غيابه = موقوف فلا زرّ. */
+  ask?: string | undefined;
+}) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
   const hero = blocks.hero?.[0];
@@ -274,7 +283,7 @@ export function CampaignLanding({ program, visitor }: { program: PublicProgram; 
           </section>
         ))}
 
-        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} /> : null}
+        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} ask={ask} /> : null}
       </main>
 
       <CampaignFooter programName={data.programName} contact={data.contact} />

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { CampaignLanding } from "../../../components/campaign/campaign-landing";
+import { askHref } from "@/lib/ask/ask-server";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
@@ -25,5 +26,11 @@ export default async function CampaignPreviewPage({ params }: { params: Promise<
   if (!program) notFound();
 
   const session = await getSession();
-  return <CampaignLanding program={program} visitor={session.status === "anonymous" ? "guest" : "account"} />;
+  return (
+    <CampaignLanding
+      program={program}
+      visitor={session.status === "anonymous" ? "guest" : "account"}
+      ask={await askHref(slug)}
+    />
+  );
 }
