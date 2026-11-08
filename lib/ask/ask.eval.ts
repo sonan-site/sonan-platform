@@ -74,7 +74,7 @@ describe(`المساعد حيّاً · ${MODEL}`, () => {
     it(c.q, async () => {
       const r = await ask(client.messages, MODEL, sources, today, c.q);
       const text = r.kind === "answer" ? r.text : r.kind === "blocked" ? r.draft : "";
-      console.log(`[${kind(r)}] ${c.q}\n   ← ${text}`);
+      process.stdout.write(`[${kind(r)}] ${c.q}\n   ← ${text}\n`);
       // للمراجعة البشرية: ASK_EVAL_OUT ملفٌّ تُلحق به الأسئلة وأجوبتها.
       const file = process.env["ASK_EVAL_OUT"];
       if (file) appendFileSync(file, `س: ${c.q}\n[${kind(r)}] ${text}\n\n`);
