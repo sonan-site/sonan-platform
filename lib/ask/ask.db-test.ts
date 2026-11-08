@@ -119,6 +119,20 @@ describe("الإجابات المعتمدة", () => {
   });
 });
 
+describe("الإعداد", () => {
+  it("**الخادم يقرأ المفتاح والنموذج بالدالّة — و settings مغلقٌ دونه**", async () => {
+    const c = await as<{ enabled: boolean; model: string }>("service_role", null, `select * from public.fn_ask_config()`);
+    expect(c.error).toBeNull();
+    expect(c.rows[0]).toEqual({ enabled: true, model: "claude-haiku-5-5" });
+    expect((await as("service_role", null, `select value from public.settings where key = 'ask.enabled'`)).error).not.toBeNull();
+  });
+
+  it("والزائر والمستخدم لا يستدعيانها", async () => {
+    expect((await as("anon", null, `select * from public.fn_ask_config()`)).error).not.toBeNull();
+    expect((await as("authenticated", WRITER, `select * from public.fn_ask_config()`)).error).not.toBeNull();
+  });
+});
+
 describe("التقارير", () => {
   it("**لا إدراج مباشر — ولا لحامل الصلاحية**", async () => {
     const r = await as("authenticated", WRITER, `insert into public.ask_reports (program_id, kind, audience, question) values ($1, 'unanswered', 'visitor', 'س')`, [programA]);

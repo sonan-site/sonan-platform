@@ -3264,6 +3264,13 @@ export type Database = {
         Args: { p_answer: string; p_question: string; p_report_id: string }
         Returns: string
       }
+      fn_ask_config: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          model: string
+        }[]
+      }
       fn_ask_sources: {
         Args: { p_program_id: string }
         Returns: {

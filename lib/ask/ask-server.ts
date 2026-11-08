@@ -32,18 +32,14 @@ export type AskResult =
 type Program = { id: string; slug: string; contact: string };
 
 async function config(): Promise<{ enabled: boolean; model: string }> {
-  const { data } = await createServiceRoleClient()
-    .from("settings")
-    .select("key, value")
-    .in("key", ["ask.enabled", "ask.model"])
-    .is("scope_program_id", null)
-    .is("deleted_at", null);
-  const get = (k: string) => data?.find((r) => r.key === k)?.value;
-  const model = get("ask.model");
+  // settings مغلقٌ دون مفتاح الخدمة — الدالّة تعيد السطرين وحدهما.
+  const { data, error } = await createServiceRoleClient().rpc("fn_ask_config");
+  if (error) console.error("ask: تعذّرت قراءة الإعداد", error.message);
+  const row = data?.[0];
   return {
-    // الإعداد الغائب أو التالف = موقوف: الافتراض الآمن يُفحَص لا يُفترَض.
-    enabled: get("ask.enabled") === true && Boolean(env.ANTHROPIC_API_KEY?.trim()),
-    model: typeof model === "string" && model ? model : "claude-haiku-5-5",
+    // الإعداد الغائب أو التالف أو المتعذّر = موقوف: الافتراض الآمن يُفحَص لا يُفترَض.
+    enabled: row?.enabled === true && Boolean(env.ANTHROPIC_API_KEY?.trim()),
+    model: row?.model || "claude-haiku-5-5",
   };
 }
 
