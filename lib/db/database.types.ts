@@ -116,6 +116,107 @@ export type Database = {
           },
         ]
       }
+      ask_answers: {
+        Row: {
+          answer: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          origin: string
+          program_id: string
+          question: string
+          status: Database["public"]["Enums"]["publish_status"]
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          origin?: string
+          program_id: string
+          question: string
+          status?: Database["public"]["Enums"]["publish_status"]
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          origin?: string
+          program_id?: string
+          question?: string
+          status?: Database["public"]["Enums"]["publish_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ask_answers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ask_reports: {
+        Row: {
+          answer: string | null
+          audience: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          kind: string
+          program_id: string
+          question: string
+          resolved_answer_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          audience: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind: string
+          program_id: string
+          question: string
+          resolved_answer_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          audience?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          kind?: string
+          program_id?: string
+          question?: string
+          resolved_answer_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ask_reports_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ask_reports_resolved_answer_id_fkey"
+            columns: ["resolved_answer_id"]
+            isOneToOne: false
+            referencedRelation: "ask_answers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           created_at: string
@@ -3140,6 +3241,36 @@ export type Database = {
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_archive_voice: { Args: { p_id: string }; Returns: undefined }
+      fn_ask_overview: {
+        Args: { p_program_id: string }
+        Returns: {
+          asked_24h: number
+          open_blocked: number
+          open_flagged: number
+          open_unanswered: number
+        }[]
+      }
+      fn_ask_report: {
+        Args: {
+          p_answer?: string
+          p_audience: string
+          p_kind: string
+          p_program_id: string
+          p_question: string
+        }
+        Returns: string
+      }
+      fn_ask_resolve: {
+        Args: { p_answer: string; p_question: string; p_report_id: string }
+        Returns: string
+      }
+      fn_ask_sources: {
+        Args: { p_program_id: string }
+        Returns: {
+          answer: string
+          question: string
+        }[]
+      }
       fn_attach_voice_image: {
         Args: { p_path: string; p_voice_id: string }
         Returns: undefined

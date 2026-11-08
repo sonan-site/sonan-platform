@@ -12,6 +12,8 @@ export const clientEnvSchema = z.object({
 
 export const serverEnvSchema = clientEnvSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "مفتاح service_role مطلوب"),
+  // اختياري عمداً (adr/0057): غيابه أو فراغه يُطفئ المساعد وحده ولا يُسقط المنصة.
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;

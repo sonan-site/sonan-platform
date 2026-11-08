@@ -24,6 +24,7 @@
     "guards:report": "dotenv -e .env -- node tech/guards/run.ts --report"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.5.0",
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.112.4",
     "libphonenumber-js": "1.13.13",
