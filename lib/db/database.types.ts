@@ -3241,6 +3241,13 @@ export type Database = {
       fn_ar_digits: { Args: { p_value: string }; Returns: string }
       fn_archive_track: { Args: { p_track_id: string }; Returns: number }
       fn_archive_voice: { Args: { p_id: string }; Returns: undefined }
+      fn_ask_config: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          model: string
+        }[]
+      }
       fn_ask_overview: {
         Args: { p_program_id: string }
         Returns: {
@@ -3263,13 +3270,6 @@ export type Database = {
       fn_ask_resolve: {
         Args: { p_answer: string; p_question: string; p_report_id: string }
         Returns: string
-      }
-      fn_ask_config: {
-        Args: never
-        Returns: {
-          enabled: boolean
-          model: string
-        }[]
       }
       fn_ask_sources: {
         Args: { p_program_id: string }
