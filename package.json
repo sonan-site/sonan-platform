@@ -21,7 +21,8 @@
     "guards": "dotenv -e .env -- node tech/guards/run.ts",
     "db:backup": "dotenv -e .env -- node tech/ops/db-backup.ts",
     "load:journey": "dotenv -e .env -- node tech/load/journey-load.ts",
-    "guards:report": "dotenv -e .env -- node tech/guards/run.ts --report"
+    "guards:report": "dotenv -e .env -- node tech/guards/run.ts --report",
+    "ask:eval": "dotenv -e .env -- vitest run --config vitest.eval.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.5.0",

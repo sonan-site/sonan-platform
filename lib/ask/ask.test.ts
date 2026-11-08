@@ -102,6 +102,13 @@ describe("الإجابة", () => {
     expect(await ask(off, "x", S, T, "قصيدة")).toEqual({ kind: "refer", refer: "none" });
   });
 
+  it("**سؤال الاستيضاح يُعرض وإن عُلِّم «لم يُجب»** — وغيره لا", async () => {
+    const ask1 = fake(out({ answered: false, answer: "كم عمر المشارك؟", refer: "none" }));
+    expect(await ask(ask1, "x", S, T, "هل أقدر أسجل؟")).toEqual({ kind: "answer", text: "كم عمر المشارك؟" });
+    const off = fake(out({ answered: false, answer: "أجيب عن المسابقة فقط.", refer: "none" }));
+    expect(await ask(off, "x", S, T, "قصيدة")).toEqual({ kind: "refer", refer: "none" });
+  });
+
   it("الرفض والقطع والنص التالف ← إحالة لا نصّ ناقص", async () => {
     for (const r of [
       { stop_reason: "refusal" },

@@ -92,7 +92,10 @@ export async function ask(
   if (!isOutput(parsed)) return { kind: "refer", refer: "student_affairs" };
 
   const text = parsed.answer.trim();
-  if (!parsed.answered || !text) {
+  // سؤالُ استيضاحٍ يُعلَّم أحياناً «لم يُجب» وهو جواب (١ من ٨ في التجربة الحيّة، بجهدَي medium وhigh):
+  // فما لا إحالة فيه وينتهي باستفهام يُعرض جواباً، ويمرّ بالحارس كغيره.
+  const clarifying = !parsed.answered && parsed.refer === "none" && /[؟?]\s*$/.test(text);
+  if ((!parsed.answered && !clarifying) || !text) {
     return { kind: "refer", refer: parsed.answered ? "student_affairs" : parsed.refer };
   }
   if (unsupportedNumbers(text, system, q).length > 0) {

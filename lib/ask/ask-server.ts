@@ -7,10 +7,11 @@ import { getSession } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/db/service-role";
 import { createClient } from "@/lib/db/server";
 import { env } from "@/lib/env.server";
-import { lastOpenDay, now, toDateInput } from "@/lib/format";
+import { now } from "@/lib/format";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
 import { ask, type Reply, type Turn } from "./answer";
 import type { AskSources, Today } from "./prompt";
+import { buildSources } from "./sources";
 
 /**
  * المساعد على الخادم (adr/0057): المفتاح ← الحدّ ← المصادر ← النموذج ← الحارس ← التقرير.
@@ -95,36 +96,9 @@ async function loadSources(slug: string): Promise<{ program: Program; sources: A
   // المساعد للمنشور وحده — والمعاينة لا تستدعي نموذجاً.
   if (extra?.status !== "published" || error) return null;
 
-  const d = page.data;
-  const age = new Map((ages ?? []).map((t) => [t.id, t]));
-  const day = toDateInput(now());
   return {
-    program: { id: page.id, slug, contact: d.contact },
-    sources: {
-      programName: d.programName,
-      summary: d.programSummary,
-      eligibility: d.eligibility ?? "",
-      requireIdentity: extra.require_identity,
-      tracks: d.tracks.map((t) => ({
-        name: t.name,
-        description: t.description,
-        units: t.units,
-        remaining: t.capacity === null ? null : Math.max(0, t.capacity - t.taken),
-        minAge: age.get(t.id)?.min_age ?? null,
-        maxAge: age.get(t.id)?.max_age ?? null,
-      })),
-      unitLabel: d.unitLabel,
-      schedule: d.schedule.map((e) => ({ title: e.title, startsOn: e.startsOn, endsOn: e.endsOn, note: e.note })),
-      faq: d.faq.map((f) => ({ question: f.question, answer: f.answer, category: f.category })),
-      approved: approved ?? [],
-      contact: d.contact,
-    },
-    today: {
-      day,
-      registration: d.registration,
-      lastOpenDay: d.closesAt ? lastOpenDay(d.closesAt) : null,
-      opensOn: d.opensAt ? toDateInput(d.opensAt) : null,
-    },
+    program: { id: page.id, slug, contact: page.data.contact },
+    ...buildSources(page, { requireIdentity: extra.require_identity }, ages ?? [], approved ?? [], now()),
   };
 }
 
