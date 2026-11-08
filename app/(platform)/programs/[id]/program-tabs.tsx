@@ -35,6 +35,7 @@ export function ProgramTabs({
     { href: `${base}/exams`, label: "الاختبارات", show: canManageExams },
     { href: `${base}/page`, label: "الصفحة المعلنة", show: canWrite },
     { href: `${base}/faq`, label: "الأسئلة الشائعة", show: canWrite },
+    { href: `${base}/ask`, label: "المساعد", show: canWrite },
     { href: `${base}/participants`, label: "المشاركون", show: canReadParticipants },
   ].filter((t) => t.show);
 

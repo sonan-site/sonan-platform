@@ -1,3 +1,4 @@
+import { askHref } from "@/lib/ask/ask-server";
 import { formatRegistrationNo } from "@/lib/programs/registration";
 import { notFound } from "next/navigation";
 import { JourneyBail } from "@/components/shared/journey-bail";
@@ -284,6 +285,7 @@ export default async function JourneyDayPage({
       finals={finals}
       eligibility={eligibility}
       serverClock={clock}
+      askHref={await askHref(program.slug)}
       exams={(examsResult.data ?? []).map((e) => ({
         id: e.exam_id,
         name: e.name,
