@@ -139,6 +139,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (programId) {
     await db.query(`delete from public.audit_log where actor_id = any($1::uuid[])`, [USERS]);
+    await db.query(`delete from public.notifications where recipient_id = any($1::uuid[])`, [USERS]);
     await db.query(`delete from public.track_change_requests where participant_id in (select id from public.participants where program_id = $1)`, [programId]);
     for (const table of ["commitment_archive", "field_marks", "field_counts", "day_openings", "day_completions"]) {
       await db.query(`delete from public.${table} where participant_id in (select id from public.participants where program_id = $1)`, [programId]);

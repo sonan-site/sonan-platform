@@ -19,7 +19,8 @@ export type IconName =
   | "CalendarDays"
   | "UserRound"
   | "Gavel"
-  | "MessageSquare";
+  | "MessageSquare"
+  | "Bell";
 
 export type NavItem = {
   /** مفتاح ثابت — لا يتغيّر بتغيّر العنوان، فيصلح للاختبار وحفظ الحالة. */
@@ -131,6 +132,17 @@ export const NAVIGATION: readonly NavItem[] = [
     href: "/voices",
     icon: "MessageSquare",
     // للطالب الداخل (adr/0054) — زرٌّ في رأس صفحاته، ولو بلا مشاركة بعد.
+    permission: null,
+    primary: false,
+    headerOnly: true,
+    mode: "participant",
+  },
+  {
+    key: "notifications",
+    title: "تنبيهاتي",
+    href: "/notifications",
+    icon: "Bell",
+    // جرسٌ في رأس صفحات الطالب (adr/0055): قرار طلب انتقاله ونشر النتائج.
     permission: null,
     primary: false,
     headerOnly: true,

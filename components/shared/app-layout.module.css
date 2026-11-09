@@ -417,12 +417,12 @@
   inline-size: auto;
 }
 
-/* «صوتك» (adr/0054): نقطةٌ لردٍّ لم يُقرأ. */
-.voicesButton {
+/* نقطةٌ لما لم يُقرأ: ردّ «صوتك» (adr/0054) وجرس «تنبيهاتي» (adr/0055). */
+.dotButton {
   position: relative;
 }
 
-.voicesDot {
+.dot {
   position: absolute;
   inset-block-start: var(--space-2);
   inset-inline-end: var(--space-2);

@@ -55,9 +55,16 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   // بهوية المنصة. ومشاركاته من الجلسة نفسها، فالسؤال الوحيد الزائد عن المفتاح وفي وضع الطالب فقط.
   const featured = mode === "participant" && session.status === "active" ? await getHomeFeatured() : null;
   const skin = featured && session.status === "active" && session.programSlugs.includes(featured) ? "campaign-tint" : null;
-  // نقطة «صوتك» في وضع الطالب وحده — سؤالٌ واحد صغير.
-  const voicesUnseen =
-    mode === "participant" ? ((await (await createClient()).rpc("fn_my_voices_unseen")).data ?? 0) : 0;
+  // نقطتا «صوتك» والجرس في وضع الطالب وحده — سؤالان صغيران معاً (adr/0054 · adr/0055).
+  const [voicesUnseen, notificationsUnseen] =
+    mode === "participant"
+      ? await createClient().then((db) =>
+          Promise.all([
+            db.rpc("fn_my_voices_unseen").then((r) => r.data ?? 0),
+            db.rpc("fn_my_notifications_unseen").then((r) => r.data ?? false),
+          ]),
+        )
+      : [0, false];
 
   return (
     <AppLayout
@@ -65,6 +72,7 @@ export default async function PlatformLayout({ children }: { children: ReactNode
       mode={mode}
       skin={skin}
       voicesUnseen={voicesUnseen}
+      notificationsUnseen={notificationsUnseen}
       onSignOut={signOut}
       onSwitchMode={
         bothWays

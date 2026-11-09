@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  Bell,
   BookOpen,
   CalendarCheck,
   ChartNoAxesColumn,
@@ -58,6 +59,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   UserRound,
   Gavel,
   MessageSquare,
+  Bell,
 };
 
 const ICON_SIZE = 20;
@@ -68,7 +70,7 @@ const ICON_SIZE = 20;
  * (`/exam/*`) فتنقله ضغطةٌ خاطئة أثناء محاولته (المراجعة ح٣).
  */
 /** صفحات الطالب خارج رحلته التي يحمل رأسها الرجوعَ إليها بدل الشعار (ملاحظات الجوال ٢ · ٣). */
-const STUDENT_BACK_PAGES: ReadonlySet<string> = new Set(["/account", "/voices"]);
+const STUDENT_BACK_PAGES: ReadonlySet<string> = new Set(["/account", "/voices", "/notifications"]);
 
 const JOURNEY_PATH = /^\/journey\/([0-9a-f-]{36})(?:\/(plan|progress))?\/?$/;
 
@@ -95,6 +97,7 @@ export function AppLayout({
   mode,
   skin,
   voicesUnseen = 0,
+  notificationsUnseen = false,
   children,
 }: {
   /** مرشَّحة بصلاحيات المستخدم قبل الوصول هنا — المحجوب **يُخفى لا يُعطَّل**. */
@@ -111,6 +114,8 @@ export function AppLayout({
   skin?: "campaign-tint" | null;
   /** ردودٌ في «صوتك» لم يقرأها الطالب — نقطةٌ على زرّه (adr/0054). */
   voicesUnseen?: number;
+  /** في «تنبيهاتي» ما لم يُقرأ — نقطةٌ على الجرس، بلا عدد (adr/0055). */
+  notificationsUnseen?: boolean;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -212,12 +217,24 @@ export function AppLayout({
               {!/\/exam\//.test(pathname) ? (
               <Link
                 href={`/voices?from=${encodeURIComponent(pathname)}`}
-                className={`${styles.iconButton} ${styles.voicesButton}`}
+                className={`${styles.iconButton} ${styles.dotButton}`}
                 aria-label={voicesUnseen > 0 ? "صوتك — وصلك رد" : "صوتك"}
                 title="صوتك"
               >
                 <MessageSquare size={ICON_SIZE} aria-hidden />
-                {voicesUnseen > 0 ? <span className={styles.voicesDot} aria-hidden /> : null}
+                {voicesUnseen > 0 ? <span className={styles.dot} aria-hidden /> : null}
+              </Link>
+              ) : null}
+              {/* «تنبيهاتي» (adr/0055) — ويغيب في الاختبار الموقوت كـ«صوتك» (مراجعة الخطة م٦). */}
+              {!/\/exam\//.test(pathname) ? (
+              <Link
+                href="/notifications"
+                className={`${styles.iconButton} ${styles.dotButton}`}
+                aria-label={notificationsUnseen ? "تنبيهاتي — جديد" : "تنبيهاتي"}
+                title="تنبيهاتي"
+              >
+                <Bell size={ICON_SIZE} aria-hidden />
+                {notificationsUnseen ? <span className={styles.dot} aria-hidden /> : null}
               </Link>
               ) : null}
               <ThemeToggle className={styles.iconButton} />

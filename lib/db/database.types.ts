@@ -1660,7 +1660,9 @@ export type Database = {
           id: string
           kind: string
           payload: Json
+          read_at: string | null
           recipient_id: string
+          ref_key: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["notification_status"]
           updated_at: string
@@ -1671,7 +1673,9 @@ export type Database = {
           id?: string
           kind: string
           payload?: Json
+          read_at?: string | null
           recipient_id: string
+          ref_key?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           updated_at?: string
@@ -1682,7 +1686,9 @@ export type Database = {
           id?: string
           kind?: string
           payload?: Json
+          read_at?: string | null
           recipient_id?: string
+          ref_key?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["notification_status"]
           updated_at?: string
@@ -3776,6 +3782,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_mark_notifications_seen: { Args: { p_until: string }; Returns: number }
       fn_mark_voices_seen: { Args: never; Returns: number }
       fn_move_participant: {
         Args: { p_participant_id: string; p_session_id: string }
@@ -3872,6 +3879,24 @@ export type Database = {
           stage: Database["public"]["Enums"]["exam_stage"]
         }[]
       }
+      fn_my_notifications: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          created_at: string
+          decision: string
+          edited_at: string
+          id: string
+          kind: string
+          participant_id: string
+          program_name: string
+          source: string
+          title: string
+          track_name: string
+          unread: boolean
+        }[]
+      }
+      fn_my_notifications_unseen: { Args: never; Returns: boolean }
       fn_my_participant: { Args: { p_program_id: string }; Returns: string }
       fn_my_permissions: {
         Args: never

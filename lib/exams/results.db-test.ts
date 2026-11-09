@@ -440,8 +440,20 @@ describe("النشر", () => {
     const { rows } = await as<{ percent: string; place: number; prize_value: string }>(U[2]!, `select * from public.fn_my_final($1)`, [p.P3]);
     expect(rows[0]).toMatchObject({ percent: "95.00", place: 2, prize_value: "3000" });
 
+    // إشعار النشر (adr/0055): لكل من له نتيجةٌ في المسار — بلا نتيجةٍ في حمولته — ولا لمسارٍ لم يُنشر.
+    const notes = await db.query<{ recipient_id: string; payload: Record<string, unknown> }>(
+      `select recipient_id, payload from public.notifications where kind = 'results_published' and deleted_at is null and payload ->> 'exam_id' = $1`,
+      [examId],
+    );
+    expect(notes.rows.map((r) => r.recipient_id).sort()).toEqual(U.slice(0, 8).sort());
+    expect(Object.keys(notes.rows[0]!.payload).sort()).toEqual(["exam_id", "participant_id", "program_id", "track_id"]);
+    const mine = await as<{ kind: string; participant_id: string; track_name: string; unread: boolean }>(U[2]!, `select * from public.fn_my_notifications()`);
+    expect(mine.rows).toEqual([expect.objectContaining({ kind: "results_published", participant_id: p.P3, track_name: "الأول", unread: true })]);
+
     expect((await as(ADMIN, `select public.fn_withdraw_track_results($1, $2, 'خطأ')`, [examId, t1])).error).toMatch(/اسحب النشر أولاً/);
     expect((await as(PUB, `select public.fn_unpublish_results($1, $2, 'خطأ في الحسم')`, [examId, t1])).error).toBeNull();
+    // سحب النشر يُغيّب الإشعار.
+    expect((await as(U[2]!, `select * from public.fn_my_notifications()`)).rows).toHaveLength(0);
     const after = await one(`select status, judge_from from public.participants where id = $1`, [p.P3]);
     expect(after.status).toBe("qualified");
     expect(after.judge_from).toEqual(before); // سحب النشر لا يعيد ضبط لحظة البدء
@@ -467,13 +479,23 @@ describe("النشر", () => {
 
   it("**النشر للكلّ ذرّيٌّ بعد اعتماد كل المسارات** — وإعادته بلا أثر، وبعده يُغلق الحساب", async () => {
     expect((await approve(t2)).error).toBeNull();
+    // مشاركٌ مُحي حسابه بعد الاعتماد (`user_id` فارغ): إعادة النشر تمرّ، ولا يُشعَر (مراجعة الخطة ح١).
+    await db.query(`update public.participants set user_id = null where id = $1`, [p.P7]);
     const all = await as<{ n: number }>(PUB, `select public.fn_publish_results($1) n`, [examId]);
     expect(all.error).toBeNull();
     expect(all.rows[0]!.n).toBe(2);
     expect((await as<{ n: number }>(PUB, `select public.fn_publish_results($1) n`, [examId])).rows[0]!.n).toBe(0);
+    const live = await db.query<{ recipient_id: string }>(
+      `select recipient_id from public.notifications where kind = 'results_published' and deleted_at is null and payload ->> 'exam_id' = $1`,
+      [examId],
+    );
+    expect(live.rows.map((r) => r.recipient_id).sort()).toEqual([...U.slice(0, 6), U[7]!, U[8]!].sort());
     expect((await one(`select status from public.participants where id = $1`, [p.Q1])).status).toBe("passed");
     // بعد النشر النتيجة محفوظة في اللقطة — فالانسحاب يمرّ.
     expect((await as(U[0]!, `select public.fn_withdraw_participation($1)`, [p.P1])).error).toBeNull();
+    // ويبقى إشعاره بلا رابطٍ إلى رحلةٍ غابت (مراجعة البناء م٢).
+    const kept = await as<{ kind: string; participant_id: string | null }>(U[0]!, `select kind, participant_id from public.fn_my_notifications()`);
+    expect(kept.rows).toEqual([{ kind: "results_published", participant_id: null }]);
     expect((await as(ADMIN, `select count(*)::int c from public.fn_export_results($1)`, [examId])).rows[0]).toMatchObject({ c: 9 });
   });
 });

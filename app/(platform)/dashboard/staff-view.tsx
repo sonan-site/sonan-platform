@@ -6,6 +6,7 @@ import {
   Settings,
   ShieldCheck,
   UserRound,
+  Bell,
   Gavel,
   MessageSquare,
   Users,
@@ -37,6 +38,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   UserRound,
   Gavel,
   MessageSquare,
+  Bell,
 };
 
 const ICON_SIZE = 20;

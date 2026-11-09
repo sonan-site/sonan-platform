@@ -15,13 +15,14 @@ describe("التنقّل بحسب من يدخل", () => {
       "participants",
       "programs",
       "voices",
+      "notifications",
       "audit",
       "account",
     ]);
   });
 
   it("المشارك بلا صلاحية يرى لوحته ورحلته فقط", () => {
-    expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey", "voices", "account"]);
+    expect(keys({ granted: perms(), isParticipant: true })).toEqual(["dashboard", "journey", "voices", "notifications", "account"]);
   });
 
   it("**وفي وضع الطالب «رحلتي» وحدها** — لا لوحة متابعة (ملاحظات الجوال ب١)", () => {
@@ -34,18 +35,19 @@ describe("التنقّل بحسب من يدخل", () => {
       "programs",
       "journey",
       "voices",
+      "notifications",
       "account",
     ]);
   });
 
   it("الحساب الجديد بلا صلاحية ولا مشاركة يرى لوحته فقط", () => {
-    expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "voices", "account"]);
+    expect(keys({ granted: perms(), isParticipant: false })).toEqual(["dashboard", "voices", "notifications", "account"]);
   });
 });
 
 describe("وضع الجلسة يحكم ما يُعرض", () => {
   it("**وضع المشارك لا شاشات عمل فيه** — ولو كان صاحبه مديراً", () => {
-    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual(["journey", "voices", "account"]);
+    expect(keys({ granted: ADMIN_CODES, isParticipant: true, mode: "participant" })).toEqual(["journey", "voices", "notifications", "account"]);
   });
 
   it("**ووضع الإدارة لا «رحلتي» فيه** — ولو كان صاحبه مشاركاً", () => {
@@ -59,6 +61,7 @@ describe("وضع الجلسة يحكم ما يُعرض", () => {
     expect(keys({ granted: perms("voices.manage"), isParticipant: true, mode: "participant" })).not.toContain("inbox");
     expect(keys({ granted: perms(), isParticipant: true, mode: "staff" })).not.toContain("inbox");
     expect(listNavigation(visibleNavigation({ granted: perms(), isParticipant: true, mode: "participant" })).map((i) => i.key)).not.toContain("voices");
+    expect(listNavigation(visibleNavigation({ granted: perms(), isParticipant: true, mode: "participant" })).map((i) => i.key)).not.toContain("notifications");
   });
 
   it("وبلا وضعٍ يُعرض ما تسمح به الصلاحيات كما كان", () => {

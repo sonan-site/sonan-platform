@@ -247,6 +247,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await db.query(`delete from public.audit_log where actor_id = any($1::uuid[])`, [USERS]);
+  await db.query(`delete from public.notifications where recipient_id = any($1::uuid[])`, [USERS]);
   if (programId) {
     for (const table of ["commitment_archive", "field_marks", "field_counts", "day_openings", "day_completions"]) {
       await db.query(
@@ -401,6 +402,15 @@ describe("الرفض بلا أثر", () => {
       [fullRequest],
     );
     expect(audit.rowCount).toBe(1);
+
+    // والرفض يُشعِر صاحبه (adr/0055) — مرةً واحدة، باسم المسار المطلوب.
+    const notes = await db.query<{ recipient_id: string; payload: { decision: string; to_track_id: string } }>(
+      `select recipient_id, payload from public.notifications where ref_key = $1 and deleted_at is null`,
+      [`track_change:${fullRequest}`],
+    );
+    expect(notes.rows).toEqual([
+      { recipient_id: PLAYER, payload: expect.objectContaining({ decision: "rejected", to_track_id: track.C }) },
+    ]);
   });
 
   it("المسار المؤرشَف لا يُنقل إليه", async () => {
@@ -425,6 +435,16 @@ describe("الرفض بلا أثر", () => {
     const id = await pendingRequest(participant.GONE, track.A, track.B);
     await expect(decide(ADMIN, id, "approved")).rejects.toThrow(/لم يعد في البرنامج/);
     await decide(ADMIN, id, "rejected");
+    // ومن خرج لا يُشعَر (ق٣).
+    expect((await db.query(`select 1 from public.notifications where ref_key = $1`, [`track_change:${id}`])).rowCount).toBe(0);
+  });
+
+  it("**رفض طلبٍ معلّق لمن مُحي حسابه يمرّ** — بلا إشعار (مراجعة الخطة ح١)", async () => {
+    const id = await pendingRequest(participant.ENDED, track.B, track.A);
+    await db.query(`update public.participants set user_id = null where id = $1`, [participant.ENDED]);
+    await decide(ADMIN, id, "rejected");
+    expect(await statusOfRequest(id)).toBe("rejected");
+    expect((await db.query(`select 1 from public.notifications where ref_key = $1`, [`track_change:${id}`])).rowCount).toBe(0);
   });
 });
 
@@ -454,6 +474,30 @@ describe("القبول — المادة من أولها والسجلّ باقٍ"
     );
     expect(audit.rowCount).toBe(1);
     expect(audit.rows[0]!.after).toMatchObject({ track_id: track.B, record_days: 3 });
+  });
+
+  it("**والقبول يصل صاحبه في «تنبيهاتي»** — ويُوسَم بما عُرض وحده", async () => {
+    type Note = { kind: string; decision: string; track_name: string; participant_id: string; created_at: string; unread: boolean };
+    const list = () =>
+      asUser(PLAYER, async () => (await db.query<Note>(`select kind, decision, track_name, participant_id, created_at::text, unread from public.fn_my_notifications()`)).rows);
+    const unseen = () =>
+      asUser(PLAYER, async () => (await db.query<{ v: boolean }>(`select public.fn_my_notifications_unseen() v`)).rows[0]!.v);
+
+    const notes = await list();
+    expect(notes[0]).toMatchObject({ kind: "track_change_decided", decision: "approved", track_name: "ب", participant_id: participant.PLAYER, unread: true });
+    expect(await unseen()).toBe(true);
+
+    // ما قبل المعروض لا يُوسَم.
+    await asUser(PLAYER, () => db.query(`select public.fn_mark_notifications_seen($1::timestamptz - interval '1 hour')`, [notes.at(-1)!.created_at]));
+    expect(await unseen()).toBe(true);
+    await asUser(PLAYER, () => db.query(`select public.fn_mark_notifications_seen($1::timestamptz)`, [notes[0]!.created_at]));
+    expect(await unseen()).toBe(false);
+    expect((await list()).every((n) => !n.unread)).toBe(true);
+
+    // ولا يقرأ غيره شيئاً منها، ولا يحدّثها مباشرة.
+    const other = await asUser(OTHER, async () => (await db.query(`select * from public.fn_my_notifications()`)).rows);
+    expect(other).toHaveLength(0);
+    await expect(asUser(PLAYER, () => db.query(`update public.notifications set status = 'sent'`))).rejects.toThrow(/permission denied/);
   });
 
   it("**يومه الأول في «ب» من الرتبة ١ وبوحدات «ب»** — لا يُحمَل تقدّمه في «أ»", async () => {

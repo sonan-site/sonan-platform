@@ -381,7 +381,17 @@ describe("المحو النهائي", () => {
     );
     expect(rows[0]?.email, "المحو لا يقع إلا على حساب اختبار").toMatch(/^bin-\d+@test\.local$/);
 
+    // إشعاران — حيٌّ ومحذوفٌ ناعماً (كما يتركه سحب النشر): الربط بالحساب `restrict`، فالمحو يحذفهما
+    // معاً أو يفشل (adr/0055 · مراجعة البناء م٥).
+    await db.query(
+      `insert into public.notifications (recipient_id, kind, status, ref_key, deleted_at) values
+         ($1, 'results_published', 'sent', 'results:bin-live', null),
+         ($1, 'results_published', 'sent', 'results:bin-gone', now())`,
+      [TARGET],
+    );
+
     await asUser(ADMIN, () => db.query(`select public.fn_purge_account($1)`, [TARGET]));
+    expect((await db.query(`select 1 from public.notifications where recipient_id = $1`, [TARGET])).rowCount).toBe(0);
 
     expect(await profileOf(TARGET)).toBeNull();
     const { rowCount } = await db.query(`select 1 from auth.users where id = $1`, [TARGET]);
