@@ -214,4 +214,18 @@ describe("سؤال القائمة", () => {
     const denied = await as(A, `select * from public.fn_admission_option_counts($1)`, [programId]);
     expect(denied.code).toBe("42501");
   });
+  it("**«أخرى» ببيان** (قرار الراعي ٩ نوفمبر): وحدها تُرفض، وبيانها ٢–٦٠ حرفاً، وتُعدّ تحت «أخرى»", async () => {
+    await clearParticipants();
+    expect((await register(A, { [listQ]: "أخرى" })).error).toMatch(/بغير الصيغة المقبولة/);
+    expect((await register(A, { [listQ]: "أخرى: س" })).error).toMatch(/بغير الصيغة المقبولة/);
+    expect((await register(A, { [listQ]: `أخرى: ${"س".repeat(61)}` })).error).toMatch(/بغير الصيغة المقبولة/);
+    const out = await register(A, { [listQ]: "أخرى: معلم المدرسة" });
+    expect(out.error).toBeNull();
+
+    const counts = await as<{ option: string; answered: number }>(READER, `select option, answered from public.fn_admission_option_counts($1)`, [programId]);
+    expect(counts.rows.find((r) => r.option === "أخرى")!.answered).toBe(1);
+    const others = await as<{ text: string; answered: number }>(READER, `select text, answered from public.fn_admission_other_answers($1)`, [programId]);
+    expect(others.rows).toEqual([{ text: "معلم المدرسة", answered: 1 }]);
+    expect((await as(A, `select * from public.fn_admission_other_answers($1)`, [programId])).code).toBe("42501");
+  });
 });

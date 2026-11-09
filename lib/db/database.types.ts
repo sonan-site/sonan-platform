@@ -3206,6 +3206,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_admission_list_answer_ok: {
+        Args: { p_answer: string; p_options: string[] }
+        Returns: boolean
+      }
       fn_admission_option_counts: {
         Args: { p_program_id: string }
         Returns: {
@@ -3213,6 +3217,14 @@ export type Database = {
           option: string
           ordinal: number
           question_id: string
+        }[]
+      }
+      fn_admission_other_answers: {
+        Args: { p_program_id: string }
+        Returns: {
+          answered: number
+          question_id: string
+          text: string
         }[]
       }
       fn_admission_options_valid: {

@@ -23,6 +23,7 @@ import { isNationalId, NATIONAL_ID_MESSAGE, normalizeNationalId } from "@/lib/va
  */
 
 const answerKey = /^q:([0-9a-f-]{36})$/;
+const otherKey = /^other:([0-9a-f-]{36})$/;
 
 export async function registerInProgram(
   _prev: FormState,
@@ -62,6 +63,12 @@ export async function registerInProgram(
   for (const [key, value] of form.entries()) {
     const match = answerKey.exec(key);
     if (match?.[1]) answers[match[1]] = String(value).trim();
+  }
+  // «أخرى» ببيانها (قرار الراعي ٩ نوفمبر): يُحفظ «أخرى: …»، والقاعدة ترفض «أخرى» وحدها.
+  for (const [key, value] of form.entries()) {
+    const match = otherKey.exec(key);
+    const text = String(value).trim().replace(/\s+/g, " ");
+    if (match?.[1] && answers[match[1]] === "أخرى" && text) answers[match[1]] = `أخرى: ${text}`;
   }
 
   // المشارك وإجاباته وتدقيقه **فعلٌ واحد في القاعدة** يفرض الأسئلة الإلزامية

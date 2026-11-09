@@ -38,6 +38,12 @@
   color: var(--color-text-muted);
 }
 
+/* بيان «أخرى» تحت القائمة (قرار الراعي ٩ نوفمبر). */
+.otherLabel {
+  margin-block-start: var(--space-2);
+  font-size: var(--text-sm);
+}
+
 /* «عندك سؤال قبل التسجيل؟ اسألني» — نافذة المساعد فوق النموذج (adr/0057 · قرار الراعي ٩ نوفمبر). */
 .askLine {
   margin: 0;

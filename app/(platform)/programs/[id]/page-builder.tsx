@@ -36,6 +36,8 @@ export type AdmissionRow = {
   options: string[] | null;
   /** عدد من اختار كل خيار (سؤال القائمة) — `null` لمن لا يقرأ المشاركين أو تعذّر العدّ. */
   counts: { option: string; answered: number }[] | null;
+  /** ما كتبه المسجّلون في «أخرى» مجمَّعاً بتكراره — بشرط العدّ نفسه. */
+  others: { text: string; answered: number }[] | null;
   trackId: string | null;
   trackName: string | null;
 };
@@ -261,6 +263,11 @@ export function PageBuilder({
               {q.kind === "list" && q.counts ? (
                 <span style={META}>
                   من أجاب: {q.counts.map((c) => `${c.option} ${formatNumber(c.answered)}`).join(" · ")}
+                </span>
+              ) : null}
+              {q.kind === "list" && q.others && q.others.length > 0 ? (
+                <span style={META}>
+                  في «أخرى»: {q.others.map((o) => `${o.text} ${formatNumber(o.answered)}`).join(" · ")}
                 </span>
               ) : null}
               <div style={SPACER}>

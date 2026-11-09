@@ -4,7 +4,7 @@ import { BookOpen, ExternalLink, MessageCircleQuestionMark } from "lucide-react"
 import { useActionState, useState } from "react";
 import { ActionForm } from "@/components/shared/action-form";
 import { RegisterSteps } from "@/components/shared/register-steps";
-import { Select, Textarea } from "@/components/shared/form";
+import { Input, Select, Textarea } from "@/components/shared/form";
 import type { AskSetup } from "@/lib/ask/ask-server";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { signOutToCampaign } from "@/lib/auth/sign-out";
@@ -33,6 +33,9 @@ export type TrackOption = {
   /** المتبقي من مقاعده — فارغ = بلا سقف. */
   remaining: number | null;
 };
+
+/** خيار «أخرى» في سؤال القائمة — يُطلب بيانه ويُحفظ «أخرى: …» (`fn_admission_list_answer_ok`). */
+const OTHER = "أخرى";
 
 /**
  * صفحة التسجيل بخطوات (رحلة التسجيل ت٨): ترويسة المسابقة · مؤشّر الخطوات · بطاقات
@@ -70,6 +73,8 @@ export function RegisterForm({
 }) {
   const [state, action, pending] = useActionState(registerInProgram, EMPTY_FORM_STATE);
   const [trackId, setTrackId] = useState<string>(initialTrack);
+  // أسئلة القائمة التي اختير فيها «أخرى» — يظهر تحتها حقل بيانها (قرار الراعي ٩ نوفمبر).
+  const [others, setOthers] = useState<ReadonlySet<string>>(new Set());
 
   // السؤال العام يظهر دائماً، والخاص بمسار يظهر عند اختياره.
   const visible = questions.filter((q) => q.trackId === null || q.trackId === trackId);
@@ -181,7 +186,21 @@ export function RegisterForm({
                       {q.question}
                       {q.required ? <span className={styles.req}> *</span> : null}
                     </label>
-                    <Select id={id} name={id} required={q.required} defaultValue="">
+                    <Select
+                      id={id}
+                      name={id}
+                      required={q.required}
+                      defaultValue=""
+                      onChange={(e) => {
+                        const picked = e.target.value === OTHER;
+                        setOthers((s) => {
+                          const next = new Set(s);
+                          if (picked) next.add(q.id);
+                          else next.delete(q.id);
+                          return next;
+                        });
+                      }}
+                    >
                       <option value="" disabled={q.required}>
                         اختر…
                       </option>
@@ -191,6 +210,14 @@ export function RegisterForm({
                         </option>
                       ))}
                     </Select>
+                    {others.has(q.id) ? (
+                      <>
+                        <label htmlFor={`${id}-other`} className={styles.otherLabel}>
+                          اذكرها <span className={styles.req}> *</span>
+                        </label>
+                        <Input id={`${id}-other`} name={`other:${q.id}`} required minLength={2} maxLength={60} autoFocus />
+                      </>
+                    ) : null}
                   </div>
                 );
               }

@@ -18,7 +18,7 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [programResult, blocksResult, admissionResult, tracksResult, guideResult, countsResult] = await Promise.all([
+  const [programResult, blocksResult, admissionResult, tracksResult, guideResult, countsResult, othersResult] = await Promise.all([
     db.from("programs").select("slug").eq("id", id).maybeSingle(),
     db
       .from("page_blocks")
@@ -49,6 +49,8 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
       .order("created_at", { ascending: false }),
     // عدد من اختار كل خيار من أسئلة القائمة — لمن يقرأ المشاركين وحده، وتعذّره يُخفي العدّ.
     db.rpc("fn_admission_option_counts", { p_program_id: id }),
+    // ما كُتب في «أخرى» مجمَّعاً — بالصلاحية نفسها، وتعذّره يُخفيه.
+    db.rpc("fn_admission_other_answers", { p_program_id: id }),
   ]);
 
   if (blocksResult.error || !programResult.data) {
@@ -80,6 +82,9 @@ export default async function PublicPageTab({ params }: { params: Promise<{ id: 
     counts: counts
       ? counts.filter((c) => c.question_id === q.id).map((c) => ({ option: c.option, answered: c.answered }))
       : null,
+    others: othersResult.error
+      ? null
+      : (othersResult.data ?? []).filter((o) => o.question_id === q.id).map((o) => ({ text: o.text, answered: o.answered })),
     trackId: q.track_id,
     trackName: q.track_id ? (trackNames.get(q.track_id) ?? null) : null,
   }));
