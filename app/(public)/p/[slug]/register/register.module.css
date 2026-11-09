@@ -38,6 +38,24 @@
   color: var(--color-text-muted);
 }
 
+/* «عندك سؤال قبل التسجيل؟ اسألني» — نافذة المساعد فوق النموذج (adr/0057 · قرار الراعي ٩ نوفمبر). */
+.askLine {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.askLine a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-block-size: var(--touch-target);
+  color: var(--color-accent);
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
 /* «تسجّل بحساب … لست أنت؟ خروج» (قرار الراعي ٢٧ أكتوبر). */
 .account {
   display: flex;

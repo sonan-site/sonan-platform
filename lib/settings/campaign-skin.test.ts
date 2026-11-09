@@ -40,6 +40,8 @@ describe("الصفحات العارية من الإطار", () => {
     expect(isBareCampaignPath("/p/sunan/campaign")).toBe(true);
     expect(isBareCampaignPath("/p/sunan/guide")).toBe(true);
     expect(isBareCampaignPath("/p/sunan/guide/")).toBe(true);
+    expect(isBareCampaignPath("/p/sunan/ask")).toBe(true);
+    expect(isBareCampaignPath("/p/sunan/asks")).toBe(false);
     expect(isBareCampaignPath("/p/sunan/guidebook")).toBe(false);
     expect(isBareCampaignPath("/p/sunan/register")).toBe(false);
     expect(isBareCampaignPath("/p/sunan")).toBe(false);

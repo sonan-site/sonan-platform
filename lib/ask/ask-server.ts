@@ -51,6 +51,25 @@ export const askHref = cache(async (slug: string): Promise<string | undefined> =
   (await config()).enabled ? `/p/${slug}/ask` : undefined,
 );
 
+/** ما تحتاجه نافذة المساعد — أو لا شيء فلا مدخل له. */
+export type AskSetup = { slug: string; programName: string; contact: string };
+
+/**
+ * نافذة المساعد لبرنامجٍ منشور — بالإعداد نفسه الذي يحرس السؤال، فلا يُعرض مدخلٌ لا يعمل.
+ * يُقرأ الاسم والتواصل بعميل القارئ كما تقرؤهما الصفحة.
+ */
+export const askSetup = cache(async (slug: string): Promise<AskSetup | undefined> => {
+  if (!(await config()).enabled) return undefined;
+  const { data } = await (await createClient())
+    .from("programs")
+    .select("name, contact, status")
+    .eq("slug", slug)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!data || data.status !== "published") return undefined;
+  return { slug, programName: data.name, contact: data.contact || "شؤون الطلاب" };
+});
+
 /** دلو الزائر ملخّصُ عنوانه لا العنوان نفسه — السجلّ يميّز ولا يعرف. */
 async function visitorKey(): Promise<string> {
   const forwarded = (await headers()).get("x-forwarded-for");

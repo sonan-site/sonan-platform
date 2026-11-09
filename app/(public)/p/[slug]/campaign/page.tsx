@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { ErrorState } from "@/components/shared/states";
 import { CampaignLanding } from "../../../components/campaign/campaign-landing";
-import { askHref } from "@/lib/ask/ask-server";
+import { askSetup } from "@/lib/ask/ask-server";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
@@ -30,7 +30,7 @@ export default async function CampaignPreviewPage({ params }: { params: Promise<
     <CampaignLanding
       program={program}
       visitor={session.status === "anonymous" ? "guest" : "account"}
-      ask={await askHref(slug)}
+      ask={await askSetup(slug)}
     />
   );
 }

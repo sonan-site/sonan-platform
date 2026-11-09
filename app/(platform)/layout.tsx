@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { AppLayout } from "@/components/shared/app-layout";
 import { EmptyState } from "@/components/shared/states";
+import { AskWidget } from "@/app/(public)/components/ask/ask-widget";
+import { askSetup } from "@/lib/ask/ask-server";
 import { visibleNavigation } from "@/config/navigation";
 import { MODE_COOKIE, resolveMode } from "@/lib/auth/mode";
 import { safeNext } from "@/lib/auth/safe-next";
@@ -55,6 +57,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   // بهوية المنصة. ومشاركاته من الجلسة نفسها، فالسؤال الوحيد الزائد عن المفتاح وفي وضع الطالب فقط.
   const featured = mode === "participant" && session.status === "active" ? await getHomeFeatured() : null;
   const skin = featured && session.status === "active" && session.programSlugs.includes(featured) ? "campaign-tint" : null;
+  // مساعد المسابقة لطالبها (adr/0057) — بالشرط نفسه الذي يلوّن إطاره.
+  const ask = skin && featured ? await askSetup(featured) : undefined;
   // نقطتا «صوتك» والجرس في وضع الطالب وحده — سؤالان صغيران معاً (adr/0054 · adr/0055).
   const [voicesUnseen, notificationsUnseen] =
     mode === "participant"
@@ -73,6 +77,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
       skin={skin}
       voicesUnseen={voicesUnseen}
       notificationsUnseen={notificationsUnseen}
+      ask={ask}
+      askWidget={ask ? <AskWidget setup={ask} fab="desktop" /> : null}
       onSignOut={signOut}
       onSwitchMode={
         bothWays

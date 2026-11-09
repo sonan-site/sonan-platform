@@ -909,7 +909,8 @@
 /* ══ التذييل ══ */
 .foot {
   margin-block-start: var(--space-16);
-  padding-block: var(--space-12) var(--space-8);
+  /* الأسفل يتّسع لزرّ المساعد العائم، فلا يغطّي آخر سطر (adr/0057). */
+  padding-block: var(--space-12) calc(var(--space-8) + var(--space-16));
   border-block-start: 1px solid var(--c-line);
   background: var(--c-footer-bg);
   text-align: center;
@@ -1285,20 +1286,4 @@
 }
 
 /* ══ المساعد (adr/0057) ══ */
-.askRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  margin-block-start: var(--space-6);
-  color: var(--c-cyan-soft);
-}
 
-.beta {
-  padding: 0 var(--space-2);
-  border: 1px solid currentColor;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  letter-spacing: 0.02em;
-}

@@ -8,6 +8,8 @@ import { CampaignFooter } from "./campaign-footer";
 import { Accented, CampaignFaq, CampaignTimeline } from "./campaign-sections";
 import { CampaignTracks } from "./campaign-tracks";
 import { signOutToCampaign } from "@/lib/auth/sign-out";
+import type { AskSetup } from "@/lib/ask/ask-server";
+import { AskWidget } from "../ask/ask-widget";
 import type { CampaignVisitor } from "@/lib/settings/campaign-visitor-server";
 import styles from "./campaign.module.css";
 
@@ -30,8 +32,8 @@ export function CampaignLanding({
 }: {
   program: PublicProgram;
   visitor: CampaignVisitor;
-  /** رابط المساعد (adr/0057) — غيابه = موقوف فلا زرّ. */
-  ask?: string | undefined;
+  /** المساعد (adr/0057) — غيابه = موقوف فلا مدخل. */
+  ask?: AskSetup | undefined;
 }) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
@@ -283,10 +285,11 @@ export function CampaignLanding({
           </section>
         ))}
 
-        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} ask={ask} /> : null}
+        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} /> : null}
       </main>
 
-      <CampaignFooter programName={data.programName} contact={data.contact} />
+      <CampaignFooter programName={data.programName} contact={data.contact} askSetup={ask} />
+      {ask ? <AskWidget setup={ask} fab="always" /> : null}
     </div>
   );
 }

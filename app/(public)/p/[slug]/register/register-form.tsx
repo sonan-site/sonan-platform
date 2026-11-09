@@ -1,13 +1,16 @@
 "use client";
 
-import { BookOpen, ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink, MessageCircleQuestionMark } from "lucide-react";
 import { useActionState, useState } from "react";
 import { ActionForm } from "@/components/shared/action-form";
 import { RegisterSteps } from "@/components/shared/register-steps";
 import { Select, Textarea } from "@/components/shared/form";
+import type { AskSetup } from "@/lib/ask/ask-server";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
 import { signOutToCampaign } from "@/lib/auth/sign-out";
 import { formatNumber } from "@/lib/format";
+import { AskTrigger } from "../../../components/ask/ask-trigger";
+import { AskWidget } from "../../../components/ask/ask-widget";
 import { registerInProgram } from "./actions";
 import styles from "./register.module.css";
 
@@ -48,6 +51,7 @@ export function RegisterForm({
   participantLabel,
   tracks,
   questions,
+  ask,
 }: {
   /** بريد الحساب الذي يُسجَّل به — فلا يسجّل أحدٌ بحساب غيره دون أن ينتبه (قرار الراعي ٢٧ أكتوبر). */
   accountEmail: string;
@@ -61,6 +65,8 @@ export function RegisterForm({
   participantLabel: string;
   tracks: TrackOption[];
   questions: QuestionRow[];
+  /** المساعد (adr/0057) — نافذته فوق النموذج فلا يضيع ما كُتب. غيابه = موقوف. */
+  ask?: AskSetup | undefined;
 }) {
   const [state, action, pending] = useActionState(registerInProgram, EMPTY_FORM_STATE);
   const [trackId, setTrackId] = useState<string>(initialTrack);
@@ -86,6 +92,14 @@ export function RegisterForm({
           </span>
           <button type="submit">لست أنت؟ خروج</button>
         </form>
+        {ask ? (
+          <p className={styles.askLine}>
+            عندك سؤال قبل التسجيل؟{" "}
+            <AskTrigger slug={ask.slug}>
+              <MessageCircleQuestionMark size={16} aria-hidden /> اسألني
+            </AskTrigger>
+          </p>
+        ) : null}
       </header>
 
       <RegisterSteps done={stepsDone} />
@@ -228,6 +242,7 @@ export function RegisterForm({
           {pending ? "يُسجَّل…" : "أتمم التسجيل"}
         </button>
       </ActionForm>
+      {ask ? <AskWidget setup={ask} fab="none" /> : null}
     </div>
   );
 }

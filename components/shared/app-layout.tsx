@@ -13,6 +13,7 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  MessageCircleQuestionMark,
   ScrollText,
   Settings,
   ShieldCheck,
@@ -23,6 +24,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { AskTrigger } from "@/app/(public)/components/ask/ask-trigger";
+import type { AskSetup } from "@/lib/ask/ask-server";
 import { ActionNotice } from "./action-notice";
 import { ThemeToggle } from "./theme-toggle";
 import { useStoredState } from "./use-stored-state";
@@ -98,6 +101,8 @@ export function AppLayout({
   skin,
   voicesUnseen = 0,
   notificationsUnseen = false,
+  ask,
+  askWidget,
   children,
 }: {
   /** مرشَّحة بصلاحيات المستخدم قبل الوصول هنا — المحجوب **يُخفى لا يُعطَّل**. */
@@ -116,6 +121,10 @@ export function AppLayout({
   voicesUnseen?: number;
   /** في «تنبيهاتي» ما لم يُقرأ — نقطةٌ على الجرس، بلا عدد (adr/0055). */
   notificationsUnseen?: boolean;
+  /** مساعد المسابقة (adr/0057) لطالبها، في وضع الطالب وحده: أيقونةٌ في الرأس دون 1024px وزرٌّ عائم فوقه. */
+  ask?: AskSetup | null | undefined;
+  /** نافذته — تُبنى في التخطيط (الخادم)، فلا يحمل الإطار أفعال الخادم. */
+  askWidget?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -158,6 +167,8 @@ export function AppLayout({
 
   if (mode === "participant") {
     const studentTabs = journeyTabs(pathname);
+    // لا في الاختبار الموقوت: ضغطةٌ خاطئة تُخرجه من محاولته (مراجعة البناء ١٥).
+    const inExam = /\/exam\//.test(pathname);
     return (
       <div className={`${styles.shell} ${styles.shellBare} ${studentTabs ? styles.shellTabs : ""}`} data-skin={skin ?? undefined}>
         <div className={`${styles.main} ${styles.mainBare}`}>
@@ -214,7 +225,7 @@ export function AppLayout({
                 </form>
               ) : null}
               {/* لا في الاختبار الموقوت: ضغطةٌ خاطئة تُخرجه من محاولته (مراجعة البناء ١٥). */}
-              {!/\/exam\//.test(pathname) ? (
+              {!inExam ? (
               <Link
                 href={`/voices?from=${encodeURIComponent(pathname)}`}
                 className={`${styles.iconButton} ${styles.dotButton}`}
@@ -237,6 +248,11 @@ export function AppLayout({
                 {notificationsUnseen ? <span className={styles.dot} aria-hidden /> : null}
               </Link>
               ) : null}
+              {ask && !inExam ? (
+                <AskTrigger slug={ask.slug} className={`${styles.iconButton} ${styles.askButton}`} label="اسألني — مساعد المسابقة">
+                  <MessageCircleQuestionMark size={ICON_SIZE} aria-hidden />
+                </AskTrigger>
+              ) : null}
               <ThemeToggle className={styles.iconButton} />
               <Link href="/account" className={styles.iconButton} aria-label="حسابي" title="حسابي">
                 <UserRound size={ICON_SIZE} aria-hidden />
@@ -245,6 +261,7 @@ export function AppLayout({
           </header>
           <main className={`${styles.content} ${styles.contentBare}`}>{children}</main>
           <ActionNotice />
+          {ask && !inExam ? askWidget : null}
         </div>
       </div>
     );

@@ -1,5 +1,8 @@
 import Link from "next/link";
+import type { AskSetup } from "@/lib/ask/ask-server";
 import { parseContact } from "@/lib/programs/campaign-content";
+import { AskTrigger } from "../ask/ask-trigger";
+import ask from "../ask/ask.module.css";
 import styles from "./campaign.module.css";
 
 /** هيئة الجمعية الثابتة — حساباتها وموقعها، لا محتوى البرنامج. */
@@ -12,7 +15,16 @@ const STATIC_CONTACTS: [string, string][] = [
  * تذييل واجهة الحملة ودليلها — مكوّنٌ واحد (خطة دليل المشارك · د). وجهة التواصل **من البرنامج** لا
  * مكتوبةٌ في الكود: كان «شؤون الطلاب» رقماً ثابتاً قديماً بعد أن تغيّر.
  */
-export function CampaignFooter({ programName, contact }: { programName: string; contact: string }) {
+export function CampaignFooter({
+  programName,
+  contact,
+  askSetup,
+}: {
+  programName: string;
+  contact: string;
+  /** المساعد (adr/0057) — «اسألني» بجانب رقم التواصل. غيابه = موقوف. */
+  askSetup?: AskSetup | undefined;
+}) {
   const own = parseContact(contact);
   return (
     <footer className={styles.foot}>
@@ -59,6 +71,11 @@ export function CampaignFooter({ programName, contact }: { programName: string; 
                   <bdi dir="ltr">{own.value}</bdi>
                 )}
               </b>
+              {askSetup ? (
+                <AskTrigger slug={askSetup.slug} className={ask.askText}>
+                  اسألني
+                </AskTrigger>
+              ) : null}
             </li>
           ) : null}
           {STATIC_CONTACTS.map(([label, value]) => (

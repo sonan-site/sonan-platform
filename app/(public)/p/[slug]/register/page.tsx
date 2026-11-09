@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
+import { askSetup } from "@/lib/ask/ask-server";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { createClient } from "@/lib/db/server";
 import { parseBlockContent, pickGuide } from "@/lib/programs/blocks";
@@ -126,6 +127,7 @@ export default async function RegisterPage({
         slug={slug}
         track={wantedTrack ?? ""}
         needs={(needs ?? []).map((n) => n.code as NeedCode)}
+        ask={await askSetup(slug)}
       />
     );
   }
@@ -195,6 +197,7 @@ export default async function RegisterPage({
       participantLabel={program.participant_label}
       tracks={tracks}
       questions={questions}
+      ask={await askSetup(slug)}
     />
   );
 }

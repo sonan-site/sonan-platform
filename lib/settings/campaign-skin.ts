@@ -28,8 +28,8 @@ export function skinForNext(next: string | null | undefined, featured: string | 
 
 /**
  * صفحاتٌ تحمل رأسها وتذييلها من جلد الحملة فلا يلفّها إطار: المعاينة (`/p/<slug>/campaign`) والدليل
- * (`/p/<slug>/guide`) — بنمطٍ صارم لا يطابق `/p/x/guidebook` ولا ما بعده.
+ * (`/p/<slug>/guide`) والمساعد (`/p/<slug>/ask`) — بنمطٍ صارم لا يطابق `/p/x/guidebook` ولا ما بعده.
  */
 export function isBareCampaignPath(path: string): boolean {
-  return /^\/p\/[^/?#]+\/(?:campaign|guide)\/?$/.test(path);
+  return /^\/p\/[^/?#]+\/(?:campaign|guide|ask)\/?$/.test(path);
 }

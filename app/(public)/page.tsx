@@ -8,7 +8,7 @@ import { getCampaignVisitor } from "@/lib/settings/campaign-visitor-server";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { CampaignLanding } from "./components/campaign/campaign-landing";
-import { askHref } from "@/lib/ask/ask-server";
+import { askSetup } from "@/lib/ask/ask-server";
 import styles from "./store.module.css";
 
 /**
@@ -38,7 +38,7 @@ export default async function StorePage() {
   if (featured) {
     const program = await loadPublicProgram(db, featured).catch(() => null);
     if (program) {
-      return <CampaignLanding program={program} visitor={await getCampaignVisitor(featured)} ask={await askHref(featured)} />;
+      return <CampaignLanding program={program} visitor={await getCampaignVisitor(featured)} ask={await askSetup(featured)} />;
     }
   }
 

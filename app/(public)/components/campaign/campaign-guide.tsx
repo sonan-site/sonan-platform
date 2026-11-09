@@ -14,8 +14,12 @@ import {
   deductionLabel,
   questionCountRows,
 } from "@/lib/programs/judging-criteria";
+import type { AskSetup } from "@/lib/ask/ask-server";
 import type { PublicProgram } from "@/lib/programs/public-page-server";
-import { Accented, AskLink, CampaignFaq, CampaignTimeline } from "./campaign-sections";
+import { AskTrigger } from "../ask/ask-trigger";
+import { AskWidget } from "../ask/ask-widget";
+import ask from "../ask/ask.module.css";
+import { Accented, CampaignFaq, CampaignTimeline } from "./campaign-sections";
 import { GuidePrint } from "./guide-print";
 import styles from "./campaign.module.css";
 import guide from "./guide.module.css";
@@ -52,7 +56,7 @@ export function CampaignGuide({
   exams,
   updates,
   printedOn,
-  ask,
+  askSetup,
 }: {
   program: PublicProgram;
   /** أبواب كل مسار بعدد وحداته منها. */
@@ -64,8 +68,8 @@ export function CampaignGuide({
   updates: GuideUpdate[];
   /** «اليوم» — لسطر «طُبع في» في النسخة المطبوعة. */
   printedOn: string;
-  /** رابط المساعد (adr/0057) — غيابه = موقوف فلا زرّ. */
-  ask?: string | undefined;
+  /** المساعد (adr/0057) — غيابه = موقوف فلا مدخل. */
+  askSetup?: AskSetup | undefined;
 }) {
   const { data } = program;
   const blocks = collectBlocks(program.blocks);
@@ -131,11 +135,6 @@ export function CampaignGuide({
                   </a>
                 ))}
             </div>
-            {ask ? (
-              <div className={guide.noPrint}>
-                <AskLink href={ask} />
-              </div>
-            ) : null}
           </div>
         </section>
 
@@ -343,7 +342,7 @@ export function CampaignGuide({
           </section>
         ) : null}
 
-        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} ask={ask} /> : null}
+        {data.faq.length > 0 ? <CampaignFaq heading={faqBlock?.heading ?? "الأسئلة الشائعة"} faq={data.faq} /> : null}
 
         {contact ? (
           <section className={styles.block} id="contact">
@@ -356,6 +355,14 @@ export function CampaignGuide({
               <p className={guide.lede}>
                 {contact.label ? `${contact.label}: ` : ""}
                 <bdi dir="ltr">{contact.value}</bdi>
+                {askSetup ? (
+                  <>
+                    {" · "}
+                    <AskTrigger slug={askSetup.slug} className={`${ask.askText} ${guide.noPrint}`}>
+                      اسألني
+                    </AskTrigger>
+                  </>
+                ) : null}
               </p>
             </div>
           </section>
@@ -381,6 +388,7 @@ export function CampaignGuide({
           </section>
         ) : null}
       </main>
+      {askSetup ? <AskWidget setup={askSetup} fab="always" /> : null}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { Stage } from "@/lib/programs/campaign-content";
 import { groupFaq } from "@/lib/programs/faq";
@@ -56,12 +55,9 @@ export function CampaignTimeline({ heading, stages }: { heading: string; stages:
 export function CampaignFaq({
   heading,
   faq,
-  ask,
 }: {
   heading: string;
   faq: readonly { id: string; question: string; answer: string; category: string }[];
-  /** رابط المساعد (adr/0057) — غيابه = موقوف فلا زرّ. */
-  ask?: string | undefined;
 }) {
   return (
     <section className={styles.block} id="faq">
@@ -96,20 +92,7 @@ export function CampaignFaq({
             </details>
           ))}
         </div>
-        {ask ? <AskLink href={ask} /> : null}
       </div>
     </section>
-  );
-}
-
-/** «لم تجد جوابك؟» — زرّ المساعد بشارته (adr/0057 ق٣). */
-export function AskLink({ href }: { href: string }) {
-  return (
-    <p className={styles.askRow}>
-      <span>لم تجد جوابك؟</span>
-      <Link className={`${styles.btn} ${styles.ghost} ${styles.sm}`} href={href}>
-        اسأل المساعد <span className={styles.beta}>تجريبي</span>
-      </Link>
-    </p>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Check, MessageCircleQuestionMark, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, ExternalLink, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2, X } from "lucide-react";
+import { BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, CloudAlert, CloudCheck, ExternalLink, Eye, Hourglass, Lock, LoaderCircle, Minus, Undo2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
@@ -164,7 +164,6 @@ export function JourneyView({
   finals,
   eligibility,
   serverClock,
-  askHref,
 }: {
   /** شريط الأسبوع (المرحلة ب · ب١) — فارغ إن تعذّر تقويمه. */
   week: StripCell[] | null;
@@ -179,8 +178,6 @@ export function JourneyView({
   trackName: string;
   /** رابط مادة المسار (ملفّ الكتاب PDF) — زرٌّ ثابت تحت بطاقة اليوم. */
   materialUrl: string | null;
-  /** رابط المساعد (adr/0057 ق٣) — غيابه = موقوف فلا زرّ. */
-  askHref?: string | undefined;
   state: JourneyState;
   pace: Pace;
   /** اليوم المعروض من الخطة. */
@@ -686,15 +683,6 @@ export function JourneyView({
         </p>
       ) : null}
       {materialUrl ? <MaterialHint participantId={participantId} url={materialUrl} /> : null}
-      {askHref ? (
-        <p className={styles.askHint}>
-          <Link href={askHref}>
-            <MessageCircleQuestionMark size={18} aria-hidden />
-            سؤالٌ عن المسابقة؟ اسأل المساعد
-            <span className={styles.beta}>تجريبي</span>
-          </Link>
-        </p>
-      ) : null}
       {message.notice ? (
         <p role="status" className={styles.notice}>
           {message.notice}

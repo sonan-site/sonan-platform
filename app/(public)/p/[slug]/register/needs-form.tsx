@@ -1,10 +1,14 @@
 "use client";
 
+import { MessageCircleQuestionMark } from "lucide-react";
 import { useActionState } from "react";
 import { ActionForm } from "@/components/shared/action-form";
 import { RegisterSteps } from "@/components/shared/register-steps";
 import { Field, Input } from "@/components/shared/form";
+import type { AskSetup } from "@/lib/ask/ask-server";
 import { EMPTY_FORM_STATE } from "@/lib/auth/form-state";
+import { AskTrigger } from "../../../components/ask/ask-trigger";
+import { AskWidget } from "../../../components/ask/ask-widget";
 import { completeForRegistration } from "./actions";
 import styles from "./register.module.css";
 
@@ -19,11 +23,14 @@ export function NeedsForm({
   slug,
   track,
   needs,
+  ask,
 }: {
   programName: string;
   slug: string;
   track: string;
   needs: NeedCode[];
+  /** المساعد (adr/0057) — غيابه = موقوف. */
+  ask?: AskSetup | undefined;
 }) {
   const [state, action, pending] = useActionState(completeForRegistration, EMPTY_FORM_STATE);
   const err = (k: string) => state.fieldErrors?.[k];
@@ -35,6 +42,14 @@ export function NeedsForm({
         <p className={styles.eyebrow}>{programName}</p>
         <h1 className={styles.title}>التسجيل</h1>
         <p className={styles.lede}>تطلب هذه المسابقة بياناتٍ لم تُكتب في حسابك بعد. اكتبها هنا مرةً واحدة، ثم تختار مسارك.</p>
+        {ask ? (
+          <p className={styles.askLine}>
+            عندك سؤال قبل التسجيل؟{" "}
+            <AskTrigger slug={ask.slug}>
+              <MessageCircleQuestionMark size={16} aria-hidden /> اسألني
+            </AskTrigger>
+          </p>
+        ) : null}
       </header>
 
       <RegisterSteps done={1} />
@@ -86,6 +101,7 @@ export function NeedsForm({
           {pending ? "يُحفظ…" : "احفظ وتابع إلى مسارك"}
         </button>
       </ActionForm>
+      {ask ? <AskWidget setup={ask} fab="none" /> : null}
     </div>
   );
 }

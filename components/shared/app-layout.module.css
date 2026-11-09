@@ -431,3 +431,10 @@
   border-radius: var(--radius-full);
   background: var(--color-accent);
 }
+
+/* مساعد المسابقة في رأس الطالب — دون 1024px وحده، وفوقه زرّه العائم (قرار الراعي ٩ نوفمبر). */
+@media (min-width: 1024px) {
+  .askButton {
+    display: none;
+  }
+}
