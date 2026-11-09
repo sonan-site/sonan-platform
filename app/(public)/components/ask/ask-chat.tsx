@@ -120,11 +120,11 @@ export function AskChat({
               {m.result.kind === "answer" ? (
                 m.flag === "idle" ? (
                   <button type="button" className={styles.flag} onClick={() => flag(m.id)} disabled={pending}>
-                    <Flag size={14} aria-hidden /> الإجابة غير صحيحة
+                    <Flag size={14} aria-hidden /> الإجابة غير مفيدة
                   </button>
                 ) : (
                   <span className={styles.flagged}>
-                    {m.flag === "sent" ? "وصل بلاغك، شكراً لك." : "تعذّر إرسال البلاغ."}
+                    {m.flag === "sent" ? "وصلت ملاحظتك، شكراً لك." : "تعذّر إرسال الملاحظة."}
                   </span>
                 )
               ) : null}

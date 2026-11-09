@@ -163,7 +163,7 @@ export async function askQuestion(slug: string, question: string, history: Turn[
   }
 }
 
-/** «الإجابة غير صحيحة» — تقريرٌ بالسؤال والجواب كما عُرض. */
+/** «الإجابة غير مفيدة» (قرار الراعي ٩ نوفمبر؛ كانت «غير صحيحة») — تقريرٌ بالسؤال والجواب كما عُرض. */
 export async function flagAnswer(slug: string, question: string, answer: string): Promise<boolean> {
   const q = question.trim().slice(0, 500);
   const a = answer.trim().slice(0, 2000);

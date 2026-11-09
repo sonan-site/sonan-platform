@@ -26,7 +26,7 @@ export type AnswerRow = { id: string; question: string; answer: string; publishe
 
 const KIND_LABEL: Record<ReportRow["kind"], string> = {
   unanswered: "بلا جواب",
-  flagged: "أُبلغ أنها غير صحيحة",
+  flagged: "قيل إنها غير مفيدة",
   blocked: "ردّها الفحص الآلي",
 };
 
