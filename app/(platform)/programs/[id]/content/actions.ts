@@ -258,6 +258,35 @@ export async function renameMaterialSection(
   return { notice: "عُدِّل اسم الباب." };
 }
 
+/** التسجيل الصوتي للباب (قرار الراعي ٩ نوفمبر) — رابط https وحده كقيد القاعدة، والفارغ يمحوه. */
+export async function setMaterialSectionAudio(
+  sectionId: string,
+  programId: string,
+  url: string,
+): Promise<FormState> {
+  const g = await guarded(programId, sectionId);
+  if ("denied" in g) return g.denied;
+  const text = z
+    .string()
+    .trim()
+    .max(500)
+    .regex(/^(https:\/\/[^\s<>"]+)?$/)
+    .safeParse(url);
+  if (!text.success) return { error: "رابط التسجيل يبدأ بـ https:// — أو اتركه فارغاً." };
+
+  const { data, error } = await g.db
+    .from("material_sections")
+    .update({ audio_url: text.data === "" ? null : text.data })
+    .eq("id", sectionId)
+    .eq("program_id", programId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error || !data?.length) return { error: userMessage(error, "تعذّر حفظ رابط التسجيل.") };
+
+  contentPath(programId);
+  return { notice: text.data === "" ? "أُزيل رابط التسجيل." : "حُفظ رابط التسجيل." };
+}
+
 const formText = z
   .string()
   .trim()

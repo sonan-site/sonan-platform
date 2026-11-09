@@ -1587,6 +1587,7 @@ export type Database = {
       }
       material_sections: {
         Row: {
+          audio_url: string | null
           created_at: string
           deleted_at: string | null
           id: string
@@ -1597,6 +1598,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -1607,6 +1609,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
@@ -4114,6 +4117,7 @@ export type Database = {
       fn_public_track_sections: {
         Args: { p_program_id: string }
         Returns: {
+          audio_url: string
           section_name: string
           sort_order: number
           track_id: string

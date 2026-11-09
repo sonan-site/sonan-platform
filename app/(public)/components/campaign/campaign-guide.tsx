@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Check } from "lucide-react";
+import { BookOpen, Check, Headphones } from "lucide-react";
 import { formatDate, formatDateBoth, formatNumber } from "@/lib/format";
 import { campaignStages, campaignTracks, collectBlocks, countWith, parseContact } from "@/lib/programs/campaign-content";
 import {
@@ -60,7 +60,8 @@ export function CampaignGuide({
 }: {
   program: PublicProgram;
   /** أبواب كل مسار بعدد وحداته منها. */
-  sections: Map<string, { name: string; units: number }[]>;
+  /** أبواب كل مسار بعدد وحداته منها، وتسجيل الباب الصوتي إن وُجد. */
+  sections: Map<string, { name: string; units: number; audio: string | null }[]>;
   /** رابط مادة كل مسار (ملفّ الكتاب PDF) — ما لا رابط له لا يظهر له سطر. */
   materials: Map<string, string>;
   exams: GuideExam[];
@@ -183,7 +184,15 @@ export function CampaignGuide({
                       <ul className={guide.sections}>
                         {(sections.get(t.id) ?? []).map((s) => (
                           <li key={s.name}>
-                            {s.name}
+                            <span className={guide.sectionName}>
+                              {s.name}
+                              {s.audio ? (
+                                <a href={s.audio} target="_blank" rel="noopener noreferrer" className={guide.listen}>
+                                  <Headphones size={14} aria-hidden />
+                                  استمع
+                                </a>
+                              ) : null}
+                            </span>
                             <span>{formatNumber(s.units)}</span>
                           </li>
                         ))}

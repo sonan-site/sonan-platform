@@ -1,4 +1,4 @@
-import { BookOpen, Check, ChevronDown, ExternalLink, Flag } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ExternalLink, Flag, Headphones } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JourneyBail } from "@/components/shared/journey-bail";
@@ -109,7 +109,7 @@ export default async function JourneyPlanPage({
       .is("deleted_at", null),
     db
       .from("material_sections")
-      .select("id, name, unit_count")
+      .select("id, name, unit_count, audio_url")
       .eq("program_id", program.id)
       .is("deleted_at", null)
       .order("sort_order")
@@ -140,6 +140,13 @@ export default async function JourneyPlanPage({
     },
     sections: withStarts(sectionsResult.data ?? []),
   };
+
+  // تسجيلات أبواب مساره (قرار الراعي ٩ نوفمبر): الباب الذي يقع شيءٌ منه في نصيبه، بترتيب المادة.
+  const listens = material.sections.flatMap((sec) => {
+    const audio = (sectionsResult.data ?? []).find((r) => r.id === sec.id)?.audio_url;
+    const end = sec.start + sec.count - 1;
+    return audio && share.ranges.some((r) => r.from <= end && r.to >= sec.start) ? [{ id: sec.id, name: sec.name, audio }] : [];
+  });
 
   const s = state;
   const statusOf = (d: PlanDay): DayStatus => dayStatus(d, s);
@@ -179,6 +186,17 @@ export default async function JourneyPlanPage({
             <span>كتاب المادة (PDF)</span>
             <ExternalLink size={14} aria-hidden />
           </a>
+        ) : null}
+        {listens.length > 0 ? (
+          <div className={styles.listens} role="group" aria-label="التسجيلات الصوتية">
+            {listens.map((l) => (
+              <a key={l.id} href={l.audio} target="_blank" rel="noopener noreferrer" className={styles.material}>
+                <Headphones size={18} aria-hidden />
+                <span>استمع: {l.name}</span>
+                <ExternalLink size={14} aria-hidden />
+              </a>
+            ))}
+          </div>
         ) : null}
       </section>
 

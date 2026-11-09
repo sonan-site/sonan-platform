@@ -244,4 +244,25 @@ describe("أبواب المسارات للعموم", () => {
       ["الثاني", "الطهارة", 3],
     ]);
   });
+
+  it("**وتسجيل الباب الصوتي يكتبه حامل programs.write وحده، https وحده**", async () => {
+    const section = (await db.query<{ id: string }>(`select id from public.material_sections where program_id = $1 and name = 'الإيمان'`, [publishedId])).rows[0]!.id;
+    const url = "https://drive.google.com/file/d/abc/view";
+    const stranger = await as("authenticated", STRANGER, `update public.material_sections set audio_url = $2 where id = $1 returning id`, [section, url]);
+    expect(stranger.rows).toHaveLength(0);
+    const bad = await as("authenticated", WRITER, `update public.material_sections set audio_url = 'http://x.y' where id = $1`, [section]);
+    expect(bad.error).not.toBeNull();
+    const ok = await as("authenticated", WRITER, `update public.material_sections set audio_url = $2 where id = $1 returning id`, [section, url]);
+    expect(ok.error).toBeNull();
+    expect(ok.rows).toHaveLength(1);
+
+    // كتابة الدور تُتراجَع بعد فحصها — فيُكتب للقراءة مباشرةً.
+    await db.query(`update public.material_sections set audio_url = $2 where id = $1`, [section, url]);
+    const r = await as<{ section_name: string; audio_url: string | null }>("anon", null, `select section_name, audio_url from public.fn_public_track_sections($1)`, [publishedId]);
+    expect(r.rows.map((x) => [x.section_name, x.audio_url])).toEqual([
+      ["الإيمان", url],
+      ["الإيمان", url],
+      ["الطهارة", null],
+    ]);
+  });
 });

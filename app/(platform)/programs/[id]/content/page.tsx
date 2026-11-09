@@ -99,7 +99,7 @@ export default async function ContentPage({
         .maybeSingle(),
       db
         .from("material_sections")
-        .select("id, name, unit_count")
+        .select("id, name, unit_count, audio_url")
         .eq("program_id", id)
         .is("deleted_at", null)
         .order("sort_order")
@@ -285,6 +285,7 @@ export default async function ContentPage({
     <ContentView
       programId={id}
       material={material}
+      audio={Object.fromEntries((sectionsResult.data ?? []).map((s) => [s.id, s.audio_url]))}
       unsectioned={sectioned ? (unsectionedResult.count ?? 0) : 0}
       units={units}
       unitSummary={{

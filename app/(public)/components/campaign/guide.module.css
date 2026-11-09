@@ -157,6 +157,23 @@
   border-block-end: 1px solid var(--c-line-soft);
 }
 
+/* التسجيل الصوتي للباب (قرار الراعي ٩ نوفمبر) — بجانب اسمه. */
+.sectionName {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.listen {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--c-gold);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
 /* مادة المسار (قرار الراعي ٢٦ أكتوبر): رابطٌ إلى ملفّ الكتاب — يُطبع نصّاً بلا زرّ. */
 .material {
   display: inline-flex;

@@ -18,6 +18,7 @@ import {
   removeContentUnit,
   removeMaterialSection,
   renameMaterialSection,
+  setMaterialSectionAudio,
   saveMaterialForms,
   setMaterialSectionCount,
   updateContentUnitLabel,
@@ -39,9 +40,12 @@ export function MaterialStep({
   units,
   unitSummary,
   unitPage,
+  audio,
 }: {
   programId: string;
   material: Material;
+  /** التسجيل الصوتي لكل باب بمعرّفه (قرار الراعي ٩ نوفمبر). */
+  audio: Record<string, string | null>;
   /** وحدات بلا باب في مادة مقسّمة — بقيّة مادةٍ لُصقت قبل تقسيمها. */
   unsectioned: number;
   /** صفحة واحدة من المادة لا كلها — المادة قد تبلغ آلاف الوحدات. */
@@ -189,6 +193,17 @@ export function MaterialStep({
               <Muted>
                 الأرقام المتّصلة {formatNumber(section.start)}–{formatNumber(section.start + section.count - 1)}
               </Muted>
+              <div className={styles.sectionCount}>
+                <span>التسجيل الصوتي</span>
+                <InlineText
+                  label={`رابط التسجيل الصوتي لـ${section.name} — يبدأ بـ https://`}
+                  value={audio[section.id] ?? ""}
+                  allowEmpty
+                  latin
+                  maxInlineSize="14rem"
+                  onSave={(next) => setMaterialSectionAudio(section.id, programId, next)}
+                />
+              </div>
             </Card>
           ))}
         </Cards>

@@ -50,10 +50,10 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
     return <ErrorState body="تعذّر جلب الدليل. أعد المحاولة." />;
   }
 
-  const sections = new Map<string, { name: string; units: number }[]>();
+  const sections = new Map<string, { name: string; units: number; audio: string | null }[]>();
   for (const s of sectionsResult.data ?? []) {
     const list = sections.get(s.track_id) ?? [];
-    list.push({ name: s.section_name, units: s.units });
+    list.push({ name: s.section_name, units: s.units, audio: s.audio_url || null });
     sections.set(s.track_id, list);
   }
 

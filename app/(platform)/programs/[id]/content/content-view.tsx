@@ -63,6 +63,7 @@ export type PreviewTask = {
 export function ContentView({
   programId,
   material,
+  audio,
   unsectioned,
   units,
   unitSummary,
@@ -74,6 +75,8 @@ export function ContentView({
 }: {
   programId: string;
   material: Material;
+  /** التسجيل الصوتي لكل باب بمعرّفه. */
+  audio: Record<string, string | null>;
   unsectioned: number;
   /** صفحة واحدة من المادة لا كلها — المادة قد تبلغ آلاف الوحدات. */
   units: UnitRow[];
@@ -105,6 +108,7 @@ export function ContentView({
       <MaterialStep
         programId={programId}
         material={material}
+        audio={audio}
         unsectioned={unsectioned}
         units={units}
         unitSummary={unitSummary}
