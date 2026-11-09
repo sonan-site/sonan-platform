@@ -438,3 +438,15 @@
     display: none;
   }
 }
+
+/* خمس أيقوناتٍ في رأس الطالب (صوتك · الجرس · المساعد · السمة · حسابي) لا تتّسع مع اسم المسابقة في
+   الجوال الضيّق — فيبقى رمزها وحده، والاسم في وصف الرابط. */
+@media (max-width: 419px) {
+  .headerCrowded .headerBrandText {
+    display: none;
+  }
+
+  .headerCrowded .headerEnd {
+    gap: var(--space-1);
+  }
+}
