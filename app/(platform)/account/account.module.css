@@ -52,6 +52,26 @@
   transform: scale(var(--press-scale));
 }
 
+/* أفعال بطاقة البرنامج بشكل زرّ التعديل نفسه — والرابط منها بلا خطّ. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+
+a.edit {
+  text-decoration: none;
+}
+
+/* الانسحاب خروجٌ: يُنذر لونُه عند المرور، وتأكيده في نافذته. وفي اللمس لا مرور — فلا يعلق أحمر. */
+@media (hover: hover) {
+  .leave:hover:not(:disabled) {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+  }
+}
+
 .rows {
   display: flex;
   flex-direction: column;

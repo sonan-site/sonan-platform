@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/shared/states";
 import { askSetup } from "@/lib/ask/ask-server";
 import { createClient } from "@/lib/db/server";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
+import { programHomeHref } from "@/lib/settings/home-featured-server";
 import { AskChat } from "../../../components/ask/ask-chat";
 import ask from "../../../components/ask/ask.module.css";
 import styles from "../../../components/campaign/campaign.module.css";
@@ -37,7 +38,7 @@ export default async function AskPage({ params }: { params: Promise<{ slug: stri
     <div className={styles.root} data-campaign>
       <header className={styles.top}>
         <div className={`${styles.wrap} ${styles.topRow}`}>
-          <Link className={styles.brand} href={`/p/${slug}`} aria-label="صفحة المسابقة">
+          <Link className={styles.brand} href={await programHomeHref(slug)} aria-label="صفحة المسابقة">
             {/* eslint-disable-next-line @next/next/no-img-element -- شعارٌ ثابت في public */}
             <img src="/brand/sunan-logo.png" alt="جمعية سنن التعليمية" />
           </Link>

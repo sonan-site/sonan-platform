@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/states";
+import { programHomeHref } from "@/lib/settings/home-featured-server";
 
 /**
  * ما يُعرض للمشارك حين لا واجب له — **ومعه مخرج دائماً**.
@@ -7,7 +8,7 @@ import { EmptyState } from "@/components/shared/states";
  * كانت ستّ حالات تقول «تواصل مع إدارة البرنامج» بلا وسيلة تواصل ولا رابط
  * رجوع، فيقف المشارك في صفحةٍ لا شيء فيها (`adr/0030`).
  */
-export function JourneyBail({
+export async function JourneyBail({
   title,
   body,
   programName,
@@ -35,7 +36,7 @@ export function JourneyBail({
       action={
         <span style={{ display: "flex", gap: "var(--space-4)", fontSize: "var(--text-sm)" }}>
           {listLink ? <Link href="/journey">رحلتي</Link> : null}
-          <Link href={`/p/${programSlug}`}>صفحة {programName}</Link>
+          <Link href={await programHomeHref(programSlug)}>صفحة {programName}</Link>
         </span>
       }
     />

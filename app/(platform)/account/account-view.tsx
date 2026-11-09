@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft, LogOut, Route } from "lucide-react";
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
@@ -37,7 +38,8 @@ export type Participation = {
   status: ParticipantStatus;
 };
 
-export type AvailableProgram = { id: string; name: string; summary: string; slug: string };
+/** `href` واجهة البرنامج: الرئيسية لبرنامج الحملة، وصفحته لغيره. */
+export type AvailableProgram = { id: string; name: string; summary: string; href: string };
 
 export function AccountView({
   email,
@@ -341,12 +343,24 @@ export function AccountView({
             {participations.map((p) => (
               <Card key={p.id} name={p.programName} meta={PARTICIPANT_STATUS_LABEL[p.status]}>
                 <Muted>المسار: {p.trackName ?? "لم يُحدَّد"}</Muted>
-                <p>
-                  <Link href={`/journey/${p.id}`}>افتح رحلتي</Link>
-                </p>
-                <Button pending={busy} onClick={() => setLeaving(p)}>
-                  انسحب من البرنامج
-                </Button>
+                <div className={styles.actions}>
+                  <Link href={`/journey/${p.id}`} className={styles.edit}>
+                    <Route size={16} aria-hidden />
+                    افتح رحلتي
+                    <span className={styles.srOnly}> في {p.programName}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    className={`${styles.edit} ${styles.leave}`}
+                    disabled={busy}
+                    aria-busy={busy || undefined}
+                    onClick={() => setLeaving(p)}
+                  >
+                    <LogOut size={16} aria-hidden />
+                    انسحب من البرنامج
+                    <span className={styles.srOnly}> «{p.programName}»</span>
+                  </button>
+                </div>
               </Card>
             ))}
           </Cards>
@@ -374,9 +388,13 @@ export function AccountView({
             {available.map((p) => (
               <Card key={p.id} name={p.name}>
                 {p.summary ? <Muted>{p.summary}</Muted> : null}
-                <p>
-                  <Link href={`/p/${p.slug}`}>اعرف البرنامج وسجّل</Link>
-                </p>
+                <div className={styles.actions}>
+                  <Link href={p.href} className={styles.edit}>
+                    اعرف البرنامج وسجّل
+                    <span className={styles.srOnly}> — {p.name}</span>
+                    <ArrowLeft size={16} aria-hidden />
+                  </Link>
+                </div>
               </Card>
             ))}
           </Cards>
@@ -414,8 +432,12 @@ export function AccountView({
       </Step>
       <Modal open={leaving !== null} title="الانسحاب من البرنامج" onClose={() => setLeaving(null)}>
         <p>
-          تخرج من «{leaving?.programName}» فلا يظهر لك واجبه اليومي بعد اليوم. وسجلّك يبقى محفوظاً،
-          ومقعدك يتحرّر لغيرك. ولك أن تسجّل فيه من جديد ما دام التسجيل مفتوحاً.
+          تخرج من «{leaving?.programName}» فلا يظهر لك واجبه اليومي بعد اليوم، ويبقى سجلّك محفوظاً
+          ويتحرّر مقعدك لغيرك.
+        </p>
+        <p>
+          <strong>وإن أردت العودة فستسجّل من جديد كأي متقدّم:</strong> لا يُتاح ذلك إن أُغلق التسجيل أو
+          اكتمل العدد.
         </p>
         <FormActions>
           <Button onClick={() => setLeaving(null)}>إلغاء</Button>

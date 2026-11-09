@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { EmptyState, ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { askSetup } from "@/lib/ask/ask-server";
-import { getHomeFeatured } from "@/lib/settings/home-featured-server";
+import { programHomeHref } from "@/lib/settings/home-featured-server";
 import { createClient } from "@/lib/db/server";
 import { parseBlockContent, pickGuide } from "@/lib/programs/blocks";
 import { formatRegistrationNo, REGISTRATION_LABEL, type RegistrationState } from "@/lib/programs/registration";
@@ -44,7 +44,7 @@ export default async function RegisterPage({
   if (!program) notFound();
 
   // صفحة برنامج الحملة هي واجهته — فالرجوع إليها لا إلى صفحته ببيج المنصة (خطة الألوان م٨).
-  const programHome = (await getHomeFeatured()) === slug ? "/" : `/p/${slug}`;
+  const programHome = await programHomeHref(slug);
 
   // [BR-CAP-01] — الحالة من القاعدة: هي مصدر الإنفاذ، فتُقرأ منها لا تُحسب هنا.
   const { data: state } = await db.rpc("fn_registration_state", { p_program_id: program.id });

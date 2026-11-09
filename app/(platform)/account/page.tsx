@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { registrationStates } from "@/lib/programs/registration-server";
+import { programHomeHref } from "@/lib/settings/home-featured-server";
 import { AccountView, type AvailableProgram, type Participation } from "./account-view";
 
 /**
@@ -84,9 +85,11 @@ export default async function AccountPage({
   const joined = new Set((participationsResult.data ?? []).map((p) => p.program_id));
   const candidates = (programsResult.data ?? []).filter((p) => !joined.has(p.id));
   const states = await registrationStates(db, candidates.map((p) => p.id));
-  const available: AvailableProgram[] = candidates
-    .filter((p) => states.get(p.id) === "open")
-    .map((p) => ({ id: p.id, name: p.name, summary: p.summary, slug: p.slug }));
+  const available: AvailableProgram[] = await Promise.all(
+    candidates
+      .filter((p) => states.get(p.id) === "open")
+      .map(async (p) => ({ id: p.id, name: p.name, summary: p.summary, href: await programHomeHref(p.slug) })),
+  );
 
   const providers = new Set((auth.user?.identities ?? []).map((i) => i.provider));
 
