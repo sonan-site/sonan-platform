@@ -3219,6 +3219,10 @@ export type Database = {
           question_id: string
         }[]
       }
+      fn_admission_options_valid: {
+        Args: { p_options: string[] }
+        Returns: boolean
+      }
       fn_admission_other_answers: {
         Args: { p_program_id: string }
         Returns: {
@@ -3226,10 +3230,6 @@ export type Database = {
           question_id: string
           text: string
         }[]
-      }
-      fn_admission_options_valid: {
-        Args: { p_options: string[] }
-        Returns: boolean
       }
       fn_age_fits: {
         Args: { p_age: number; p_max: number; p_min: number }
