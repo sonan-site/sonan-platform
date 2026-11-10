@@ -57,6 +57,7 @@ export function ParticipantsView({
   programLinks,
   statusLinks,
   activeFilters,
+  exportHref,
   canWrite,
 }: {
   /** الصفحة المعروضة وحدها — البحث والتصفية والفرز والتقسيم في القاعدة. */
@@ -69,6 +70,8 @@ export function ParticipantsView({
   programLinks: FilterLink[];
   statusLinks: FilterLink[];
   activeFilters: ActiveFilter[];
+  /** رابط ملف ما تعرضه القائمة بكل صفحاته — `null` لمن لا يملك التصدير. */
+  exportHref: string | null;
   canWrite: boolean;
 }) {
   const [busy, startTransition] = useTransition();
@@ -137,6 +140,11 @@ export function ParticipantsView({
 
       <FilterGroup label="البرنامج" links={programLinks} />
       <FilterGroup label="الحالة" links={statusLinks} />
+      {exportHref && total > 0 ? (
+        <a className={styles.export} href={exportHref} download>
+          صدّر ما تعرضه القائمة ({formatNumber(total)}) — CSV
+        </a>
+      ) : null}
 
       <DataTable
         columns={columns}

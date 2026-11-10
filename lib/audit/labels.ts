@@ -35,6 +35,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   results_published: "نشر نتائج مسار",
   results_publication_withdrawn: "سحب نشر نتائج مسار",
   exam_results_exported: "تصدير نتائج اختبار",
+  accounts_exported: "تصدير قائمة الحسابات",
   role_assigned: "إسناد دور",
   role_revoked: "سحب دور",
   section_created: "إنشاء قسم",

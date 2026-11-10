@@ -18,6 +18,14 @@
   text-decoration: none;
 }
 
+/* رابط التصدير — على نمط «صدّر المعتمد» في النتائج. */
+.export {
+  display: inline-block;
+  margin-block-end: var(--space-3);
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+}
+
 .filters a[aria-current="true"] {
   border-color: var(--color-accent);
   background: var(--color-accent-subtle);

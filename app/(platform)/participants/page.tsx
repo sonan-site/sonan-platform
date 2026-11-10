@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { ErrorState } from "@/components/shared/states";
-import { ACCOUNT_STATUS_LABEL, NO_PROGRAM, parseAccountsQuery } from "@/lib/accounts/list-query";
+import { ACCOUNT_STATUS_LABEL, accountsListArgs, NO_PROGRAM, parseAccountsQuery } from "@/lib/accounts/list-query";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { formatPhone } from "@/lib/profile/phone";
@@ -27,22 +27,16 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   // «في برنامجٍ لا أراه». فلا يُعرض له مرشّحاً ولا عدداً ولا وصفاً، لئلا يُحذف مشاركٌ على ظنّ.
   const seesAllEnrolment = (await authorizeRequest({ permission: "participants.read" })).ok;
   const params = await searchParams;
-  const parsed = parseAccountsQuery(params);
-  const { nameWords, phoneDigits, status, sort, page } = parsed;
-  const program = parsed.program === NO_PROGRAM && !seesAllEnrolment ? null : parsed.program;
+  const query = parseAccountsQuery(params);
+  const { status, page } = query;
+  const { program, args } = accountsListArgs(query, seesAllEnrolment, {
+    limit: DEFAULT_PAGE_SIZE,
+    offset: (page - 1) * DEFAULT_PAGE_SIZE,
+  });
 
   const db = await createClient();
   const [listResult, enrolledResult, programsResult] = await Promise.all([
-    db.rpc("fn_accounts_list", {
-      p_name_words: nameWords,
-      p_phone: phoneDigits || undefined,
-      p_program: program ?? undefined,
-      p_status: status ?? undefined,
-      p_sort: sort.column,
-      p_desc: !sort.ascending,
-      p_limit: DEFAULT_PAGE_SIZE,
-      p_offset: (page - 1) * DEFAULT_PAGE_SIZE,
-    }),
+    db.rpc("fn_accounts_list", args),
     // رأس الشاشة: من في برنامجٍ على الأقل عبر كل الحسابات — العدد الكلّي لصفٍّ واحد يكفي.
     seesAllEnrolment ? db.rpc("fn_accounts_list", { p_program: "any", p_limit: 1 }) : null,
     db.from("programs").select("id, name").is("deleted_at", null).order("created_at"),
@@ -113,13 +107,15 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       programLinks={programLinks}
       statusLinks={statusLinks}
       activeFilters={active}
+      // التصدير لحامل تعديل الحسابات وحده: الملف يُنسخ ويُرسل، والشاشة لا.
+      exportHref={canWrite ? hrefWith(params, {}, "/participants/export") : null}
       canWrite={canWrite}
     />
   );
 }
 
 /** الرابط نفسه ببحثه وتصفيته وفرزه، مع ما يُبدَّل، وبلا رقم الصفحة — فالتصفية تبدأ من أولها. */
-function hrefWith(params: Params, patch: Record<string, string | null>): string {
+function hrefWith(params: Params, patch: Record<string, string | null>, path = "/participants"): string {
   const next = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (key === "page" || key in patch || value === undefined) continue;
@@ -127,5 +123,5 @@ function hrefWith(params: Params, patch: Record<string, string | null>): string 
   }
   for (const [key, value] of Object.entries(patch)) if (value) next.set(key, value);
   const query = next.toString();
-  return query ? `/participants?${query}` : "/participants";
+  return query ? `${path}?${query}` : path;
 }

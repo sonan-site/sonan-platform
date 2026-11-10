@@ -59,6 +59,31 @@ function latinDigits(value: string): string {
     .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
 }
 
+/**
+ * معاملات `fn_accounts_list` من الرابط — للصفحة والتصدير معاً، فلا يختلف ما يُصدَّر عمّا يُعرض.
+ * ومن لا يرى المشاركات كلها لا يُصفّي بـ«بلا برنامج»: قد تعني عنده «في برنامجٍ لا أراه».
+ */
+export function accountsListArgs(
+  query: AccountsQuery,
+  seesAllEnrolment: boolean,
+  window: { limit: number; offset: number },
+) {
+  const program = query.program === NO_PROGRAM && !seesAllEnrolment ? null : query.program;
+  return {
+    program,
+    args: {
+      p_name_words: query.nameWords,
+      p_phone: query.phoneDigits || undefined,
+      p_program: program ?? undefined,
+      p_status: query.status ?? undefined,
+      p_sort: query.sort.column,
+      p_desc: !query.sort.ascending,
+      p_limit: window.limit,
+      p_offset: window.offset,
+    },
+  };
+}
+
 export function parseAccountsQuery(params: {
   q?: Param;
   sort?: Param;
