@@ -19,8 +19,8 @@ export type AccountRow = {
   suspended: boolean;
   /** موعد المحو — غير فارغ يعني أنه في سلّة المحذوفات لا موقوفاً (`adr/0034`). */
   purgeAfter: string | null;
-  /** برامجه — الفارغة تعني حساباً لم يسجّل في شيء بعد. */
-  programs: string[];
+  /** برامجه — الفارغة تعني حساباً لم يسجّل في شيء بعد، و`null` أنها تعذّر جلبها. */
+  programs: string[] | null;
 };
 
 /** صفٌّ في السلّة لا يُوقَف ولا يُحذف ثانيةً — يُستعاد أو يُمحى من شاشتها. */
@@ -30,12 +30,25 @@ const ROW_ACTIONS = {
   justifyContent: "flex-end",
 } as const;
 
-export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWrite: boolean }) {
+export function ParticipantsView({
+  rows,
+  total,
+  page,
+  withProgram,
+  canWrite,
+}: {
+  /** الصفحة المعروضة وحدها — البحث والفرز والتقسيم في القاعدة. */
+  rows: AccountRow[];
+  /** كل ما يطابق البحث عبر الصفحات. */
+  total: number;
+  page: number;
+  /** من سجّل في برنامجٍ عبر كل الحسابات — `null` إن تعذّر عدّه. */
+  withProgram: number | null;
+  canWrite: boolean;
+}) {
   const [busy, startTransition] = useTransition();
   const [suspending, setSuspending] = useState<AccountRow | null>(null);
   const [deleting, setDeleting] = useState<AccountRow | null>(null);
-
-  const withProgram = rows.filter((r) => r.programs.length > 0).length;
 
   const columns: Column<AccountRow>[] = [
     { key: "fullName", header: "الاسم", sortable: true, primary: true, render: (r) => r.fullName },
@@ -44,9 +57,10 @@ export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWr
       key: "programs",
       header: "البرامج",
       // من أنشأ حساباً ولم يسجّل يُقال صراحةً — فيُعرف من تعثّر عند الباب.
-      render: (r) => (r.programs.length > 0 ? r.programs.join(" · ") : "بلا برنامج"),
+      render: (r) =>
+        r.programs === null ? "—" : r.programs.length > 0 ? r.programs.join(" · ") : "بلا برنامج",
     },
-    { key: "joinedAt", header: "منذ", render: (r) => formatDateBoth(r.joinedAt) },
+    { key: "joinedAt", header: "منذ", sortable: true, render: (r) => formatDateBoth(r.joinedAt) },
     {
       key: "status",
       header: "الحالة",
@@ -88,16 +102,20 @@ export function ParticipantsView({ rows, canWrite }: { rows: AccountRow[]; canWr
       <PageHead
         crumbs={[{ href: "/dashboard", label: "لوحة المتابعة" }]}
         title="المشاركون في المنصة"
-        lede={`كل من أنشأ حساباً، وبرامجه التي سجّل فيها. ${formatNumber(withProgram)} منهم في برنامج على الأقل.`}
+        lede={
+          withProgram === null
+            ? "كل من أنشأ حساباً، وبرامجه التي سجّل فيها."
+            : `كل من أنشأ حساباً، وبرامجه التي سجّل فيها. ${formatNumber(withProgram)} منهم في برنامج على الأقل.`
+        }
       />
 
       <DataTable
         columns={columns}
         rows={rows}
         rowKey={(r) => r.id}
-        total={rows.length}
-        page={1}
-        searchPlaceholder="ابحث بالاسم…"
+        total={total}
+        page={page}
+        searchPlaceholder="ابحث بالاسم أو الجوال…"
         empty={{ title: "لا حسابات بعد", body: "لم يُنشئ أحد حساباً في المنصة." }}
       />
 
