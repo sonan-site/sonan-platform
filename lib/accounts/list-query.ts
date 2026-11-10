@@ -19,7 +19,10 @@ export function accountStatusOf(r: { deleted_at: string | null; purge_after: str
   return r.purge_after ? "bin" : r.deleted_at ? "suspended" : "active";
 }
 
-/** التكرار المحتمل (الدفعة ٣): بالاسم والميلاد معاً، أو بالجوال — منفصلين، فالجوال المشترك أغلبه إخوة. */
+/**
+ * التكرار المحتمل (الدفعة ٣): «مكرّر محتمل» بالميلاد مع الاسم أو الجوال، و«جوال مشترك» بميلادٍ آخر —
+ * منفصلين، فالجوال المشترك أغلبه إخوة (٥٤ مقابل ٢٦ يوم ١٠ نوفمبر).
+ */
 export const ACCOUNT_DUPLICATES = ["identity", "phone"] as const;
 export type AccountDuplicate = (typeof ACCOUNT_DUPLICATES)[number];
 export const ACCOUNT_DUPLICATE_LABEL: Record<AccountDuplicate, string> = {

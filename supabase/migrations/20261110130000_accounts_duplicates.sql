@@ -1,10 +1,11 @@
 -- علامة «مكرّر محتمل» في «المشاركون في المنصة» (الدفعة ٣ · قرار الراعي ١٠ نوفمبر).
 --
 -- لكل حساب نظراؤه بسببين منفصلين، لأن الحيّ يوم الهجرة فرّق بينهما:
--- - **الاسم الكامل وتاريخ الميلاد معاً** (`same_identity`) — ٢٢ حساباً: هذا التكرار المحتمل حقاً
---   (من سجّل ثانيةً بوثيقةٍ أخرى بقي اسمه وميلاده).
--- - **الجوال نفسه** (`same_phone`) — ٧٤ حساباً، وأغلبهم إخوةٌ سجّلهم وليّهم بجواله: معلومةٌ لا تهمة.
--- والاسم وحده لا يكفي: الأسماء الشائعة تتكرّر. والاسم يُقارَن بعد طيّ المسافات وتصغير الحروف.
+-- - **الميلاد نفسه مع الاسم نفسه أو الجوال نفسه** (`same_identity`) — نحو ٢٢ حساباً: التكرار المحتمل
+--   حقاً (من سجّل ثانيةً بوثيقةٍ أخرى بقي اسمه وميلاده، أو جواله وميلاده).
+-- - **الجوال نفسه بميلادٍ آخر** (`same_phone`) — نحو ٧٤ حساباً، وأغلبهم إخوةٌ سجّلهم وليّهم: معلومةٌ لا تهمة.
+-- والاسم وحده لا يكفي: الأسماء الشائعة تتكرّر. والاسم يُطبَّع قبل المقارنة (المسافات والهمزات والتشكيل).
+-- والمقارنة بربطٍ مباشر (hash) لا باستعلامٍ لكل صفّ — فتبقى خطّيةً مع نموّ الحسابات.
 -- والمقارنة بكل الحسابات (بصلاحية من يطلب) لا بالمطابِق للبحث — فالنظير قد لا يطابقه.
 -- و`p_duplicate`: `identity` أو `phone` لتصفية أحدهما.
 --
@@ -47,19 +48,45 @@ security invoker
 set search_path = ''
 as $$
   with norm as materialized (
-    -- الاسم بعد طيّ المسافات وتصغير الحروف — يُحسب مرةً لكل حساب لا لكل مقارنة.
-    select pr.id, pr.full_name, pr.phone, pr.birth_date, pr.created_at,
-           lower(btrim(regexp_replace(pr.full_name, '\s+', ' ', 'g'))) as nn
+    -- الاسم مطبَّعاً مرةً لكل حساب: بلا مسافاتٍ ولا تشكيلٍ ولا تطويل، والهمزات ألفاً والتاء هاءً
+    -- والألف المقصورة ياءً — فـ«عبد الله» تطابق «عبدالله»، و«أحمد» «احمد».
+    select pr.id, pr.full_name, pr.phone, pr.birth_date, pr.created_at, pr.deleted_at, pr.purge_after,
+           translate(regexp_replace(lower(pr.full_name), '[[:space:]ً-ْـ]', '', 'g'),
+                     'أإآىة', 'اااية') as nn
     from public.profiles pr
   ),
-  twins as (
-    -- مقارنةٌ بكل الحسابات لا بالمطابِق للبحث وحده: النظير قد لا يطابق البحث.
-    select n.id,
-           coalesce((select array_agg(o.full_name order by o.created_at) from norm o
-                     where o.id <> n.id and o.birth_date = n.birth_date and o.nn = n.nn), '{}') as same_identity,
-           coalesce((select array_agg(o.full_name order by o.created_at) from norm o
-                     where o.id <> n.id and o.phone = n.phone), '{}') as same_phone
+  peers as (
+    -- النظير يُوصف بما يميّزه عن صاحبه: آخر جواله، ويوم إنشائه، وحاله. ومن في سلّة المحذوفات
+    -- ليس نظيراً ولا موسوماً — فإذا حُسم التكرار بالحذف زالت العلامة من الطرفين.
+    select o.*,
+           o.full_name
+             || coalesce(' · …' || right(o.phone, 4), '')
+             || ' · ' || to_char(o.created_at at time zone 'Asia/Riyadh', 'YYYY-MM-DD')
+             || case when o.deleted_at is not null then ' · موقوف' else '' end as label
+    from norm o
+    where o.purge_after is null
+  ),
+  same_id as (
+    -- مكرّرٌ محتمل: الميلاد نفسه مع الاسم نفسه أو الجوال نفسه (الإخوة نادراً ما يشتركون في الميلاد).
+    select n.id, array_agg(o.label order by o.created_at) as labels
     from norm n
+    join peers o on o.birth_date = n.birth_date and o.id <> n.id and (o.nn = n.nn or o.phone = n.phone)
+    where n.purge_after is null
+    group by n.id
+  ),
+  same_ph as (
+    -- جوالٌ مشترك بميلادٍ آخر — أغلبه إخوةٌ سجّلهم وليّهم: معلومةٌ لا تهمة.
+    select n.id, array_agg(o.label order by o.created_at) as labels
+    from norm n
+    join peers o on o.phone = n.phone and o.id <> n.id and o.birth_date is distinct from n.birth_date
+    where n.purge_after is null
+    group by n.id
+  ),
+  twins as (
+    select n.id, coalesce(i.labels, '{}') as same_identity, coalesce(p.labels, '{}') as same_phone
+    from norm n
+    left join same_id i on i.id = n.id
+    left join same_ph p on p.id = n.id
   ),
   enrolled as (
     select p.user_id,

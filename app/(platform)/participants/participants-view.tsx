@@ -27,18 +27,26 @@ export type AccountRow = {
   programs: string[];
   /** له مشاركة · لا مشاركة له · `null` لا نعرف (من لا يرى المشاركات كلها). */
   hasProgram: boolean | null;
-  /** نظراؤه بالاسم الكامل والميلاد معاً — «مكرّر محتمل» (الدفعة ٣). */
+  /** نظراؤه بالميلاد مع الاسم أو الجوال — «مكرّر محتمل» (الدفعة ٣). */
   sameIdentity: string[];
-  /** نظراؤه بالجوال نفسه — «جوال مشترك»، وأغلبه إخوة. */
+  /** نظراؤه بالجوال نفسه بميلادٍ آخر — «جوال مشترك»، وأغلبه إخوة. */
   samePhone: string[];
 };
 
-/** علامة تكرارٍ بجانب الاسم، ونظراؤه مكتوبون فيها لا في تلميحٍ وحده — فتُقرأ على الجوال أيضاً. */
-function DuplicateMark({ label, names, strong }: { label: string; names: string[]; strong: boolean }) {
-  if (names.length === 0) return null;
+/** ما يُعرض من النظراء — جوالٌ سجّل به معلّمٌ حلقته لا يملأ الصفّ بأسمائهم. */
+const PEERS_SHOWN = 3;
+
+/**
+ * علامة تكرارٍ تحت الاسم، ونظراؤه مكتوبون فيها لا في تلميحٍ وحده — فتُقرأ على الجوال أيضاً. وكل نظيرٍ
+ * بما يميّزه (آخر جواله · يوم إنشائه · حاله)، فيُعرف أيّ الحسابين يُحسم.
+ */
+function DuplicateMark({ label, peers, strong }: { label: string; peers: string[]; strong: boolean }) {
+  if (peers.length === 0) return null;
+  const rest = peers.length - PEERS_SHOWN;
   return (
     <span className={strong ? styles.dupStrong : styles.dup}>
-      {label}: {names.join("، ")}
+      {label}: {peers.slice(0, PEERS_SHOWN).join("؛ ")}
+      {rest > 0 ? ` — و${formatNumber(rest)} غيرهم` : null}
     </span>
   );
 }
@@ -90,8 +98,8 @@ export function ParticipantsView({
       render: (r) => (
         <span className={styles.name}>
           {r.fullName}
-          <DuplicateMark label={ACCOUNT_DUPLICATE_LABEL.identity} names={r.sameIdentity} strong />
-          <DuplicateMark label={ACCOUNT_DUPLICATE_LABEL.phone} names={r.samePhone} strong={false} />
+          <DuplicateMark label={ACCOUNT_DUPLICATE_LABEL.identity} peers={r.sameIdentity} strong />
+          <DuplicateMark label={ACCOUNT_DUPLICATE_LABEL.phone} peers={r.samePhone} strong={false} />
         </span>
       ),
     },

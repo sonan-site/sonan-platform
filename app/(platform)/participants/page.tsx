@@ -65,8 +65,9 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     programs: p.programs,
     // لا مشاركة ظاهرة ⇐ «بلا برنامج» لمن يرى المشاركات كلها، و«لا نعرف» لغيره.
     hasProgram: p.has_program ? true : seesAllEnrolment ? false : null,
-    sameIdentity: p.same_identity,
-    samePhone: p.same_phone,
+    // `?? []`: كودٌ يسبق هجرته لا يُسقط الشاشة — بلا علامةٍ فقط.
+    sameIdentity: p.same_identity ?? [],
+    samePhone: p.same_phone ?? [],
   }));
 
   // عددٌ ناقص أسوأ من لا عدد — فإن تعذّر سُكت عنه.
@@ -96,7 +97,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   ];
 
   const duplicateLinks: FilterLink[] = [
-    { label: "دون تصفية التكرار", href: hrefWith("/participants", params, { dup: null }), current: duplicate === null },
+    { label: "الكل", href: hrefWith("/participants", params, { dup: null }), current: duplicate === null },
     ...(Object.entries(ACCOUNT_DUPLICATE_LABEL) as [keyof typeof ACCOUNT_DUPLICATE_LABEL, string][]).map(
       ([key, label]) => ({ label, href: hrefWith("/participants", params, { dup: key }), current: duplicate === key }),
     ),
