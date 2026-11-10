@@ -48,6 +48,12 @@ describe("تفاصيل الفعل في السجل", () => {
     expect(auditDetail("accounts_exported", { count: 300 })).toBe("العدد: 300");
   });
 
+  it("**البحث برقم الوثيقة**: وُجد أم لا — بلا الرقم", () => {
+    expect(auditDetail("identity_searched", { found: true })).toBe("وُجد حساب");
+    expect(auditDetail("identity_searched", { found: false })).toBe("لا حساب بهذا الرقم");
+    expect(auditDetail("accounts_exported", { count: 1, by_document: true })).toBe("العدد: 1 · بحثٌ برقم وثيقة");
+  });
+
   it("وفعلٌ آخر، أو `after` فارغ ⇐ «—»", () => {
     expect(auditDetail("role_assigned", { count: 1 })).toBe("—");
     expect(auditDetail("accounts_exported", null)).toBe("—");

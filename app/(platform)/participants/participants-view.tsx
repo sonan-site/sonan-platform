@@ -66,6 +66,8 @@ export function ParticipantsView({
   programLinks,
   statusLinks,
   duplicateLinks,
+  foundByDocument,
+  canSearchDocuments,
   activeFilters,
   exportHref,
   canWrite,
@@ -80,6 +82,10 @@ export function ParticipantsView({
   programLinks: FilterLink[];
   statusLinks: FilterLink[];
   duplicateLinks: FilterLink[];
+  /** البحث وجد حساباً برقم وثيقته — فيُقال، لئلا يُظنّ الاسم أو الجوال طابق. */
+  foundByDocument: boolean;
+  /** لحامل `identities.read`: البحث برقم الوثيقة متاح، فتقوله الخانة. */
+  canSearchDocuments: boolean;
   activeFilters: ActiveFilter[];
   /** رابط ملف ما تعرضه القائمة بكل صفحاته — `null` لمن لا يملك التصدير. */
   exportHref: string | null;
@@ -163,6 +169,7 @@ export function ParticipantsView({
       <FilterLinks label="البرنامج" links={programLinks} />
       <FilterLinks label="الحالة" links={statusLinks} />
       <FilterLinks label="التكرار" links={duplicateLinks} />
+      {foundByDocument ? <p className={styles.export}>نتيجة البحث برقم الوثيقة — تطابقٌ تامّ، ويُسجَّل البحث في سجلّ التدقيق.</p> : null}
       {exportHref && total > 0 ? (
         <p className={styles.export}>
           <a href={exportHref} download>
@@ -179,7 +186,7 @@ export function ParticipantsView({
         total={total}
         page={page}
         filters={activeFilters}
-        searchPlaceholder="ابحث بالاسم أو الجوال…"
+        searchPlaceholder={canSearchDocuments ? "ابحث بالاسم أو الجوال أو رقم الوثيقة…" : "ابحث بالاسم أو الجوال…"}
         empty={{ title: "لا حسابات بعد", body: "لم يُنشئ أحد حساباً في المنصة." }}
       />
 

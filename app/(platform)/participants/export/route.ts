@@ -1,4 +1,5 @@
 import { toAccountsCsv, type AccountCsvRow } from "@/lib/accounts/accounts-csv";
+import { findByDocument } from "@/lib/accounts/identity-search";
 import { accountsListArgs, parseAccountsQuery } from "@/lib/accounts/list-query";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
   ]);
   if (!read.ok || !write.ok) return new Response("غير مصرَّح", { status: 403 });
   const seesAllEnrolment = (await authorizeRequest({ permission: "participants.read" })).ok;
+  const canReadIdentities = (await authorizeRequest({ permission: "identities.read" })).ok;
 
   const url = new URL(req.url);
   const query = parseAccountsQuery({
@@ -32,10 +34,11 @@ export async function GET(req: Request) {
     status: url.searchParams.get("status") ?? undefined,
     dup: url.searchParams.get("dup") ?? undefined,
   });
-  // معاملات الصفحة نفسها — فلا يختلف ما يُصدَّر عمّا يُعرض. والنافذة لا تعني الدالة: تقرأ الكل.
-  const { args } = accountsListArgs(query, seesAllEnrolment, { limit: 0, offset: 0 });
-
   const db = await createClient();
+  // معاملات الصفحة نفسها — فلا يختلف ما يُصدَّر عمّا يُعرض، والبحث برقم الوثيقة منها. والنافذة لا تعني الدالة.
+  const documentUserId = await findByDocument((fn, a) => db.rpc(fn, a), url.searchParams.get("q") ?? "", canReadIdentities);
+  const { args } = accountsListArgs(query, seesAllEnrolment, { limit: 0, offset: 0 }, documentUserId);
+
   const { data, error } = await db.rpc("fn_export_accounts", {
     p_name_words: args.p_name_words,
     p_phone: args.p_phone,
@@ -44,6 +47,7 @@ export async function GET(req: Request) {
     p_sort: args.p_sort,
     p_desc: args.p_desc,
     p_duplicate: args.p_duplicate,
+    p_user_id: args.p_user_id,
   });
   if (error) {
     return new Response(error.code === "42501" ? "غير مصرَّح" : "تعذّر التصدير — لم يُسلَّم ملف", {

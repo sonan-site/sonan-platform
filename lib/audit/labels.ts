@@ -39,6 +39,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   results_publication_withdrawn: "سحب نشر نتائج مسار",
   exam_results_exported: "تصدير نتائج اختبار",
   accounts_exported: "تصدير قائمة الحسابات",
+  identity_searched: "بحث برقم وثيقة",
   role_assigned: "إسناد دور",
   role_revoked: "سحب دور",
   section_created: "إنشاء قسم",
@@ -94,6 +95,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
 
 export const AUDIT_TABLE_LABEL: Record<string, string> = {
   profiles: "حساب",
+  profile_identities: "الهويات",
   user_roles: "إسناد دور",
   roles: "دور",
   role_permissions: "صلاحيات دور",
@@ -132,8 +134,11 @@ const STATUS_LABEL: Record<string, string> = { active: "نشط", suspended: "م�
  * فعلٌ بلا تفاصيل معروفة ⇐ «—».
  */
 export function auditDetail(action: string, after: unknown): string {
-  if (action !== "accounts_exported" || !after || typeof after !== "object") return "—";
+  if (!after || typeof after !== "object") return "—";
   const a = after as Record<string, unknown>;
+  // البحث برقم الوثيقة: أوجد حساباً أم لا — بلا الرقم ولا صاحبه.
+  if (action === "identity_searched") return a["found"] === true ? "وُجد حساب" : "لا حساب بهذا الرقم";
+  if (action !== "accounts_exported") return "—";
   const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
   const num = (v: unknown) => (typeof v === "number" ? v : null);
   const count = num(a["count"]);
@@ -146,6 +151,7 @@ export function auditDetail(action: string, after: unknown): string {
     text(a["phone_tail"]) ? `الجوال: …${text(a["phone_tail"])}` : null,
     text(a["program"]) ? `البرنامج: ${text(a["program"])}` : null,
     status ? `الحالة: ${STATUS_LABEL[status] ?? status}` : null,
+    a["by_document"] === true ? "بحثٌ برقم وثيقة" : null,
     text(a["duplicate"]) ? `التكرار: ${ACCOUNT_DUPLICATE_LABEL[text(a["duplicate"]) as AccountDuplicate] ?? text(a["duplicate"])}` : null,
   ].filter((p) => p !== null);
   return parts.length > 0 ? parts.join(" · ") : "—";

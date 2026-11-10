@@ -10,6 +10,7 @@ import {
 } from "@/lib/accounts/list-query";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { findByDocument } from "@/lib/accounts/identity-search";
 import { formatPhone } from "@/lib/profile/phone";
 import { hrefWith, type FilterLink, type SearchParams } from "@/components/shared/filter-links";
 import { ParticipantsView, type AccountRow } from "./participants-view";
@@ -31,15 +32,22 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   // من يقرأ مشاركي بعض البرامج دون غيرها لا يرى مشاركات غيرها — فـ«بلا برنامج» عنده قد تعني
   // «في برنامجٍ لا أراه». فلا يُعرض له مرشّحاً ولا عدداً ولا وصفاً، لئلا يُحذف مشاركٌ على ظنّ.
   const seesAllEnrolment = (await authorizeRequest({ permission: "participants.read" })).ok;
+  // البحث برقم الوثيقة لحامل «عرض أرقام الهويات كاملة» وحده (الدفعة ٤) — لغيره يكشف ما يخفيه القناع.
+  const canReadIdentities = (await authorizeRequest({ permission: "identities.read" })).ok;
   const params = await searchParams;
   const query = parseAccountsQuery(params);
   const { status, duplicate, page } = query;
-  const { program, args } = accountsListArgs(query, seesAllEnrolment, {
-    limit: DEFAULT_PAGE_SIZE,
-    offset: (page - 1) * DEFAULT_PAGE_SIZE,
-  });
 
   const db = await createClient();
+  const rawQuery = typeof params.q === "string" ? params.q : "";
+  const documentUserId = await findByDocument((fn, a) => db.rpc(fn, a), rawQuery, canReadIdentities);
+  const { program, args } = accountsListArgs(
+    query,
+    seesAllEnrolment,
+    { limit: DEFAULT_PAGE_SIZE, offset: (page - 1) * DEFAULT_PAGE_SIZE },
+    documentUserId,
+  );
+
   const [listResult, enrolledResult, programsResult] = await Promise.all([
     db.rpc("fn_accounts_list", args),
     // رأس الشاشة: من في برنامجٍ على الأقل عبر كل الحسابات — العدد الكلّي لصفٍّ واحد يكفي.
@@ -123,6 +131,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       programLinks={programLinks}
       statusLinks={statusLinks}
       duplicateLinks={duplicateLinks}
+      foundByDocument={documentUserId !== null}
+      canSearchDocuments={canReadIdentities}
       activeFilters={active}
       // التصدير لحامل تعديل الحسابات وحده: الملف يُنسخ ويُرسل، والشاشة لا.
       exportHref={canWrite ? hrefWith("/participants/export", params) : null}

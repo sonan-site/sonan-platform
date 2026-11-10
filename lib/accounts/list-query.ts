@@ -84,13 +84,16 @@ export function accountsListArgs(
   query: AccountsQuery,
   seesAllEnrolment: boolean,
   window: { limit: number; offset: number },
+  /** حسابٌ وجده البحث برقم الوثيقة (الدفعة ٤) — يحلّ محلّ البحث بالاسم والجوال. */
+  documentUserId: string | null = null,
 ) {
   const program = query.program === NO_PROGRAM && !seesAllEnrolment ? null : query.program;
   return {
     program,
     args: {
-      p_name_words: query.nameWords,
-      p_phone: query.phoneDigits || undefined,
+      p_name_words: documentUserId ? [] : query.nameWords,
+      p_phone: documentUserId ? undefined : query.phoneDigits || undefined,
+      p_user_id: documentUserId ?? undefined,
       p_program: program ?? undefined,
       p_status: query.status ?? undefined,
       p_sort: query.sort.column,

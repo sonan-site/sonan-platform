@@ -3206,6 +3206,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_account_by_identity: {
+        Args: { p_national_id: string }
+        Returns: string
+      }
       fn_accounts_list: {
         Args: {
           p_desc?: boolean
@@ -3217,6 +3221,7 @@ export type Database = {
           p_program?: string
           p_sort?: string
           p_status?: string
+          p_user_id?: string
         }
         Returns: {
           created_at: string
@@ -3653,6 +3658,7 @@ export type Database = {
           p_program?: string
           p_sort?: string
           p_status?: string
+          p_user_id?: string
         }
         Returns: Json
       }
