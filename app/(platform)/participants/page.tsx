@@ -5,9 +5,8 @@ import { ACCOUNT_STATUS_LABEL, accountsListArgs, NO_PROGRAM, parseAccountsQuery 
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { formatPhone } from "@/lib/profile/phone";
-import { ParticipantsView, type AccountRow, type FilterLink } from "./participants-view";
-
-type Params = Record<string, string | string[] | undefined>;
+import { hrefWith, type FilterLink, type SearchParams } from "@/components/shared/filter-links";
+import { ParticipantsView, type AccountRow } from "./participants-view";
 
 /**
  * «المشاركون في المنصة» — كل من له حساب، وبرامجه معه (`adr/0032`).
@@ -18,7 +17,7 @@ type Params = Record<string, string | string[] | undefined>;
  * البحث والتصفية والفرز والصفحة من الرابط (`lib/accounts/list-query.ts`)، و`fn_accounts_list`
  * تُرجع صفحةً واحدة بعددها الكلّي وبرامج كل حساب، بصلاحية من يطلب — فلا سقف على عدد الحسابات.
  */
-export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<Params> }) {
+export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const authz = await authorizeRequest({ permission: "users.read" });
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
@@ -46,7 +45,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const data = listResult.data ?? [];
   // صفحةٌ بعد آخر النتائج (رابطٌ محفوظ ثم حُذفت حسابات) تُرجع فارغة فتوهم بلا حسابات —
   // فيُعاد إلى أولى الصفحات ببحثه وتصفيته وفرزه.
-  if (page > 1 && data.length === 0) redirect(hrefWith(params, {}));
+  if (page > 1 && data.length === 0) redirect(hrefWith("/participants", params));
 
   const rows: AccountRow[] = data.map((p) => ({
     id: p.id,
@@ -71,20 +70,20 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const programLinks: FilterLink[] = programsResult.error
     ? []
     : [
-        { label: "كل البرامج", href: hrefWith(params, { program: null }), current: program === null },
+        { label: "كل البرامج", href: hrefWith("/participants", params, { program: null }), current: program === null },
         ...programs.map((g) => ({
           label: g.name,
-          href: hrefWith(params, { program: g.id }),
+          href: hrefWith("/participants", params, { program: g.id }),
           current: program === g.id,
         })),
         ...(seesAllEnrolment
-          ? [{ label: "بلا برنامج", href: hrefWith(params, { program: NO_PROGRAM }), current: program === NO_PROGRAM }]
+          ? [{ label: "بلا برنامج", href: hrefWith("/participants", params, { program: NO_PROGRAM }), current: program === NO_PROGRAM }]
           : []),
       ];
   const statusLinks: FilterLink[] = [
-    { label: "كل الحالات", href: hrefWith(params, { status: null }), current: status === null },
+    { label: "كل الحالات", href: hrefWith("/participants", params, { status: null }), current: status === null },
     ...(Object.entries(ACCOUNT_STATUS_LABEL) as [keyof typeof ACCOUNT_STATUS_LABEL, string][]).map(
-      ([key, label]) => ({ label, href: hrefWith(params, { status: key }), current: status === key }),
+      ([key, label]) => ({ label, href: hrefWith("/participants", params, { status: key }), current: status === key }),
     ),
   ];
 
@@ -108,20 +107,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       statusLinks={statusLinks}
       activeFilters={active}
       // التصدير لحامل تعديل الحسابات وحده: الملف يُنسخ ويُرسل، والشاشة لا.
-      exportHref={canWrite ? hrefWith(params, {}, "/participants/export") : null}
+      exportHref={canWrite ? hrefWith("/participants/export", params) : null}
       canWrite={canWrite}
     />
   );
-}
-
-/** الرابط نفسه ببحثه وتصفيته وفرزه، مع ما يُبدَّل، وبلا رقم الصفحة — فالتصفية تبدأ من أولها. */
-function hrefWith(params: Params, patch: Record<string, string | null>, path = "/participants"): string {
-  const next = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key in patch || value === undefined) continue;
-    for (const v of Array.isArray(value) ? value : [value]) next.append(key, v);
-  }
-  for (const [key, value] of Object.entries(patch)) if (value) next.set(key, value);
-  const query = next.toString();
-  return query ? `${path}?${query}` : path;
 }

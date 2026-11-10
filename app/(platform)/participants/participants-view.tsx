@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
-import Link from "next/link";
 import { DataTable, type ActiveFilter, type Column } from "@/components/shared/data-table";
+import { FilterLinks, type FilterLink } from "@/components/shared/filter-links";
 import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { PageHead } from "@/components/shared/steps";
@@ -11,18 +11,6 @@ import { binNotice } from "@/lib/accounts/bin";
 import { formatDateBoth, formatNumber } from "@/lib/format";
 import { deleteAccount, restoreUser, suspendUser } from "../team/actions";
 import styles from "./participants.module.css";
-
-function FilterGroup({ label, links }: { label: string; links: FilterLink[] }) {
-  return (
-    <div className={styles.filters} role="group" aria-label={label}>
-      {links.map((l) => (
-        <Link key={l.href} href={l.href} aria-current={l.current ? "true" : undefined}>
-          {l.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 export type AccountRow = {
   id: string;
@@ -38,9 +26,6 @@ export type AccountRow = {
   /** له مشاركة · لا مشاركة له · `null` لا نعرف (من لا يرى المشاركات كلها). */
   hasProgram: boolean | null;
 };
-
-/** خيار تصفيةٍ رابطاً لا عنصر تنقّل (`nav-outside-source`) — كمرشّحات «صوتك». */
-export type FilterLink = { label: string; href: string; current: boolean };
 
 /** صفٌّ في السلّة لا يُوقَف ولا يُحذف ثانيةً — يُستعاد أو يُمحى من شاشتها. */
 const ROW_ACTIONS = {
@@ -138,8 +123,8 @@ export function ParticipantsView({
         }
       />
 
-      <FilterGroup label="البرنامج" links={programLinks} />
-      <FilterGroup label="الحالة" links={statusLinks} />
+      <FilterLinks label="البرنامج" links={programLinks} />
+      <FilterLinks label="الحالة" links={statusLinks} />
       {exportHref && total > 0 ? (
         <a className={styles.export} href={exportHref} download>
           صدّر ما تعرضه القائمة ({formatNumber(total)}) — CSV

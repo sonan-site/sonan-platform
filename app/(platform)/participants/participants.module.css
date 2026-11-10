@@ -1,33 +1,7 @@
-/* مرشّحات البرنامج والحالة — روابط على نمط مرشّحات «صوتك». */
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-block-end: var(--space-3);
-}
-
-.filters a {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: var(--touch-target);
-  padding-inline: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  color: var(--color-text);
-  font-size: var(--text-sm);
-  text-decoration: none;
-}
-
 /* رابط التصدير — على نمط «صدّر المعتمد» في النتائج. */
 .export {
   display: inline-block;
   margin-block-end: var(--space-3);
   color: var(--color-brand);
   font-size: var(--text-sm);
-}
-
-.filters a[aria-current="true"] {
-  border-color: var(--color-accent);
-  background: var(--color-accent-subtle);
-  font-weight: var(--weight-bold);
 }

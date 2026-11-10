@@ -45,6 +45,11 @@ export type DataTableProps<T> = {
   status?: "ready" | "loading" | "error";
   errorMessage?: string;
   searchPlaceholder?: string;
+  /**
+   * `false` يُخفي خانة البحث — لجدولٍ قصير ثابت، أو ثانٍ في صفحةٍ يشارك جدولها الأول `?q=`
+   * فلا يُعرض بحثٌ لا تقرؤه صفحته (`ق-٢٠`). وحينها لا يُعدّ `?q=` تصفيةً له.
+   */
+  searchable?: boolean;
   /** وسوم التصفية النشطة، كلٌّ قابل للإزالة. */
   filters?: ActiveFilter[];
   selection?: {
@@ -84,6 +89,7 @@ function DataTableInner<T>({
   status = "ready",
   errorMessage,
   searchPlaceholder = "بحث…",
+  searchable = true,
   filters = [],
   selection,
   empty,
@@ -188,14 +194,16 @@ function DataTableInner<T>({
 
   const toolbar = (
     <div className={styles.toolbar}>
-      <input
-        type="search"
-        value={searchDraft}
-        onChange={(e) => onSearch(e.target.value)}
-        placeholder={searchPlaceholder}
-        aria-label={searchPlaceholder}
-        className={styles.search}
-      />
+      {searchable ? (
+        <input
+          type="search"
+          value={searchDraft}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder}
+          className={styles.search}
+        />
+      ) : null}
       {filters.length > 0 ? (
         <div className={styles.chips}>
           {filters.map((f) => (
@@ -236,7 +244,7 @@ function DataTableInner<T>({
 
   if (rows.length === 0) {
     // الفارق الذي يوجبه §١١.٥: لا بيانات أصلاً، أم أخفتها التصفية؟
-    const filtered = Boolean(query) || filters.length > 0;
+    const filtered = (searchable && Boolean(query)) || filters.length > 0;
     return (
       <div className={styles.root}>
         {toolbar}

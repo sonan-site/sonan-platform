@@ -1,21 +1,59 @@
 import { formatRegistrationNo } from "@/lib/programs/registration";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
+import { hrefWith, type FilterLink, type SearchParams } from "@/components/shared/filter-links";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { followsPlan } from "@/lib/participants/journey";
+import { applyRosterQuery, NO_TRACK, parseRosterQuery } from "@/lib/participants/roster-query";
 import { authorizeRequest } from "@/lib/permissions/server";
+import { PARTICIPANT_STATUS_LABEL, statusesOf } from "@/lib/programs/kinds";
 import {
   ParticipantsView,
   type ChangeRow,
   type ParticipantRow,
 } from "./participants-view";
 
+/** سقف `fn_program_participants` للطلب الواحد — فتُجلب القائمة دفعاتٍ بعددها الكلّي. */
+const ROSTER_BATCH = 500;
+
+type Db = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * المشاركون كلهم دفعاتٍ: كانت دفعةً واحدة بسقف ٥٠٠ تُقصّ بصمت، والبرنامج يتّسع لأكثر (دَين `د-١٥`).
+ * والقائمة كلها لازمة: نموذج طلب تغيير المسار يختار منها، والتصفية والفرز عليها.
+ */
+async function fetchRoster(db: Db, programId: string) {
+  const { data: first, error } = await db.rpc("fn_program_participants", {
+    p_program_id: programId,
+    p_limit: ROSTER_BATCH,
+    p_offset: 0,
+  });
+  if (error) return { data: null, error };
+  const all = [...(first ?? [])];
+  const total = Number(first?.[0]?.total ?? 0);
+  while (all.length < total) {
+    const { data, error: more } = await db.rpc("fn_program_participants", {
+      p_program_id: programId,
+      p_limit: ROSTER_BATCH,
+      p_offset: all.length,
+    });
+    if (more) return { data: null, error: more };
+    if (!data?.length) break;
+    all.push(...data);
+  }
+  return { data: all, error: null };
+}
+
 export default async function ParticipantsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<SearchParams>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
 
   const authz = await authorizeRequest({
     permission: "participants.read",
@@ -44,7 +82,7 @@ export default async function ParticipantsPage({
   const [programResult, participantsResult, tracksResult, requestsResult, plansResult, rangesResult] =
     await Promise.all([
     db.from("programs").select("id, name, kind, registration_prefix").eq("id", id).is("deleted_at", null).maybeSingle(),
-    db.rpc("fn_program_participants", { p_program_id: id, p_limit: 500, p_offset: 0 }),
+    fetchRoster(db, id),
     // المؤرشَفة معها: طلبٌ قديم إلى مسارٍ أُرشف يبقى باسمه لا «—».
     db
       .from("tracks")
@@ -89,6 +127,7 @@ export default async function ParticipantsPage({
     id: p.id,
     name: p.full_name ?? "مشارك محذوف",
     registrationNo: formatRegistrationNo(programResult.data?.registration_prefix ?? null, p.registration_no),
+    trackId: p.track_id,
     trackName: p.track_id ? (trackName.get(p.track_id) ?? "—") : "بلا مسار",
     hasTrack: p.track_id !== null,
     status: p.status,
@@ -142,13 +181,54 @@ export default async function ParticipantsPage({
       carry: previews.get(r.id) ?? null,
     }));
 
+  // البحث والتصفية والفرز والصفحة من الرابط (`ق-٢٠`) — على القائمة كاملة.
+  const path = `/programs/${id}/participants`;
+  const statuses = statusesOf(programResult.data.kind);
+  const query = parseRosterQuery(sp, statuses);
+  const { rows, total } = applyRosterQuery(participants, query, DEFAULT_PAGE_SIZE);
+  // صفحةٌ بعد آخر النتائج (رابطٌ محفوظ ثم تغيّرت القائمة) ⇐ أولى الصفحات ببحثها وتصفيتها.
+  if (query.page > 1 && rows.length === 0) redirect(hrefWith(path, sp));
+
+  const liveTracks = allTracks.filter((t) => t.deleted_at === null).map(({ id, name }) => ({ id, name }));
+  const trackLinks: FilterLink[] = [
+    { label: "كل المسارات", href: hrefWith(path, sp, { track: null }), current: query.track === null },
+    ...liveTracks.map((t) => ({ label: t.name, href: hrefWith(path, sp, { track: t.id }), current: query.track === t.id })),
+    // «بلا مسار» لا تُعرض إلا إن وُجد من لا مسار له — أو كانت مختارة.
+    ...(participants.some((p) => !p.hasTrack) || query.track === NO_TRACK
+      ? [{ label: "بلا مسار", href: hrefWith(path, sp, { track: NO_TRACK }), current: query.track === NO_TRACK }]
+      : []),
+  ];
+  // الحالات الموجودة فعلاً في القائمة — لا خيار يُرجع فراغاً دائماً.
+  const present = new Set(participants.map((p) => p.status));
+  const statusLabel = (s: string) => PARTICIPANT_STATUS_LABEL[s as keyof typeof PARTICIPANT_STATUS_LABEL] ?? s;
+  const statusLinks: FilterLink[] = [
+    { label: "كل الحالات", href: hrefWith(path, sp, { status: null }), current: query.status === null },
+    ...statuses
+      .filter((s) => present.has(s) || query.status === s)
+      .map((s) => ({ label: statusLabel(s), href: hrefWith(path, sp, { status: s }), current: query.status === s })),
+  ];
+  const activeFilters = [
+    query.track === NO_TRACK
+      ? { key: "track", label: "المسار: بلا مسار" }
+      : query.track
+        ? { key: "track", label: `المسار: ${trackName.get(query.track) ?? "مسارٌ واحد"}` }
+        : null,
+    query.status ? { key: "status", label: `الحالة: ${statusLabel(query.status)}` } : null,
+  ].filter((f) => f !== null);
+
   return (
     <ParticipantsView
       programId={id}
       kind={programResult.data.kind}
       participants={participants}
+      pageRows={rows}
+      total={total}
+      page={query.page}
+      trackLinks={trackLinks}
+      statusLinks={statusLinks}
+      activeFilters={activeFilters}
       requests={requests}
-      tracks={allTracks.filter((t) => t.deleted_at === null).map(({ id, name }) => ({ id, name }))}
+      tracks={liveTracks}
       canWrite={canWrite}
     />
   );

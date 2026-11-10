@@ -4,7 +4,8 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import { DataTable, type ActiveFilter, type Column } from "@/components/shared/data-table";
+import { FilterLinks, type FilterLink } from "@/components/shared/filter-links";
 import { Modal } from "@/components/shared/modal";
 import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, Muted, TabHead, Step, StepForm } from "@/components/shared/steps";
@@ -29,6 +30,7 @@ export type ParticipantRow = {
   name: string;
   /** `SN-1448-0001` (`adr/0047`) — فارغ بلا بادئة. */
   registrationNo: string | null;
+  trackId: string | null;
   trackName: string;
   hasTrack: boolean;
   status: string;
@@ -82,13 +84,27 @@ export function ParticipantsView({
   programId,
   kind,
   participants,
+  pageRows,
+  total,
+  page,
+  trackLinks,
+  statusLinks,
+  activeFilters,
   requests,
   tracks,
   canWrite,
 }: {
   programId: string;
   kind: ProgramKind;
+  /** القائمة كلها — لنموذج طلب تغيير المسار. */
   participants: ParticipantRow[];
+  /** الصفحة المعروضة بعد البحث والتصفية والفرز، وعدد المطابِق كله. */
+  pageRows: ParticipantRow[];
+  total: number;
+  page: number;
+  trackLinks: FilterLink[];
+  statusLinks: FilterLink[];
+  activeFilters: ActiveFilter[];
   requests: ChangeRow[];
   tracks: { id: string; name: string }[];
   canWrite: boolean;
@@ -202,7 +218,6 @@ export function ParticipantsView({
     {
       key: "participant",
       header: "المشارك",
-      sortable: true,
       primary: true,
       render: (r) => r.participantName,
     },
@@ -326,13 +341,16 @@ export function ParticipantsView({
         ) : null}
       </Modal>
 
+      <FilterLinks label="المسار" links={trackLinks} />
+      <FilterLinks label="الحالة" links={statusLinks} />
       <DataTable
         columns={columns}
-        rows={participants}
+        rows={pageRows}
         rowKey={(p) => p.id}
-        total={participants.length}
-        page={1}
-        searchPlaceholder="ابحث باسم المشارك…"
+        total={total}
+        page={page}
+        filters={activeFilters}
+        searchPlaceholder="ابحث بالاسم أو رقم التسجيل…"
         empty={{ title: "لا مشاركون بعد", body: "لم يسجّل أحد في هذا البرنامج." }}
       />
 
@@ -408,7 +426,9 @@ export function ParticipantsView({
           rowKey={(r) => r.id}
           total={requests.length}
           page={1}
-          searchPlaceholder="ابحث باسم المشارك…"
+          // قصيرٌ يُعرض كله (السقف ٢٠٠)، و`?q=` `?page=` لجدول المشاركين فوقه — فلا بحث ولا صفحات هنا (`ق-٢٠`).
+          pageSize={Math.max(requests.length, 1)}
+          searchable={false}
           empty={{ title: "لا طلبات", body: "لم يُنشأ طلب تغيير مسار بعد." }}
         />
       </Step>
