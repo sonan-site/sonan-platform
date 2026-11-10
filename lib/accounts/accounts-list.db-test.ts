@@ -137,14 +137,15 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (programId) await db.query(`delete from public.participants where program_id = any($1::uuid[])`, [[programId, otherProgramId]]);
-  await db.query(`delete from public.programs where section_id = $1`, [sectionId]);
-  if (sectionId) await db.query(`delete from public.sections where id = $1`, [sectionId]);
+  // الأدوار قبل البرامج: الدور المحصور ببرنامجٍ يشير إليه (`fk_user_roles_scope_program`).
   if (roleIds.length) {
     await db.query(`delete from public.user_roles where role_id = any($1::uuid[])`, [roleIds]);
     await db.query(`delete from public.role_permissions where role_id = any($1::uuid[])`, [roleIds]);
     await db.query(`delete from public.roles where id = any($1::uuid[])`, [roleIds]);
   }
+  if (programId) await db.query(`delete from public.participants where program_id = any($1::uuid[])`, [[programId, otherProgramId]]);
+  await db.query(`delete from public.programs where section_id = $1`, [sectionId]);
+  if (sectionId) await db.query(`delete from public.sections where id = $1`, [sectionId]);
   await db.query(`delete from public.audit_log where actor_id = any($1::uuid[])`, [USERS]);
   await db.query(`delete from public.profiles where user_id = any($1::uuid[])`, [USERS]);
   await db.query(`delete from auth.users where id = any($1::uuid[])`, [USERS]);
