@@ -2,13 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
-import { DataTable, type Column } from "@/components/shared/data-table";
+import Link from "next/link";
+import { DataTable, type ActiveFilter, type Column } from "@/components/shared/data-table";
 import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { PageHead } from "@/components/shared/steps";
 import { binNotice } from "@/lib/accounts/bin";
 import { formatDateBoth, formatNumber } from "@/lib/format";
 import { deleteAccount, restoreUser, suspendUser } from "../team/actions";
+import styles from "./participants.module.css";
+
+function FilterGroup({ label, links }: { label: string; links: FilterLink[] }) {
+  return (
+    <div className={styles.filters} role="group" aria-label={label}>
+      {links.map((l) => (
+        <Link key={l.href} href={l.href} aria-current={l.current ? "true" : undefined}>
+          {l.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 export type AccountRow = {
   id: string;
@@ -19,9 +33,14 @@ export type AccountRow = {
   suspended: boolean;
   /** موعد المحو — غير فارغ يعني أنه في سلّة المحذوفات لا موقوفاً (`adr/0034`). */
   purgeAfter: string | null;
-  /** برامجه — الفارغة تعني حساباً لم يسجّل في شيء بعد، و`null` أنها تعذّر جلبها. */
-  programs: string[] | null;
+  /** أسماء برامجه الظاهرة لمن يقرأ. */
+  programs: string[];
+  /** له مشاركة · لا مشاركة له · `null` لا نعرف (من لا يرى المشاركات كلها). */
+  hasProgram: boolean | null;
 };
+
+/** خيار تصفيةٍ رابطاً لا عنصر تنقّل (`nav-outside-source`) — كمرشّحات «صوتك». */
+export type FilterLink = { label: string; href: string; current: boolean };
 
 /** صفٌّ في السلّة لا يُوقَف ولا يُحذف ثانيةً — يُستعاد أو يُمحى من شاشتها. */
 const ROW_ACTIONS = {
@@ -35,15 +54,21 @@ export function ParticipantsView({
   total,
   page,
   withProgram,
+  programLinks,
+  statusLinks,
+  activeFilters,
   canWrite,
 }: {
-  /** الصفحة المعروضة وحدها — البحث والفرز والتقسيم في القاعدة. */
+  /** الصفحة المعروضة وحدها — البحث والتصفية والفرز والتقسيم في القاعدة. */
   rows: AccountRow[];
-  /** كل ما يطابق البحث عبر الصفحات. */
+  /** كل ما يطابق البحث والتصفية عبر الصفحات. */
   total: number;
   page: number;
   /** من سجّل في برنامجٍ عبر كل الحسابات — `null` إن تعذّر عدّه. */
   withProgram: number | null;
+  programLinks: FilterLink[];
+  statusLinks: FilterLink[];
+  activeFilters: ActiveFilter[];
   canWrite: boolean;
 }) {
   const [busy, startTransition] = useTransition();
@@ -57,8 +82,9 @@ export function ParticipantsView({
       key: "programs",
       header: "البرامج",
       // من أنشأ حساباً ولم يسجّل يُقال صراحةً — فيُعرف من تعثّر عند الباب.
+      // وبرنامجٌ لا يظهر اسمه لمن يقرأ يُقال «—» لا «بلا برنامج».
       render: (r) =>
-        r.programs === null ? "—" : r.programs.length > 0 ? r.programs.join(" · ") : "بلا برنامج",
+        r.programs.length > 0 ? r.programs.join(" · ") : r.hasProgram === false ? "بلا برنامج" : "—",
     },
     { key: "joinedAt", header: "منذ", sortable: true, render: (r) => formatDateBoth(r.joinedAt) },
     {
@@ -109,12 +135,16 @@ export function ParticipantsView({
         }
       />
 
+      <FilterGroup label="البرنامج" links={programLinks} />
+      <FilterGroup label="الحالة" links={statusLinks} />
+
       <DataTable
         columns={columns}
         rows={rows}
         rowKey={(r) => r.id}
         total={total}
         page={page}
+        filters={activeFilters}
         searchPlaceholder="ابحث بالاسم أو الجوال…"
         empty={{ title: "لا حسابات بعد", body: "لم يُنشئ أحد حساباً في المنصة." }}
       />

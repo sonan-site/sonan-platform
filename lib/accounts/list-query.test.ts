@@ -30,9 +30,8 @@ describe("البحث", () => {
     expect(parseAccountsQuery({ q: "  محمد  علي " }).nameWords).toEqual(["محمد", "علي"]);
   });
 
-  it("وحروف المطابقة لا تبقى في كلمة", () => {
-    expect(parseAccountsQuery({ q: "a%b_c*d" }).nameWords).toEqual(["a", "b", "c", "d"]);
-    expect(parseAccountsQuery({ q: "%%" }).nameWords).toEqual([]);
+  it("و`%` `_` حرفان كغيرهما — الدالة لا تطابق بـ`ilike`", () => {
+    expect(parseAccountsQuery({ q: "a%b_c" }).nameWords).toEqual(["a%b_c"]);
   });
 
   it("ويُقصّ عند مئة حرف", () => {
@@ -44,6 +43,30 @@ describe("البحث", () => {
       nameWords: ["أحمد"],
       page: 2,
     });
+  });
+});
+
+describe("التصفية", () => {
+  it("بلا تصفية ⇐ الكل", () => {
+    expect(parseAccountsQuery({})).toMatchObject({ program: null, status: null });
+  });
+
+  it("**بلا برنامج**، أو ببرنامجٍ بمعرّفه", () => {
+    const id = "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b";
+    expect(parseAccountsQuery({ program: "none" }).program).toBe("none");
+    expect(parseAccountsQuery({ program: id.toUpperCase() }).program).toBe(id);
+  });
+
+  it("**وما لا يُعرف يُتجاهل** — لا تصل قيمةٌ من الرابط إلى الدالة إلا مما تفهمه", () => {
+    expect(parseAccountsQuery({ program: "any" }).program).toBeNull();
+    expect(parseAccountsQuery({ program: "x'; drop" }).program).toBeNull();
+    expect(parseAccountsQuery({ status: "deleted" }).status).toBeNull();
+  });
+
+  it("والحالة: نشط · موقوف · في السلّة", () => {
+    expect(parseAccountsQuery({ status: "active" }).status).toBe("active");
+    expect(parseAccountsQuery({ status: "suspended" }).status).toBe("suspended");
+    expect(parseAccountsQuery({ status: "bin" }).status).toBe("bin");
   });
 });
 
@@ -69,5 +92,10 @@ describe("الصفحة", () => {
     expect(parseAccountsQuery({ page: "0" }).page).toBe(1);
     expect(parseAccountsQuery({ page: "-2" }).page).toBe(1);
     expect(parseAccountsQuery({ page: "abc" }).page).toBe(1);
+  });
+
+  it("**وما يتجاوز مدى الإزاحة** يعود إلى الأولى لا يُسقط الصفحة", () => {
+    expect(parseAccountsQuery({ page: "1e12" }).page).toBe(1);
+    expect(parseAccountsQuery({ page: "Infinity" }).page).toBe(1);
   });
 });

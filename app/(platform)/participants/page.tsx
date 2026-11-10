@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { ErrorState } from "@/components/shared/states";
-import { parseAccountsQuery } from "@/lib/accounts/list-query";
+import { ACCOUNT_STATUS_LABEL, NO_PROGRAM, parseAccountsQuery } from "@/lib/accounts/list-query";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { formatPhone } from "@/lib/profile/phone";
-import { ParticipantsView, type AccountRow } from "./participants-view";
+import { ParticipantsView, type AccountRow, type FilterLink } from "./participants-view";
 
-/** سقف ما تعيده PostgREST في الطلب الواحد — فيُجلب ما فوقه دفعاتٍ. */
-const BATCH = 1000;
+type Params = Record<string, string | string[] | undefined>;
 
 /**
  * «المشاركون في المنصة» — كل من له حساب، وبرامجه معه (`adr/0032`).
@@ -16,63 +15,46 @@ const BATCH = 1000;
  * منفصلٌ عن «الإدارة» بقصد: تلك لأصحاب الأدوار، وهذه لمن يستعمل المنصة. وقد
  * يجتمع الوصفان في شخص، فيظهر في القائمتين — والصفتان تجتمعان فعلاً.
  *
- * البحث والفرز والصفحة من الرابط (`?q=` `?sort=` `?dir=` `?page=`)، والقاعدة تُرجع
- * صفحةً واحدة بعددها الكلّي — فلا سقف على عدد الحسابات.
+ * البحث والتصفية والفرز والصفحة من الرابط (`lib/accounts/list-query.ts`)، و`fn_accounts_list`
+ * تُرجع صفحةً واحدة بعددها الكلّي وبرامج كل حساب، بصلاحية من يطلب — فلا سقف على عدد الحسابات.
  */
-export default async function ParticipantsPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const authz = await authorizeRequest({ permission: "users.read" });
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const canWrite = (await authorizeRequest({ permission: "users.write" })).ok;
+  // من يقرأ مشاركي بعض البرامج دون غيرها لا يرى مشاركات غيرها — فـ«بلا برنامج» عنده قد تعني
+  // «في برنامجٍ لا أراه». فلا يُعرض له مرشّحاً ولا عدداً ولا وصفاً، لئلا يُحذف مشاركٌ على ظنّ.
+  const seesAllEnrolment = (await authorizeRequest({ permission: "participants.read" })).ok;
   const params = await searchParams;
-  const { nameWords, phoneDigits, sort, page } = parseAccountsQuery(params);
-  const from = (page - 1) * DEFAULT_PAGE_SIZE;
+  const parsed = parseAccountsQuery(params);
+  const { nameWords, phoneDigits, status, sort, page } = parsed;
+  const program = parsed.program === NO_PROGRAM && !seesAllEnrolment ? null : parsed.program;
 
   const db = await createClient();
-  let profilesQuery = db
-    .from("profiles")
-    .select("id, user_id, full_name, phone, created_at, deleted_at, purge_after", { count: "exact" })
-    .order(sort.column, { ascending: sort.ascending })
-    // ترتيبٌ ثانٍ ثابت: المتساويان في الاسم لا يتبادلان الصفحات.
-    .order("id")
-    .range(from, from + DEFAULT_PAGE_SIZE - 1);
-  for (const word of nameWords) profilesQuery = profilesQuery.ilike("full_name", `%${word}%`);
-  if (phoneDigits) profilesQuery = profilesQuery.like("phone", `%${phoneDigits}%`);
+  const [listResult, enrolledResult, programsResult] = await Promise.all([
+    db.rpc("fn_accounts_list", {
+      p_name_words: nameWords,
+      p_phone: phoneDigits || undefined,
+      p_program: program ?? undefined,
+      p_status: status ?? undefined,
+      p_sort: sort.column,
+      p_desc: !sort.ascending,
+      p_limit: DEFAULT_PAGE_SIZE,
+      p_offset: (page - 1) * DEFAULT_PAGE_SIZE,
+    }),
+    // رأس الشاشة: من في برنامجٍ على الأقل عبر كل الحسابات — العدد الكلّي لصفٍّ واحد يكفي.
+    seesAllEnrolment ? db.rpc("fn_accounts_list", { p_program: "any", p_limit: 1 }) : null,
+    db.from("programs").select("id, name").is("deleted_at", null).order("created_at"),
+  ]);
+  if (listResult.error) return <ErrorState body="تعذّر جلب الحسابات. أعد المحاولة." />;
 
-  const [profilesResult, withProgram] = await Promise.all([profilesQuery, countWithProgram(db)]);
+  const data = listResult.data ?? [];
+  // صفحةٌ بعد آخر النتائج (رابطٌ محفوظ ثم حُذفت حسابات) تُرجع فارغة فتوهم بلا حسابات —
+  // فيُعاد إلى أولى الصفحات ببحثه وتصفيته وفرزه.
+  if (page > 1 && data.length === 0) redirect(hrefWith(params, {}));
 
-  // صفحةٌ بعد آخر النتائج (رابطٌ محفوظ ثم حُذفت حسابات): PostgREST يرفضها (`PGRST103`)
-  // أو يُرجعها فارغة — وكلاهما يوهم بخطأ أو بلا حسابات. فيُعاد إلى أولى الصفحات ببحثه وفرزه.
-  const overshot =
-    page > 1 && (profilesResult.error?.code === "PGRST103" || (!profilesResult.error && !profilesResult.data?.length));
-  if (overshot) redirect(withoutPage(params));
-  if (profilesResult.error) return <ErrorState body="تعذّر جلب الحسابات. أعد المحاولة." />;
-
-  const profiles = profilesResult.data ?? [];
-  // برامج الصفحة المعروضة وحدها — السياسات تحصرها ببرامج من يقرأ، فمنسّق برنامجٍ يرى مشاركيه وحدهم.
-  const participationsResult = profiles.length
-    ? await db
-        .from("participants")
-        .select("user_id, programs!inner(name)")
-        .in("user_id", profiles.map((p) => p.user_id))
-        .is("deleted_at", null)
-    : { data: [], error: null };
-  // تعذّر جلبها ⇐ «—» لا «بلا برنامج»: تلك تقول إنه لم يسجّل، وهي لا نعرفها.
-  const programsKnown = !participationsResult.error;
-
-  const programsOf = new Map<string, string[]>();
-  for (const row of participationsResult.data ?? []) {
-    // المشاركة تبقى بعد محو صاحبها بلا `user_id` — فلا برامج تُنسَب لأحد (`adr/0034`).
-    if (!row.user_id) continue;
-    const program = row.programs as unknown as { name: string };
-    programsOf.set(row.user_id, [...(programsOf.get(row.user_id) ?? []), program.name]);
-  }
-
-  const rows: AccountRow[] = profiles.map((p) => ({
+  const rows: AccountRow[] = data.map((p) => ({
     id: p.id,
     userId: p.user_id,
     fullName: p.full_name,
@@ -81,51 +63,69 @@ export default async function ParticipantsPage({
     suspended: p.deleted_at !== null,
     // في السلّة ⇐ محذوف لا موقوف، فلا يُعرض عليه «أوقِف» ولا يُحسب حيّاً.
     purgeAfter: p.purge_after,
-    programs: programsKnown ? (programsOf.get(p.user_id) ?? []) : null,
+    programs: p.programs,
+    // لا مشاركة ظاهرة ⇐ «بلا برنامج» لمن يرى المشاركات كلها، و«لا نعرف» لغيره.
+    hasProgram: p.has_program ? true : seesAllEnrolment ? false : null,
   }));
+
+  // عددٌ ناقص أسوأ من لا عدد — فإن تعذّر سُكت عنه.
+  const withProgram =
+    !enrolledResult || enrolledResult.error ? null : Number(enrolledResult.data?.[0]?.total ?? 0);
+
+  // تعذّر جلب البرامج ⇐ لا مرشّح برامج، لا «كل البرامج» وحدها كأن لا برامج.
+  const programs = programsResult.data ?? [];
+  const programLinks: FilterLink[] = programsResult.error
+    ? []
+    : [
+        { label: "كل البرامج", href: hrefWith(params, { program: null }), current: program === null },
+        ...programs.map((g) => ({
+          label: g.name,
+          href: hrefWith(params, { program: g.id }),
+          current: program === g.id,
+        })),
+        ...(seesAllEnrolment
+          ? [{ label: "بلا برنامج", href: hrefWith(params, { program: NO_PROGRAM }), current: program === NO_PROGRAM }]
+          : []),
+      ];
+  const statusLinks: FilterLink[] = [
+    { label: "كل الحالات", href: hrefWith(params, { status: null }), current: status === null },
+    ...(Object.entries(ACCOUNT_STATUS_LABEL) as [keyof typeof ACCOUNT_STATUS_LABEL, string][]).map(
+      ([key, label]) => ({ label, href: hrefWith(params, { status: key }), current: status === key }),
+    ),
+  ];
+
+  // وسوم التصفية النشطة في الجدول بأبعادها — تُزال بنقرة، ويقول الفراغ «لا نتيجة» لا «لا حسابات».
+  const active = [
+    program === NO_PROGRAM
+      ? { key: "program", label: "البرنامج: بلا برنامج" }
+      : program
+        ? { key: "program", label: `البرنامج: ${programs.find((g) => g.id === program)?.name ?? "برنامجٌ واحد"}` }
+        : null,
+    status ? { key: "status", label: `الحالة: ${ACCOUNT_STATUS_LABEL[status]}` } : null,
+  ].filter((f) => f !== null);
 
   return (
     <ParticipantsView
       rows={rows}
-      total={profilesResult.count ?? rows.length}
+      total={Number(data[0]?.total ?? 0)}
       page={page}
       withProgram={withProgram}
+      programLinks={programLinks}
+      statusLinks={statusLinks}
+      activeFilters={active}
       canWrite={canWrite}
     />
   );
 }
 
-/**
- * عدد من سجّل في برنامجٍ واحد على الأقل، عبر كل الحسابات لا الصفحة المعروضة.
- * لا رابط بين `profiles` و`participants` في القاعدة يُعدّ عليه، فيُجلب `user_id` وحده دفعاتٍ.
- */
-async function countWithProgram(db: Awaited<ReturnType<typeof createClient>>): Promise<number | null> {
-  const users = new Set<string>();
-  // الحلقة يقودها العدد الكلّي من الدفعة الأولى، لا طول الدفعة — فلا يوقفها سقفٌ أصغر من `BATCH`.
-  let total = Infinity;
-  for (let from = 0; from < total; from += BATCH) {
-    const { data, error, count } = await db
-      .from("participants")
-      .select("user_id", { count: from === 0 ? "exact" : undefined })
-      .is("deleted_at", null)
-      .not("user_id", "is", null)
-      .order("id")
-      .range(from, from + BATCH - 1);
-    // عددٌ ناقص أسوأ من لا عدد — فيُسكت عنه.
-    if (error || (from === 0 && count === null)) return null;
-    if (from === 0) total = count ?? 0;
-    for (const row of data) if (row.user_id) users.add(row.user_id);
-  }
-  return users.size;
-}
-
-/** الرابط نفسه ببحثه وفرزه، بلا رقم الصفحة. */
-function withoutPage(params: Record<string, string | string[] | undefined>): string {
+/** الرابط نفسه ببحثه وتصفيته وفرزه، مع ما يُبدَّل، وبلا رقم الصفحة — فالتصفية تبدأ من أولها. */
+function hrefWith(params: Params, patch: Record<string, string | null>): string {
   const next = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || value === undefined) continue;
+    if (key === "page" || key in patch || value === undefined) continue;
     for (const v of Array.isArray(value) ? value : [value]) next.append(key, v);
   }
+  for (const [key, value] of Object.entries(patch)) if (value) next.set(key, value);
   const query = next.toString();
   return query ? `/participants?${query}` : "/participants";
 }

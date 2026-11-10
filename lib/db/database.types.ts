@@ -3206,6 +3206,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_accounts_list: {
+        Args: {
+          p_desc?: boolean
+          p_limit?: number
+          p_name_words?: string[]
+          p_offset?: number
+          p_phone?: string
+          p_program?: string
+          p_sort?: string
+          p_status?: string
+        }
+        Returns: {
+          created_at: string
+          deleted_at: string
+          full_name: string
+          has_program: boolean
+          id: string
+          phone: string
+          programs: string[]
+          purge_after: string
+          total: number
+          user_id: string
+        }[]
+      }
       fn_admission_list_answer_ok: {
         Args: { p_answer: string; p_options: string[] }
         Returns: boolean
