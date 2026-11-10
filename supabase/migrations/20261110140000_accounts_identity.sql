@@ -5,7 +5,10 @@
 -- من يجرّب الأرقام يعرف صاحب أيّها. فـ`fn_account_by_identity`:
 -- - **لحامل `identities.read` و`users.read` معاً وحده** — ومن سواه يُرفض.
 -- - **تطابقٌ تامّ** بعد التطبيع (بلا مسافات ولا شَرطات، أحرفٌ كبيرة) — لا جزءٌ من رقم.
--- - **تُرجع الحساب لا الرقم**، و**كل بحثٍ يُسجَّل** (وُجد أم لا) بلا الرقم — فلا يصير التجريب خفيّاً.
+-- - **تُرجع الحساب لا الرقم**، و**كل بحثٍ من الشاشة يُسجَّل** (وُجد أم لا) بلا الرقم، والحساب الموجود
+--   في `entity_id` — فيُعرف من بحث عن من. وهذا لمسار الشاشة: حامل `identities.read` يقرأ الأرقام كاملةً
+--   أصلاً (`profile_identities_read_full` و`fn_identity_masked`) بلا سجلّ، وسحب ذلك قرارٌ مستقل.
+-- - **بصلاحية من يطلب (security invoker):** سياسة `profile_identities` حارسٌ ثانٍ وراء فحص الصلاحية.
 --
 -- و`fn_accounts_list` و`fn_export_accounts` يُضاف لهما `p_user_id` ليُعرض الحساب الموجود ويُصدَّر كما
 -- يُعرض. وتغيّر التوقيع يوجب الحذف ثم الإنشاء، والمنح والتعليقات تُعاد.
@@ -229,7 +232,7 @@ create function public.fn_account_by_identity(p_national_id text)
 returns uuid
 language plpgsql
 volatile
-security definer
+security invoker
 set search_path = ''
 as $$
 declare
@@ -248,7 +251,7 @@ begin
   from public.profile_identities i
   where i.national_id = v_id and i.deleted_at is null;
 
-  perform public.fn_write_audit('identity_searched', 'profile_identities', null, null,
+  perform public.fn_write_audit('identity_searched', 'profile_identities', v_user, null,
     jsonb_build_object('found', v_user is not null));
 
   return v_user;
@@ -258,4 +261,4 @@ $$;
 revoke all on function public.fn_account_by_identity(text) from public, anon;
 grant execute on function public.fn_account_by_identity(text) to authenticated;
 comment on function public.fn_account_by_identity(text) is
-  'البحث برقم الوثيقة: تطابقٌ تامّ لحامل identities.read وusers.read، يُرجع الحساب لا الرقم، وكل بحثٍ يُسجَّل بلا الرقم.';
+  'البحث برقم الوثيقة: تطابقٌ تامّ لحامل identities.read وusers.read، يُرجع الحساب لا الرقم، وكل بحثٍ يُسجَّل بلا الرقم والحساب الموجود في entity_id. بصلاحية من يطلب.';

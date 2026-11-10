@@ -1,35 +1,37 @@
-import { normalizeNationalId } from "@/lib/validation/identity";
+import { isNationalId, normalizeNationalId } from "@/lib/validation/identity";
 
 /**
- * هل نصّ البحث رقمُ وثيقة؟ (الدفعة ٤ · `fn_account_by_identity`) — يُرجع الرقم مطبَّعاً أو `null`.
+ * البحث برقم الوثيقة (الدفعة ٤ · `fn_account_by_identity`): **وضعٌ صريح** يختاره حامل `identities.read`
+ * (`?by=doc`) لا تخمينٌ من شكل النصّ — فأرقام الوثائق أرقامٌ كالجوال، و١٧٧ من ٦٦٤ يوم ١٠ نوفمبر أرقامٌ
+ * بلا حرفٍ وبغير شكل الهوية السعودية، فلا يفرّقها شكلٌ. والوضع الصريح لا يملأ السجلّ بكتابة اسمٍ أو جوال.
  *
- * رقم الوثيقة أرقامٌ وأحرف لاتينية من ٥ إلى ٢٠ خانة، والجوال أرقامٌ أيضاً — فيُفرَّق بينهما بما يكتبه
- * الناس: الجوال يبدأ بـ`0` أو `+` أو `966`، والهوية والإقامة بـ`1` أو `2`، والجواز بحرف. وأقلّ من ستّ
- * خاناتٍ لا يُبحث به: كل بحثٍ يُسجَّل، والكتابة حرفاً حرفاً لا تملأ السجلّ.
+ * وبعد البحث يُحوَّل الرابط إلى الحساب نفسه (`?account=`) — فالفرز والتصفية والتصدير لا تبحث ثانيةً
+ * ولا تُسجّل ثانيةً.
  */
-const MIN_DOCUMENT = 6;
+export const DOCUMENT_MODE = "doc";
 
+/** الرقم مطبَّعاً إن صلح رقمَ وثيقة (٥–٢٠ خانة، أرقامٌ وأحرف لاتينية)، وإلا `null`. */
 export function documentQuery(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (trimmed.startsWith("+") || trimmed.startsWith("00")) return null;
-  const id = normalizeNationalId(trimmed);
-  if (!/^[A-Z0-9]{5,20}$/.test(id) || id.length < MIN_DOCUMENT) return null;
-  if (id.startsWith("0") || id.startsWith("966")) return null;
-  return id;
+  const id = normalizeNationalId(raw.trim());
+  return isNationalId(id) ? id : null;
 }
 
 type Rpc = (fn: "fn_account_by_identity", args: { p_national_id: string }) => PromiseLike<{
   data: string | null;
-  error: unknown;
+  error: { message: string } | null;
 }>;
 
 /**
- * الحساب الذي يطابق نصَّ البحث رقمَ وثيقة — لحامل `identities.read` وحده، وإلا `null` بلا طلب.
- * والدالة تفحص الصلاحية بنفسها وتُسجّل البحث؛ وتعذّرها يُعامَل كلا نتيجة، فيُكمل البحث بالاسم والجوال.
+ * الحساب الذي رقم وثيقته هذا — `undefined` إن لم يصلح رقماً (فلا بحث ولا سجلّ)، و`null` إن لم يوجد.
+ * والدالة تفحص الصلاحية بنفسها وتُسجّل البحث؛ وتعذّرها يُقال في سجلّ الخادم ويُعامَل كلا نتيجة.
  */
-export async function findByDocument(rpc: Rpc, rawQuery: string, canReadIdentities: boolean): Promise<string | null> {
-  const id = canReadIdentities ? documentQuery(rawQuery) : null;
-  if (!id) return null;
+export async function findByDocument(rpc: Rpc, rawQuery: string): Promise<string | null | undefined> {
+  const id = documentQuery(rawQuery);
+  if (!id) return undefined;
   const { data, error } = await rpc("fn_account_by_identity", { p_national_id: id });
-  return error ? null : (data ?? null);
+  if (error) {
+    console.error("fn_account_by_identity:", error.message);
+    return null;
+  }
+  return data ?? null;
 }

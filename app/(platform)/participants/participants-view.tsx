@@ -66,8 +66,9 @@ export function ParticipantsView({
   programLinks,
   statusLinks,
   duplicateLinks,
-  foundByDocument,
-  canSearchDocuments,
+  searchModeLinks,
+  byDocument,
+  documentNotFound,
   activeFilters,
   exportHref,
   canWrite,
@@ -82,10 +83,12 @@ export function ParticipantsView({
   programLinks: FilterLink[];
   statusLinks: FilterLink[];
   duplicateLinks: FilterLink[];
-  /** البحث وجد حساباً برقم وثيقته — فيُقال، لئلا يُظنّ الاسم أو الجوال طابق. */
-  foundByDocument: boolean;
-  /** لحامل `identities.read`: البحث برقم الوثيقة متاح، فتقوله الخانة. */
-  canSearchDocuments: boolean;
+  /** وضعا البحث (الاسم والجوال · رقم الوثيقة) — لحامل `identities.read` وحده، وإلا فارغة. */
+  searchModeLinks: FilterLink[];
+  /** وضع الوثيقة: الخانة تطلب الرقم كاملاً، والتطابق تامّ. */
+  byDocument: boolean;
+  /** بُحث برقم وثيقةٍ فلم يوجد حساب. */
+  documentNotFound: boolean;
   activeFilters: ActiveFilter[];
   /** رابط ملف ما تعرضه القائمة بكل صفحاته — `null` لمن لا يملك التصدير. */
   exportHref: string | null;
@@ -169,7 +172,14 @@ export function ParticipantsView({
       <FilterLinks label="البرنامج" links={programLinks} />
       <FilterLinks label="الحالة" links={statusLinks} />
       <FilterLinks label="التكرار" links={duplicateLinks} />
-      {foundByDocument ? <p className={styles.export}>نتيجة البحث برقم الوثيقة — تطابقٌ تامّ، ويُسجَّل البحث في سجلّ التدقيق.</p> : null}
+      <FilterLinks label="البحث" links={searchModeLinks} />
+      {byDocument ? (
+        <p className={styles.export}>
+          {documentNotFound
+            ? "لا حساب بهذا الرقم."
+            : "يُبحث برقم الوثيقة كاملاً لا بجزئه، ويُسجَّل كل بحثٍ هنا في سجلّ التدقيق دون الرقم."}
+        </p>
+      ) : null}
       {exportHref && total > 0 ? (
         <p className={styles.export}>
           <a href={exportHref} download>
@@ -186,7 +196,7 @@ export function ParticipantsView({
         total={total}
         page={page}
         filters={activeFilters}
-        searchPlaceholder={canSearchDocuments ? "ابحث بالاسم أو الجوال أو رقم الوثيقة…" : "ابحث بالاسم أو الجوال…"}
+        searchPlaceholder={byDocument ? "اكتب رقم الوثيقة كاملاً…" : "ابحث بالاسم أو الجوال…"}
         empty={{ title: "لا حسابات بعد", body: "لم يُنشئ أحد حساباً في المنصة." }}
       />
 

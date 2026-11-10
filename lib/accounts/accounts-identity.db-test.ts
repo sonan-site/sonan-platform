@@ -15,7 +15,13 @@ const DOC = "ZZTEST4821";
 const TARGET = "00000000-0000-4000-8000-000000000f71";
 const HOLDER = "00000000-0000-4000-8000-000000000f72";
 const READER = "00000000-0000-4000-8000-000000000f73";
-const USERS = [TARGET, HOLDER, READER];
+/** يحمل الهويات بلا قراءة الحسابات — يُرفض أيضاً. */
+const ID_ONLY = "00000000-0000-4000-8000-000000000f74";
+/** هويته محذوفة — لا يُوجد بها. */
+const GONE = "00000000-0000-4000-8000-000000000f75";
+const EXPORTER = "00000000-0000-4000-8000-000000000f76";
+const GONE_DOC = "ZZTEST4822";
+const USERS = [TARGET, HOLDER, READER, ID_ONLY, GONE, EXPORTER];
 
 async function asUser<T>(uid: string, work: () => Promise<T>): Promise<T> {
   await db.query("begin");
@@ -59,9 +65,15 @@ beforeAll(async () => {
     ]);
   }
   await db.query(`insert into public.profile_identities (user_id, national_id) values ($1, $2)`, [TARGET, DOC]);
+  await db.query(`insert into public.profile_identities (user_id, national_id, deleted_at) values ($1, $2, now())`, [
+    GONE,
+    GONE_DOC,
+  ]);
 
   await grant(HOLDER, "باحثٌ بالوثيقة", ["users.read", "identities.read"]);
   await grant(READER, "قارئ حسابات بلا هويات", ["users.read"]);
+  await grant(ID_ONLY, "هويات بلا حسابات", ["identities.read"]);
+  await grant(EXPORTER, "مصدّرٌ بالوثيقة", ["users.read", "users.write"]);
 });
 
 afterAll(async () => {
@@ -82,6 +94,14 @@ describe("البحث برقم الوثيقة", () => {
     await expect(search(READER, DOC)).rejects.toThrow(/لا صلاحية للبحث برقم الوثيقة/);
   });
 
+  it("وحامل الهويات بلا قراءة الحسابات يُرفض أيضاً", async () => {
+    await expect(search(ID_ONLY, DOC)).rejects.toThrow(/لا صلاحية للبحث برقم الوثيقة/);
+  });
+
+  it("والهوية المحذوفة لا يُوجد بها", async () => {
+    expect(await search(HOLDER, GONE_DOC)).toBeNull();
+  });
+
   it("**وحامل الهويات يجد الحساب بالتطابق التامّ** — ومطبَّعاً (صغيرة، مسافات، شَرطة)", async () => {
     expect(await search(HOLDER, DOC)).toBe(TARGET);
     expect(await search(HOLDER, "zztest 48-21")).toBe(TARGET);
@@ -92,13 +112,24 @@ describe("البحث برقم الوثيقة", () => {
     expect(await search(HOLDER, "ab")).toBeNull();
   });
 
-  it("**وكل بحثٍ يُسجَّل بلا الرقم** — وُجد أم لا، وما لا يصلح رقماً لا يُسجَّل", async () => {
-    const { rows } = await db.query<{ after: { found: boolean } }>(
-      `select after from public.audit_log where actor_id = $1 and action = 'identity_searched' order by created_at`,
-      [HOLDER],
-    );
-    expect(rows.map((r) => r.after.found)).toEqual([true, true, false]);
-    expect(JSON.stringify(rows)).not.toContain("ZZTEST");
+  it("**وكل بحثٍ يُسجَّل بلا الرقم، والحساب الموجود فيه** — وما لا يصلح رقماً لا يُسجَّل", async () => {
+    const last = async () =>
+      (
+        await db.query<{ entity_id: string | null; after: { found: boolean } }>(
+          `select entity_id, after from public.audit_log where actor_id = $1 and action = 'identity_searched'
+           order by created_at desc limit 1`,
+          [HOLDER],
+        )
+      ).rows[0];
+    await search(HOLDER, DOC);
+    expect(await last()).toMatchObject({ entity_id: TARGET, after: { found: true } });
+    await search(HOLDER, "ZZTEST999");
+    const missed = await last();
+    expect(missed).toMatchObject({ entity_id: null, after: { found: false } });
+    expect(JSON.stringify(missed)).not.toContain("ZZTEST");
+    const before = await last();
+    await search(HOLDER, "ab");
+    expect(await last()).toEqual(before);
   });
 
   it("**والقائمة تعرض الحساب الموجود وحده** بـ`p_user_id`", async () => {
@@ -112,5 +143,17 @@ describe("البحث برقم الوثيقة", () => {
     );
     expect(rows.map((r) => r.full_name)).toEqual(["حساب الوثيقة 0"]);
     expect(Number(rows[0]!.total)).toBe(1);
+  });
+
+  it("**والتصدير بالحساب نفسه** يذكر في سجلّه أنه من رقم وثيقة — بلا الرقم", async () => {
+    const data = await asUser(EXPORTER, async () =>
+      (await db.query<{ d: { full_name: string }[] }>(`select public.fn_export_accounts(p_user_id => $1) as d`, [TARGET])).rows[0]!.d,
+    );
+    expect(data.map((r) => r.full_name)).toEqual(["حساب الوثيقة 0"]);
+    const { rows } = await db.query<{ after: { by_document: boolean; count: number } }>(
+      `select after from public.audit_log where actor_id = $1 and action = 'accounts_exported' order by created_at desc limit 1`,
+      [EXPORTER],
+    );
+    expect(rows[0]!.after).toMatchObject({ by_document: true, count: 1 });
   });
 });

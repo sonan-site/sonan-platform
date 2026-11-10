@@ -42,6 +42,10 @@ export type AccountsQuery = {
   program: string | null;
   status: AccountStatus | null;
   duplicate: AccountDuplicate | null;
+  /** حسابٌ بعينه وجده البحث برقم الوثيقة (`?account=`) — يحلّ محلّ البحث بالاسم والجوال. */
+  account: string | null;
+  /** وضع البحث برقم الوثيقة (`?by=doc`) — لحامل `identities.read`، والصفحة تتحقّق. */
+  byDocument: boolean;
   sort: AccountsSort;
   page: number;
 };
@@ -84,15 +88,16 @@ export function accountsListArgs(
   query: AccountsQuery,
   seesAllEnrolment: boolean,
   window: { limit: number; offset: number },
-  /** حسابٌ وجده البحث برقم الوثيقة (الدفعة ٤) — يحلّ محلّ البحث بالاسم والجوال. */
-  documentUserId: string | null = null,
 ) {
+  // حسابٌ بعينه (`?account=`) يحلّ محلّ البحث بالاسم والجوال، وفي وضع الوثيقة لا يُبحث بالنصّ اسماً.
+  const documentUserId = query.account;
+  const noTextSearch = documentUserId !== null || query.byDocument;
   const program = query.program === NO_PROGRAM && !seesAllEnrolment ? null : query.program;
   return {
     program,
     args: {
-      p_name_words: documentUserId ? [] : query.nameWords,
-      p_phone: documentUserId ? undefined : query.phoneDigits || undefined,
+      p_name_words: noTextSearch ? [] : query.nameWords,
+      p_phone: noTextSearch ? undefined : query.phoneDigits || undefined,
       p_user_id: documentUserId ?? undefined,
       p_program: program ?? undefined,
       p_status: query.status ?? undefined,
@@ -113,6 +118,8 @@ export function parseAccountsQuery(params: {
   program?: Param;
   status?: Param;
   dup?: Param;
+  account?: Param;
+  by?: Param;
 }): AccountsQuery {
   const raw = first(params.q).trim().slice(0, MAX_SEARCH);
 
@@ -140,5 +147,9 @@ export function parseAccountsQuery(params: {
   const rawDup = first(params.dup);
   const duplicate = (ACCOUNT_DUPLICATES as readonly string[]).includes(rawDup) ? (rawDup as AccountDuplicate) : null;
 
-  return { nameWords, phoneDigits, program, status, duplicate, sort, page };
+  const rawAccount = first(params.account).toLowerCase();
+  const account = UUID.test(rawAccount) ? rawAccount : null;
+  const byDocument = first(params.by) === "doc";
+
+  return { nameWords, phoneDigits, program, status, duplicate, account, byDocument, sort, page };
 }

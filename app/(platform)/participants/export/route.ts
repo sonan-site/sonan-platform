@@ -1,5 +1,4 @@
 import { toAccountsCsv, type AccountCsvRow } from "@/lib/accounts/accounts-csv";
-import { findByDocument } from "@/lib/accounts/identity-search";
 import { accountsListArgs, parseAccountsQuery } from "@/lib/accounts/list-query";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
@@ -23,7 +22,6 @@ export async function GET(req: Request) {
   ]);
   if (!read.ok || !write.ok) return new Response("غير مصرَّح", { status: 403 });
   const seesAllEnrolment = (await authorizeRequest({ permission: "participants.read" })).ok;
-  const canReadIdentities = (await authorizeRequest({ permission: "identities.read" })).ok;
 
   const url = new URL(req.url);
   const query = parseAccountsQuery({
@@ -33,11 +31,12 @@ export async function GET(req: Request) {
     program: url.searchParams.get("program") ?? undefined,
     status: url.searchParams.get("status") ?? undefined,
     dup: url.searchParams.get("dup") ?? undefined,
+    account: url.searchParams.get("account") ?? undefined,
   });
   const db = await createClient();
-  // معاملات الصفحة نفسها — فلا يختلف ما يُصدَّر عمّا يُعرض، والبحث برقم الوثيقة منها. والنافذة لا تعني الدالة.
-  const documentUserId = await findByDocument((fn, a) => db.rpc(fn, a), url.searchParams.get("q") ?? "", canReadIdentities);
-  const { args } = accountsListArgs(query, seesAllEnrolment, { limit: 0, offset: 0 }, documentUserId);
+  // معاملات الصفحة نفسها — فلا يختلف ما يُصدَّر عمّا يُعرض، والحساب من رقم الوثيقة (`?account=`) منها
+  // بلا بحثٍ جديد. والنافذة لا تعني الدالة: تقرأ الكل.
+  const { args } = accountsListArgs(query, seesAllEnrolment, { limit: 0, offset: 0 });
 
   const { data, error } = await db.rpc("fn_export_accounts", {
     p_name_words: args.p_name_words,

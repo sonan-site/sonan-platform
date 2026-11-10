@@ -37,16 +37,29 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const params = await searchParams;
   const query = parseAccountsQuery(params);
   const { status, duplicate, page } = query;
+  // وضع الوثيقة لحامل الصلاحية وحده — ولغيره يُتجاهل كأن لم يُطلب.
+  const byDocument = query.byDocument && canReadIdentities;
 
   const db = await createClient();
-  const rawQuery = typeof params.q === "string" ? params.q : "";
-  const documentUserId = await findByDocument((fn, a) => db.rpc(fn, a), rawQuery, canReadIdentities);
-  const { program, args } = accountsListArgs(
-    query,
-    seesAllEnrolment,
-    { limit: DEFAULT_PAGE_SIZE, offset: (page - 1) * DEFAULT_PAGE_SIZE },
-    documentUserId,
-  );
+  // البحث برقم الوثيقة مرةً واحدة: ثم يُحوَّل الرابط إلى الحساب نفسه (`?account=`) أو إلى «لا حساب» —
+  // فالفرز والتصفية والصفحات بعده لا تبحث ثانيةً ولا تُسجّل ثانيةً.
+  const docText = byDocument ? first(params.q) : "";
+  if (docText) {
+    const found = await findByDocument((fn, a) => db.rpc(fn, a), docText);
+    if (found !== undefined) {
+      // وُجد ⇐ الحساب بعينه خارج وضع الوثيقة؛ ولم يوجد ⇐ يبقى الوضع ويُقال «لا حساب».
+      redirect(
+        found
+          ? hrefWith("/participants", params, { q: null, by: null, notfound: null, account: found })
+          : hrefWith("/participants", params, { q: null, account: null, notfound: "1" }),
+      );
+    }
+  }
+  const notFound = byDocument && first(params.notfound) === "1";
+  const { program, args } = accountsListArgs({ ...query, byDocument }, seesAllEnrolment, {
+    limit: DEFAULT_PAGE_SIZE,
+    offset: (page - 1) * DEFAULT_PAGE_SIZE,
+  });
 
   const [listResult, enrolledResult, programsResult] = await Promise.all([
     db.rpc("fn_accounts_list", args),
@@ -120,6 +133,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
         : null,
     status ? { key: "status", label: `الحالة: ${ACCOUNT_STATUS_LABEL[status]}` } : null,
     duplicate ? { key: "dup", label: `التكرار: ${ACCOUNT_DUPLICATE_LABEL[duplicate]}` } : null,
+    query.account ? { key: "account", label: "حسابٌ بعينه من رقم الوثيقة" } : null,
   ].filter((f) => f !== null);
 
   return (
@@ -131,12 +145,25 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       programLinks={programLinks}
       statusLinks={statusLinks}
       duplicateLinks={duplicateLinks}
-      foundByDocument={documentUserId !== null}
-      canSearchDocuments={canReadIdentities}
+      searchModeLinks={
+        canReadIdentities
+          ? [
+              { label: "الاسم والجوال", href: hrefWith("/participants", params, { by: null, q: null, notfound: null }), current: !byDocument },
+              { label: "رقم الوثيقة", href: hrefWith("/participants", params, { by: "doc", q: null, account: null, notfound: null }), current: byDocument },
+            ]
+          : []
+      }
+      byDocument={byDocument}
+      documentNotFound={notFound}
       activeFilters={active}
       // التصدير لحامل تعديل الحسابات وحده: الملف يُنسخ ويُرسل، والشاشة لا.
       exportHref={canWrite ? hrefWith("/participants/export", params) : null}
       canWrite={canWrite}
     />
   );
+}
+
+/** قيمة الرابط قد تتكرّر فتصل مصفوفة — يؤخذ أولها. */
+function first(value: string | string[] | undefined): string {
+  return (Array.isArray(value) ? value[0] : value) ?? "";
 }
