@@ -3,15 +3,15 @@ import { accountsListArgs, parseAccountsQuery } from "@/lib/accounts/list-query"
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 
-/** سقف الدالة للصفحة الواحدة — فيُجمع الملف صفحاتٍ. */
-const BATCH = 1000;
+/** ما تُرجعه `fn_export_accounts` لكل حساب. */
+type ExportedAccount = Omit<AccountCsvRow, "has_program"> & { has_program: boolean };
 
 /**
  * تصدير «المشاركون في المنصة» (الدفعة ٢): ما تعرضه القائمة بعد البحث والتصفية، بكل صفحاته.
  *
- * **لحامل تعديل الحسابات وحده** (قرار الراعي): أرقام الجوالات في ملفٍ تُنسخ وتُرسل، لا كرؤيتها في الشاشة.
- * وبجلسة المستخدم لا بمفتاح الخدمة — فالملف لا يحوي إلا ما تعرضه له الشاشة. **ويُدقَّق قبل التسليم:**
- * إن تعذّر التدقيق لم يُسلَّم ملف.
+ * `fn_export_accounts` تفحص الصلاحية (`users.read` و`users.write`) وتقرأ في استعلامٍ واحد وتكتب
+ * التدقيق في المعاملة نفسها — فلا ملف بلا سطرٍ في السجلّ. وبجلسة المستخدم لا بمفتاح الخدمة، فالملف
+ * لا يحوي إلا ما تعرضه له الشاشة. والفحص هنا قبلها ليُرَدّ غير المصرَّح بلا رحلة.
  */
 export const dynamic = "force-dynamic";
 
@@ -31,41 +31,29 @@ export async function GET(req: Request) {
     program: url.searchParams.get("program") ?? undefined,
     status: url.searchParams.get("status") ?? undefined,
   });
+  // معاملات الصفحة نفسها — فلا يختلف ما يُصدَّر عمّا يُعرض. والنافذة لا تعني الدالة: تقرأ الكل.
+  const { args } = accountsListArgs(query, seesAllEnrolment, { limit: 0, offset: 0 });
 
   const db = await createClient();
-  const rows: AccountCsvRow[] = [];
-  let program: string | null = null;
-  for (let offset = 0, total = Infinity; offset < total; offset += BATCH) {
-    const built = accountsListArgs(query, seesAllEnrolment, { limit: BATCH, offset });
-    program = built.program;
-    const { data, error } = await db.rpc("fn_accounts_list", built.args);
-    if (error) return new Response("تعذّر التصدير", { status: 500 });
-    if (!data.length) break;
-    total = Number(data[0]!.total);
-    for (const r of data) {
-      rows.push({
-        full_name: r.full_name,
-        phone: r.phone,
-        programs: r.programs,
-        has_program: r.has_program ? true : seesAllEnrolment ? false : null,
-        created_at: r.created_at,
-        deleted_at: r.deleted_at,
-        purge_after: r.purge_after,
-      });
-    }
+  const { data, error } = await db.rpc("fn_export_accounts", {
+    p_name_words: args.p_name_words,
+    p_phone: args.p_phone,
+    p_program: args.p_program,
+    p_status: args.p_status,
+    p_sort: args.p_sort,
+    p_desc: args.p_desc,
+  });
+  if (error) {
+    return new Response(error.code === "42501" ? "غير مصرَّح" : "تعذّر التصدير — لم يُسلَّم ملف", {
+      status: error.code === "42501" ? 403 : 500,
+    });
   }
 
-  const { error: auditError } = await db.rpc("fn_write_audit", {
-    p_action: "accounts_exported",
-    p_entity_table: "profiles",
-    p_after: {
-      count: rows.length,
-      q: query.nameWords.join(" ") || query.phoneDigits || null,
-      program,
-      status: query.status,
-    },
-  });
-  if (auditError) return new Response("تعذّر تسجيل التصدير — لم يُسلَّم الملف", { status: 500 });
+  const rows: AccountCsvRow[] = (data as unknown as ExportedAccount[]).map((r) => ({
+    ...r,
+    // لا مشاركة ظاهرة ⇐ «بلا برنامج» لمن يرى المشاركات كلها، و«لا نعرف» لغيره — كالشاشة.
+    has_program: r.has_program ? true : seesAllEnrolment ? false : null,
+  }));
 
   return new Response(toAccountsCsv(rows), {
     headers: {

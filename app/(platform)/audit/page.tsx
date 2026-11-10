@@ -1,5 +1,5 @@
 import { ErrorState } from "@/components/shared/states";
-import { auditActionLabel, auditTableLabel } from "@/lib/audit/labels";
+import { auditActionLabel, auditDetail, auditTableLabel } from "@/lib/audit/labels";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { AuditView, type AuditRow } from "./audit-view";
@@ -11,7 +11,7 @@ export default async function AuditPage() {
   const db = await createClient();
   const { data, error } = await db
     .from("audit_log")
-    .select("id, action, entity_table, actor_id, actor_label, created_at")
+    .select("id, action, entity_table, actor_id, actor_label, created_at, after")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -38,6 +38,7 @@ export default async function AuditPage() {
     id: r.id,
     action: auditActionLabel(r.action),
     entityTable: auditTableLabel(r.entity_table),
+    detail: auditDetail(r.action, r.after),
     actor: r.actor_label ?? (r.actor_id ? (nameOf.get(r.actor_id) ?? "مستخدم") : "المنصة"),
     at: r.created_at,
   }));

@@ -14,6 +14,11 @@ export const ACCOUNT_STATUS_LABEL: Record<AccountStatus, string> = {
   bin: "في سلّة المحذوفات",
 };
 
+/** حالة الحساب من عموديه — في السلّة قبل الموقوف، كما تعرضه الشاشة وتصفّيه الدالة. */
+export function accountStatusOf(r: { deleted_at: string | null; purge_after: string | null }): AccountStatus {
+  return r.purge_after ? "bin" : r.deleted_at ? "suspended" : "active";
+}
+
 /** `none` بلا برنامج، أو معرّف برنامج. */
 export const NO_PROGRAM = "none";
 

@@ -3641,6 +3641,17 @@ export type Database = {
           question_id: string
         }[]
       }
+      fn_export_accounts: {
+        Args: {
+          p_desc?: boolean
+          p_name_words?: string[]
+          p_phone?: string
+          p_program?: string
+          p_sort?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
       fn_export_results: {
         Args: { p_exam_id: string }
         Returns: {

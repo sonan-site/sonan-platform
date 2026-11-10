@@ -1,3 +1,5 @@
+import { formatNumber } from "@/lib/format";
+
 /**
  * تسميات سجل التدقيق — **ما يقرؤه المدير لا ما تخزّنه القاعدة**.
  *
@@ -119,4 +121,27 @@ export function auditActionLabel(action: string): string {
 
 export function auditTableLabel(table: string): string {
   return AUDIT_TABLE_LABEL[table] ?? "—";
+}
+
+const STATUS_LABEL: Record<string, string> = { active: "نشط", suspended: "موقوف", bin: "في سلّة المحذوفات" };
+
+/**
+ * تفاصيل الفعل من `after` — ما يحتاج المدير معرفته ولا يقوله اسم الفعل. والتصدير أوّلها:
+ * «بأي تصفية» شرطٌ في قرار الراعي، وسجلٌّ لا يُرى توثيقٌ يوهم (`platform.md §٨`).
+ * فعلٌ بلا تفاصيل معروفة ⇐ «—».
+ */
+export function auditDetail(action: string, after: unknown): string {
+  if (action !== "accounts_exported" || !after || typeof after !== "object") return "—";
+  const a = after as Record<string, unknown>;
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  const count = typeof a["count"] === "number" ? a["count"] : null;
+  const status = text(a["status"]);
+  const parts = [
+    count === null ? null : `${formatNumber(count)} حساباً`,
+    text(a["search"]) ? `البحث: ${text(a["search"])}` : null,
+    text(a["phone"]) ? `الجوال: …${text(a["phone"])}` : null,
+    text(a["program"]) ? `البرنامج: ${text(a["program"])}` : null,
+    status ? `الحالة: ${STATUS_LABEL[status] ?? status}` : null,
+  ].filter((p) => p !== null);
+  return parts.length > 0 ? parts.join(" · ") : "—";
 }

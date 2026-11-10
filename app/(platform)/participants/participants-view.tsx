@@ -7,6 +7,7 @@ import { FilterLinks, type FilterLink } from "@/components/shared/filter-links";
 import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { PageHead } from "@/components/shared/steps";
+import { programsText } from "@/lib/accounts/accounts-csv";
 import { binNotice } from "@/lib/accounts/bin";
 import { formatDateBoth, formatNumber } from "@/lib/format";
 import { deleteAccount, restoreUser, suspendUser } from "../team/actions";
@@ -71,8 +72,7 @@ export function ParticipantsView({
       header: "البرامج",
       // من أنشأ حساباً ولم يسجّل يُقال صراحةً — فيُعرف من تعثّر عند الباب.
       // وبرنامجٌ لا يظهر اسمه لمن يقرأ يُقال «—» لا «بلا برنامج».
-      render: (r) =>
-        r.programs.length > 0 ? r.programs.join(" · ") : r.hasProgram === false ? "بلا برنامج" : "—",
+      render: (r) => programsText(r.programs, r.hasProgram),
     },
     { key: "joinedAt", header: "منذ", sortable: true, render: (r) => formatDateBoth(r.joinedAt) },
     {
@@ -126,9 +126,12 @@ export function ParticipantsView({
       <FilterLinks label="البرنامج" links={programLinks} />
       <FilterLinks label="الحالة" links={statusLinks} />
       {exportHref && total > 0 ? (
-        <a className={styles.export} href={exportHref} download>
-          صدّر ما تعرضه القائمة ({formatNumber(total)}) — CSV
-        </a>
+        <p className={styles.export}>
+          <a href={exportHref} download>
+            صدّر الحسابات المطابقة ({formatNumber(total)}) — ملف Excel ‏(CSV)
+          </a>{" "}
+          · يُسجَّل التصدير في سجلّ التدقيق.
+        </p>
       ) : null}
 
       <DataTable

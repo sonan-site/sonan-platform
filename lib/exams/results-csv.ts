@@ -1,3 +1,5 @@
+import { cell } from "@/lib/csv/cell";
+
 /**
  * ملف النتائج للتكريم والصرف (الدفعة د): UTF-8 ببادئة BOM ليفتحه Excel عربياً،
  * وكل خليةٍ تبدأ بما يجعلها صيغةً (`= + - @` أو جدولة) تُسبق بفاصلةٍ عليا
@@ -19,12 +21,8 @@ export type ExportRow = {
 
 const OUTCOME: Record<string, string> = { passed: "اجتاز", not_passed: "لم يجتز", absent: "غاب" };
 
-export function cell(value: string | number | null | undefined): string {
-  let s = value === null || value === undefined ? "" : String(value);
-  // الجوال الدولي (`+9665…`) أرقامٌ لا صيغة — يبقى كما هو.
-  if (/^[=+\-@\t\r]/.test(s) && !/^\+\d{8,15}$/.test(s)) s = `'${s}`;
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+// الخليّة المأمونة مشتركةٌ مع ملف الحسابات — وتُصدَّر من هنا كما كانت.
+export { cell };
 
 export function toCsv(rows: ExportRow[]): string {
   const withPhones = rows.some((r) => r.phone !== null || r.guardian_phone !== null);

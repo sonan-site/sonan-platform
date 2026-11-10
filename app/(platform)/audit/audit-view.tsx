@@ -8,6 +8,8 @@ export type AuditRow = {
   id: string;
   action: string;
   entityTable: string;
+  /** ما لا يقوله اسم الفعل — بأي تصفيةٍ صُدِّرت الحسابات مثلاً. */
+  detail: string;
   actor: string;
   at: string;
 };
@@ -15,6 +17,7 @@ export type AuditRow = {
 const columns: Column<AuditRow>[] = [
   { key: "action", header: "الفعل", sortable: true, primary: true, render: (r) => r.action },
   { key: "entity", header: "القسم", render: (r) => r.entityTable },
+  { key: "detail", header: "التفاصيل", render: (r) => r.detail },
   { key: "actor", header: "الفاعل", render: (r) => r.actor },
   { key: "at", header: "متى", align: "end", sortable: true, render: (r) => formatDateTime(r.at) },
 ];

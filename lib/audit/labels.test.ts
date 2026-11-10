@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { AUDIT_ACTION_LABEL, AUDIT_TABLE_LABEL } from "./labels";
+import { AUDIT_ACTION_LABEL, AUDIT_TABLE_LABEL, auditDetail } from "./labels";
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -32,5 +32,22 @@ describe("تسميات سجل التدقيق", () => {
     const tables = new Set<string>();
     for (const m of sources.matchAll(/p_entity_table:\s*"([a-z_]+)"/g)) tables.add(m[1]!);
     expect([...tables].filter((t) => !AUDIT_TABLE_LABEL[t])).toEqual([]);
+  });
+});
+
+describe("تفاصيل الفعل في السجل", () => {
+  it("**تصدير الحسابات يُرى بعدده وتصفيته** — «بأي تصفية» شرط القرار", () => {
+    expect(
+      auditDetail("accounts_exported", { count: 12, search: "محمد", phone: null, program: "بلا برنامج", status: "active" }),
+    ).toBe("12 حساباً · البحث: محمد · البرنامج: بلا برنامج · الحالة: نشط");
+  });
+
+  it("وبلا تصفية ⇐ العدد وحده", () => {
+    expect(auditDetail("accounts_exported", { count: 300 })).toBe("300 حساباً");
+  });
+
+  it("وفعلٌ آخر، أو `after` فارغ ⇐ «—»", () => {
+    expect(auditDetail("role_assigned", { count: 1 })).toBe("—");
+    expect(auditDetail("accounts_exported", null)).toBe("—");
   });
 });

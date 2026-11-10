@@ -24,7 +24,9 @@ const ADMIN = "00000000-0000-4000-8000-000000000f45";
 const PLAIN = "00000000-0000-4000-8000-000000000f46";
 /** يقرأ الحسابات كلها، ومشاركي «برنامج آخر» وحده. */
 const SCOPED = "00000000-0000-4000-8000-000000000f47";
-const USERS = [IN_PROGRAM, NO_PROGRAM, SUSPENDED, IN_BIN, ADMIN, PLAIN, SCOPED];
+/** يقرأ الحسابات ويعدّلها — فيُصدِّر. */
+const EXPORTER = "00000000-0000-4000-8000-000000000f48";
+const USERS = [IN_PROGRAM, NO_PROGRAM, SUSPENDED, IN_BIN, ADMIN, PLAIN, SCOPED, EXPORTER];
 
 type Row = { full_name: string; programs: string[]; has_program: boolean; total: string };
 
@@ -97,6 +99,7 @@ beforeAll(async () => {
     [ADMIN, "مدير قائمة الحسابات", "+966500000745"],
     [PLAIN, "مستخدم عادي للقائمة", "+966500000746"],
     [SCOPED, "منسّق برنامج للقائمة", "+966500000747"],
+    [EXPORTER, "مصدّر قائمة الحسابات", "+966500000748"],
   ];
   for (const [i, [uid, name, phone]] of people.entries()) {
     await db.query(
@@ -134,6 +137,7 @@ beforeAll(async () => {
   await grant(ADMIN, "دور قائمة الحسابات", ["users.read", "participants.read", "programs.read"]);
   await grant(SCOPED, "قراءة الحسابات للقائمة", ["users.read"]);
   await grant(SCOPED, "مشاركو برنامجٍ للقائمة", ["participants.read"], otherProgramId);
+  await grant(EXPORTER, "مصدّر قائمة الحسابات", ["users.read", "users.write", "participants.read", "programs.read"]);
 });
 
 afterAll(async () => {
@@ -224,5 +228,49 @@ describe("الفرز والصفحات", () => {
     const second = await list(ADMIN, { sort: "full_name", desc: false, limit: 2, offset: 2 });
     expect(names(second)).toEqual([`جابر ${MARK}`, `داود ${MARK}`]);
     expect(Number(second[0]!.total)).toBe(4);
+  });
+});
+
+describe("التصدير (`fn_export_accounts`)", () => {
+  type Exported = { full_name: string; programs: string[]; has_program: boolean };
+
+  async function exportAs(uid: string, program: string | null = null) {
+    return asUser(uid, async () => {
+      const { rows } = await db.query<{ data: Exported[] }>(
+        `select public.fn_export_accounts($1, null, $2, null, 'full_name', false) as data`,
+        [[MARK], program],
+      );
+      return rows[0]!.data;
+    });
+  }
+
+  async function exportsBy(uid: string) {
+    const { rows } = await db.query<{ after: { count: number; search: string | null; program: string | null } }>(
+      `select after from public.audit_log where actor_id = $1 and action = 'accounts_exported' order by created_at`,
+      [uid],
+    );
+    return rows.map((r) => r.after);
+  }
+
+  it("**حامل قراءة الحسابات وحدها لا يُصدِّر** — الفحص في الدالة لا في التطبيق وحده", async () => {
+    await expect(exportAs(ADMIN)).rejects.toThrow(/لا صلاحية لتصدير الحسابات/);
+    expect(await exportsBy(ADMIN)).toEqual([]);
+  });
+
+  it("**والمصدِّر يحصل على ما تعرضه القائمة كله بترتيبه**", async () => {
+    const data = await exportAs(EXPORTER);
+    expect(data.map((r) => r.full_name)).toEqual([
+      `أحمد بن صالح ${MARK}`,
+      `بدر علي ${MARK}`,
+      `جابر ${MARK}`,
+      `داود ${MARK}`,
+    ]);
+    expect(data[0]).toMatchObject({ programs: ["برنامج القائمة"], has_program: true });
+  });
+
+  it("**ويُكتب التدقيق في المعاملة نفسها** بعدده وتصفيته — والبرنامج باسمه", async () => {
+    await exportAs(EXPORTER, "none");
+    const audits = await exportsBy(EXPORTER);
+    expect(audits.at(-1)).toMatchObject({ count: 3, search: MARK, program: "بلا برنامج" });
   });
 });
