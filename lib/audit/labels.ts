@@ -134,12 +134,15 @@ export function auditDetail(action: string, after: unknown): string {
   if (action !== "accounts_exported" || !after || typeof after !== "object") return "—";
   const a = after as Record<string, unknown>;
   const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  const count = typeof a["count"] === "number" ? a["count"] : null;
+  const num = (v: unknown) => (typeof v === "number" ? v : null);
+  const count = num(a["count"]);
+  const words = num(a["name_words"]);
   const status = text(a["status"]);
+  // بلا بيانات أشخاص: البحث بالاسم بعدد كلماته، والجوال بآخر أربعة أرقام (الهجرة 20261110110000).
   const parts = [
-    count === null ? null : `${formatNumber(count)} حساباً`,
-    text(a["search"]) ? `البحث: ${text(a["search"])}` : null,
-    text(a["phone"]) ? `الجوال: …${text(a["phone"])}` : null,
+    count === null ? null : `العدد: ${formatNumber(count)}`,
+    words === null ? null : `بحثٌ بالاسم (${formatNumber(words)} ${words === 1 ? "كلمة" : "كلمات"})`,
+    text(a["phone_tail"]) ? `الجوال: …${text(a["phone_tail"])}` : null,
     text(a["program"]) ? `البرنامج: ${text(a["program"])}` : null,
     status ? `الحالة: ${STATUS_LABEL[status] ?? status}` : null,
   ].filter((p) => p !== null);

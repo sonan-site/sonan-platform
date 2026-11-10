@@ -2,7 +2,8 @@ import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /**
- * `fn_accounts_list` — صفحة «المشاركون في المنصة» بالبحث والتصفية والفرز (الهجرة 20261110100000).
+ * `fn_accounts_list` و`fn_export_accounts` — «المشاركون في المنصة» بالبحث والتصفية والفرز والتصدير
+ * (الهجرتان 20261110100000 و20261110110000).
  *
  * القاعدة قد تحوي حسابات غير حسابات الاختبار، فكل استعلامٍ هنا يُحصر بكلمةٍ في أسمائها وحدها.
  * وما يُفحَص جوهراً: أن الدالة **بصلاحية من يطلب** — لا تكشف لأحدٍ ما لا تكشفه الشاشة بدونها،
@@ -245,7 +246,7 @@ describe("التصدير (`fn_export_accounts`)", () => {
   }
 
   async function exportsBy(uid: string) {
-    const { rows } = await db.query<{ after: { count: number; search: string | null; program: string | null } }>(
+    const { rows } = await db.query<{ after: { count: number; name_words: number | null; program: string | null } }>(
       `select after from public.audit_log where actor_id = $1 and action = 'accounts_exported' order by created_at`,
       [uid],
     );
@@ -271,6 +272,8 @@ describe("التصدير (`fn_export_accounts`)", () => {
   it("**ويُكتب التدقيق في المعاملة نفسها** بعدده وتصفيته — والبرنامج باسمه", async () => {
     await exportAs(EXPORTER, "none");
     const audits = await exportsBy(EXPORTER);
-    expect(audits.at(-1)).toMatchObject({ count: 3, search: MARK, program: "بلا برنامج" });
+    // بلا بيانات أشخاص: عدد كلمات البحث لا نصّه.
+    expect(audits.at(-1)).toMatchObject({ count: 3, name_words: 1, program: "بلا برنامج" });
+    expect(JSON.stringify(audits.at(-1))).not.toContain(MARK);
   });
 });

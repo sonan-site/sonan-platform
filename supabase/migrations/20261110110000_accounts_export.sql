@@ -4,8 +4,11 @@
 -- لقطةٌ مستقلة (حسابٌ يُسجَّل أثناء الجمع يكرّر صفّاً أو يُسقطه)، والتدقيق ليس في معاملة القراءة،
 -- وقصر التصدير على `users.write` مفروضٌ في التطبيق وحده. فصار في دالةٍ واحدة على نمط
 -- `fn_export_results`: **تفحص الصلاحية بنفسها، وتقرأ في استعلامٍ واحد، وتكتب التدقيق في المعاملة
--- نفسها** — فلا ملف بلا سطرٍ في السجلّ، ولا سطرَ لملفٍ لم يُبنَ. وتُرجع `jsonb` واحداً لا صفوفاً، فلا
--- يقصّها سقف `max_rows`.
+-- نفسها** — فلا ملف بلا سطرٍ في السجلّ (وانقطاعٌ بعد القراءة يترك سطراً بلا ملف — الاتجاه الآمن).
+-- وتُرجع `jsonb` واحداً لا صفوفاً، فلا يقصّها سقف `max_rows`.
+--
+-- **التدقيق بلا بيانات أشخاص:** السجلّ يبقى بعد محو الحساب نهائياً، ونصّ البحث قد يكون اسماً أو جوالاً.
+-- فيُحفظ أنّ البحث كان بالاسم وبكم كلمة، ومن الجوال آخر أربعة أرقام — والبرنامج والحالة والعدد كاملةً.
 --
 -- **بصلاحية من يطلب** كالقائمة: لا يكشف الملف إلا ما تعرضه له الشاشة. والقصر على `users.write` قصرٌ
 -- للتصدير المسجَّل لا للبيانات: حامل `users.read` يقرأ الحسابات أصلاً بسياسة `profiles_read`.
@@ -106,6 +109,7 @@ as $$
 declare
   v_rows    jsonb;
   v_count   int;
+  v_total   bigint;
   v_program text;
 begin
   if not (public.fn_has_permission('users.read') and public.fn_has_permission('users.write')) then
@@ -121,10 +125,16 @@ begin
            'deleted_at', l.deleted_at,
            'purge_after', l.purge_after
          ) order by l.ordinality), '[]'::jsonb),
-         count(*)::int
-  into v_rows, v_count
+         count(*)::int,
+         max(l.total)
+  into v_rows, v_count, v_total
   from public.fn_accounts_list(p_name_words, p_phone, p_program, p_status, p_sort, p_desc, 100000, 0)
        with ordinality as l;
+
+  -- ما جاوز سقف القراءة لا يُصدَّر ناقصاً بصمت.
+  if v_total > v_count then
+    raise exception 'المطابق (%) أكثر مما يُصدَّر دفعةً واحدة — ضيّق بالتصفية', v_total using errcode = '54000';
+  end if;
 
   -- البرنامج باسمه في السجلّ لا بمعرّفه — يقرؤه المدير.
   v_program := case
@@ -137,10 +147,10 @@ begin
 
   perform public.fn_write_audit('accounts_exported', 'profiles', null, null, jsonb_build_object(
     'count', v_count,
-    'search', nullif(array_to_string(coalesce(p_name_words, '{}'), ' '), ''),
-    'phone', nullif(p_phone, ''),
+    'name_words', nullif(cardinality(coalesce(p_name_words, '{}')), 0),
+    'phone_tail', nullif(right(coalesce(p_phone, ''), 4), ''),
     'program', v_program,
-    'status', p_status
+    'status', case when p_status in ('active', 'suspended', 'bin') then p_status end
   ));
 
   return v_rows;

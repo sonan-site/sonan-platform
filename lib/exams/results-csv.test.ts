@@ -33,9 +33,9 @@ describe("ملف النتائج", () => {
     expect(csv).not.toContain("الجوال");
   });
 
-  it("**الجوالان لمن يقرأ المشاركين** — والجوال الدولي يبقى رقماً", () => {
+  it("**الجوالان لمن يقرأ المشاركين** — مقروءين بعلامة الاتجاه، فلا يقرؤهما Excel رقماً علمياً", () => {
     const csv = toCsv([row({ phone: "+966500000001", guardian_phone: null })]);
     expect(csv).toContain("الجوال,جوال الولي");
-    expect(csv).toContain(",+966500000001,");
+    expect(csv).toContain(",‎+966 50 000 0001,");
   });
 });

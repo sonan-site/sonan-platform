@@ -38,12 +38,13 @@ describe("تسميات سجل التدقيق", () => {
 describe("تفاصيل الفعل في السجل", () => {
   it("**تصدير الحسابات يُرى بعدده وتصفيته** — «بأي تصفية» شرط القرار", () => {
     expect(
-      auditDetail("accounts_exported", { count: 12, search: "محمد", phone: null, program: "بلا برنامج", status: "active" }),
-    ).toBe("12 حساباً · البحث: محمد · البرنامج: بلا برنامج · الحالة: نشط");
+      auditDetail("accounts_exported", { count: 12, name_words: 2, phone_tail: null, program: "بلا برنامج", status: "active" }),
+    ).toBe("العدد: 12 · بحثٌ بالاسم (2 كلمات) · البرنامج: بلا برنامج · الحالة: نشط");
+    expect(auditDetail("accounts_exported", { count: 1, phone_tail: "8688" })).toBe("العدد: 1 · الجوال: …8688");
   });
 
   it("وبلا تصفية ⇐ العدد وحده", () => {
-    expect(auditDetail("accounts_exported", { count: 300 })).toBe("300 حساباً");
+    expect(auditDetail("accounts_exported", { count: 300 })).toBe("العدد: 300");
   });
 
   it("وفعلٌ آخر، أو `after` فارغ ⇐ «—»", () => {

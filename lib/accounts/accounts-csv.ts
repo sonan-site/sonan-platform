@@ -1,5 +1,4 @@
-import { cell } from "@/lib/csv/cell";
-import { formatPhone } from "@/lib/profile/phone";
+import { cell, csvPhone } from "@/lib/csv/cell";
 import { accountStatusOf, ACCOUNT_STATUS_LABEL } from "./list-query";
 
 /**
@@ -7,8 +6,7 @@ import { accountStatusOf, ACCOUNT_STATUS_LABEL } from "./list-query";
  * UTF-8 ببادئة BOM ليفتحه Excel عربياً، والخلايا مأمونة من الصيغ (`lib/csv/cell.ts`) — الأسماء
  * يكتبها أصحابها. **بلا رقم هوية** (قرار الراعي في تصدير النتائج، ويسري هنا).
  *
- * الجوال مقروءاً (`+966 50 123 4567`) لا خاماً: Excel يقرأ `+966553088688` رقماً فيحذف «+»
- * ويعرضه علمياً، والمسافات تُبقيه نصاً. والتاريخ `YYYY-MM-DD` بتوقيت الرياض ليُفرز في Excel.
+ * الجوال مقروءاً بعلامة اتجاهه (`csvPhone`) لا خاماً، والتاريخ `YYYY-MM-DD` بتوقيت الرياض ليُفرز في Excel.
  */
 export type AccountCsvRow = {
   full_name: string;
@@ -33,7 +31,7 @@ export function toAccountsCsv(rows: AccountCsvRow[]): string {
   const lines = rows.map((r) =>
     [
       r.full_name,
-      r.phone ? formatPhone(r.phone) : null,
+      csvPhone(r.phone),
       programsText(r.programs, r.has_program),
       isoDay.format(new Date(r.created_at)),
       ACCOUNT_STATUS_LABEL[accountStatusOf(r)],

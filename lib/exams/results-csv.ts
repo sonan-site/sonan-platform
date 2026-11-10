@@ -1,4 +1,4 @@
-import { cell } from "@/lib/csv/cell";
+import { cell, csvPhone } from "@/lib/csv/cell";
 
 /**
  * ملف النتائج للتكريم والصرف (الدفعة د): UTF-8 ببادئة BOM ليفتحه Excel عربياً،
@@ -37,7 +37,7 @@ export function toCsv(rows: ExportRow[]): string {
       OUTCOME[r.outcome] ?? r.outcome,
       r.prize_label,
       r.prize_value,
-      ...(withPhones ? [r.phone, r.guardian_phone] : []),
+      ...(withPhones ? [csvPhone(r.phone), csvPhone(r.guardian_phone)] : []),
       r.published ? "نعم" : "لا",
     ]
       .map(cell)
