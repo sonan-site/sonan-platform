@@ -10,6 +10,7 @@ const item = (over: Partial<RosterItem>): RosterItem => ({
   registrationNo: null,
   trackId: T1,
   trackName: "المسار الأول",
+  trackOrder: 0,
   status: "memorizing",
   joinedAt: "2026-11-01T00:00:00Z",
   doneDays: 0,
@@ -19,8 +20,8 @@ const item = (over: Partial<RosterItem>): RosterItem => ({
 
 const ROSTER: RosterItem[] = [
   item({ name: "محمد بن علي", registrationNo: "SN-1448-0012", doneDays: 10 }),
-  item({ name: "أحمد صالح", registrationNo: "SN-1448-0003", trackId: T2, trackName: "المسار الخامس", doneDays: 30 }),
-  item({ name: "بدر", registrationNo: "SN-1448-0007", trackId: null, trackName: "بلا مسار", status: "registered", dayCount: 0 }),
+  item({ name: "أحمد صالح", registrationNo: "SN-1448-0003", trackId: T2, trackName: "المسار الخامس", trackOrder: 4, doneDays: 30 }),
+  item({ name: "بدر", registrationNo: "SN-1448-0007", trackId: null, trackName: "بلا مسار", trackOrder: null, status: "registered", dayCount: 0 }),
   item({ name: "جابر", registrationNo: "SN-1448-0020", status: "withdrawn", doneDays: 5 }),
 ];
 
@@ -70,9 +71,15 @@ describe("الفرز", () => {
     expect(names(run({ sort: "name", dir: "desc" }))[0]).toBe("محمد بن علي");
   });
 
-  it("**بالإنجاز** — ومن لا خطة له في الذيل تصاعدياً", () => {
-    expect(names(run({ sort: "progress", dir: "desc" }))[0]).toBe("أحمد صالح");
-    expect(names(run({ sort: "progress", dir: "asc" }))[0]).toBe("بدر");
+  it("**بالإنجاز** — ومن لا خطة له في الذيل في الاتجاهين", () => {
+    expect(names(run({ sort: "progress", dir: "desc" }))).toEqual(["أحمد صالح", "محمد بن علي", "جابر", "بدر"]);
+    expect(names(run({ sort: "progress", dir: "asc" }))).toEqual(["جابر", "محمد بن علي", "أحمد صالح", "بدر"]);
+  });
+
+  it("**بالمسار بترتيبه في البرنامج** لا بأبجدية اسمه — وبلا مسار في الذيل", () => {
+    expect(names(run({ sort: "track", dir: "asc" })).at(-1)).toBe("بدر");
+    expect(names(run({ sort: "track", dir: "desc" }))[0]).toBe("أحمد صالح");
+    expect(names(run({ sort: "track", dir: "desc" })).at(-1)).toBe("بدر");
   });
 
   it("ومفتاحٌ مجهول ⇐ بلا فرز", () => {

@@ -13,7 +13,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 export function hrefWith(path: string, params: SearchParams, patch: Record<string, string | null> = {}): string {
   const next = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (key === "page" || key in patch || value === undefined) continue;
+    if (key === "page" || Object.hasOwn(patch, key) || value === undefined) continue;
     for (const v of Array.isArray(value) ? value : [value]) next.append(key, v);
   }
   for (const [key, value] of Object.entries(patch)) if (value) next.set(key, value);

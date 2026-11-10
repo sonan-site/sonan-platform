@@ -14,35 +14,56 @@ import {
   type ParticipantRow,
 } from "./participants-view";
 
-/** سقف `fn_program_participants` للطلب الواحد — فتُجلب القائمة دفعاتٍ بعددها الكلّي. */
-const ROSTER_BATCH = 500;
+/**
+ * سقف `fn_program_participants` للطلب الواحد (الهجرة 20261110120000): يتّسع لسعة البرنامج (٨٠٠)،
+ * فتُقرأ القائمة في استدعاءٍ واحد — كل استدعاءٍ يسوّي الالتزام ويحسب القائمة كلها من جديد.
+ */
+const ROSTER_BATCH = 1000;
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * المشاركون كلهم دفعاتٍ: كانت دفعةً واحدة بسقف ٥٠٠ تُقصّ بصمت، والبرنامج يتّسع لأكثر (دَين `د-١٥`).
+ * المشاركون كلهم: كانت دفعةً واحدة بسقف ٥٠٠ تُقصّ بصمت (٥٢٨ يوم ١٠ نوفمبر · دَين `د-١٥`).
  * والقائمة كلها لازمة: نموذج طلب تغيير المسار يختار منها، والتصفية والفرز عليها.
+ *
+ * استدعاءٌ واحد عادةً. وما جاوز السقف — أو سقفٌ أصغر قبل هجرته — يُكمَل دفعاتٍ بما وصل فعلاً،
+ * ويُزال المكرّر بالمعرّف: مشاركٌ يسجّل بين دفعتين يزيح الإزاحة صفّاً.
  */
 async function fetchRoster(db: Db, programId: string) {
-  const { data: first, error } = await db.rpc("fn_program_participants", {
-    p_program_id: programId,
-    p_limit: ROSTER_BATCH,
-    p_offset: 0,
-  });
-  if (error) return { data: null, error };
-  const all = [...(first ?? [])];
-  const total = Number(first?.[0]?.total ?? 0);
-  while (all.length < total) {
-    const { data, error: more } = await db.rpc("fn_program_participants", {
-      p_program_id: programId,
-      p_limit: ROSTER_BATCH,
-      p_offset: all.length,
-    });
-    if (more) return { data: null, error: more };
+  const page = (offset: number) =>
+    db.rpc("fn_program_participants", { p_program_id: programId, p_limit: ROSTER_BATCH, p_offset: offset });
+  const byId = new Map<string, NonNullable<Awaited<ReturnType<typeof page>>["data"]>[number]>();
+  let total = Infinity;
+  for (let offset = 0; offset < total; ) {
+    const { data, error } = await page(offset);
+    if (error) return { data: null, error };
     if (!data?.length) break;
-    all.push(...data);
+    if (offset === 0) total = Number(data[0]!.total);
+    for (const row of data) byId.set(row.id, row);
+    offset += data.length;
   }
-  return { data: all, error: null };
+  return { data: [...byId.values()], error: null };
+}
+
+const REQUEST_COLUMNS =
+  "id, participant_id, from_track_id, to_track_id, direction, reason, baseline_percentage, status, participants!inner(program_id)";
+/** المحسومة تُعرض أحدثها — والمعلَّقة كلها، فلا يغيب طلبٌ ينتظر البتّ لأنه أقدم من غيره. */
+const DECIDED_SHOWN = 200;
+
+async function fetchRequests(db: Db, programId: string) {
+  const base = () =>
+    db
+      .from("track_change_requests")
+      .select(REQUEST_COLUMNS)
+      .eq("participants.program_id", programId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+  const [pending, decided] = await Promise.all([
+    base().eq("status", "pending"),
+    base().neq("status", "pending").limit(DECIDED_SHOWN),
+  ]);
+  const error = pending.error ?? decided.error;
+  return { data: error ? null : [...(pending.data ?? []), ...(decided.data ?? [])], error };
 }
 
 export default async function ParticipantsPage({
@@ -89,15 +110,7 @@ export default async function ParticipantsPage({
       .select("id, name, deleted_at")
       .eq("program_id", id)
       .order("sort_order"),
-    db
-      .from("track_change_requests")
-      .select(
-        "id, participant_id, from_track_id, to_track_id, direction, reason, baseline_percentage, status, participants!inner(program_id)",
-      )
-      .eq("participants.program_id", id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(200),
+    fetchRequests(db, id),
     canReadPrograms
       ? db.from("plans").select("track_id, day_count").eq("program_id", id).is("deleted_at", null)
       : Promise.resolve({ data: null }),
@@ -117,6 +130,8 @@ export default async function ParticipantsPage({
 
   const allTracks = tracksResult.data ?? [];
   const trackName = new Map(allTracks.map((t) => [t.id, t.name]));
+  // المسارات مجلوبةٌ بـ`sort_order` — فموضعها ترتيبها.
+  const trackOrder = new Map(allTracks.map((t, i) => [t.id, i]));
   // الخطة الافتراضية (بلا مسار) تكفي كل مسار، والمخصّصة لمسارها (adr/0038) — وخطةٌ بلا أيام لا تُعَدّ.
   const livePlans = (plansResult.data ?? []).filter((r) => r.day_count > 0);
   const hasDefaultPlan = livePlans.some((r) => r.track_id === null);
@@ -129,6 +144,7 @@ export default async function ParticipantsPage({
     registrationNo: formatRegistrationNo(programResult.data?.registration_prefix ?? null, p.registration_no),
     trackId: p.track_id,
     trackName: p.track_id ? (trackName.get(p.track_id) ?? "—") : "بلا مسار",
+    trackOrder: p.track_id ? (trackOrder.get(p.track_id) ?? null) : null,
     hasTrack: p.track_id !== null,
     status: p.status,
     joinedAt: p.joined_at,
@@ -211,7 +227,7 @@ export default async function ParticipantsPage({
     query.track === NO_TRACK
       ? { key: "track", label: "المسار: بلا مسار" }
       : query.track
-        ? { key: "track", label: `المسار: ${trackName.get(query.track) ?? "مسارٌ واحد"}` }
+        ? { key: "track", label: `المسار: ${trackName.get(query.track) ?? "مسار غير معروف"}` }
         : null,
     query.status ? { key: "status", label: `الحالة: ${statusLabel(query.status)}` } : null,
   ].filter((f) => f !== null);

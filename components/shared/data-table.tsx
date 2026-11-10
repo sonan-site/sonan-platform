@@ -136,8 +136,10 @@ function DataTableInner<T>({
     }, SEARCH_DEBOUNCE_MS);
   };
 
+  // الفرز الجديد يبدأ من أوله — صفحةٌ رابعة من ترتيبٍ آخر توهم أنها أوله.
   const onSort = (key: string) => {
     push((next) => {
+      next.delete("page");
       if (sortKey !== key) {
         next.set("sort", key);
         next.set("dir", "asc");

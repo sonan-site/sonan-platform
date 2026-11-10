@@ -32,6 +32,8 @@ export type ParticipantRow = {
   registrationNo: string | null;
   trackId: string | null;
   trackName: string;
+  /** ترتيب المسار في البرنامج — للفرز بالمسار. */
+  trackOrder: number | null;
   hasTrack: boolean;
   status: string;
   joinedAt: string;

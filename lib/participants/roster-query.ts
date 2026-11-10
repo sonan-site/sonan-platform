@@ -14,6 +14,8 @@ export type RosterItem = {
   registrationNo: string | null;
   trackId: string | null;
   trackName: string;
+  /** ترتيب المسار في البرنامج (`sort_order`) — `null` بلا مسار، فيُفرز في الذيل. */
+  trackOrder: number | null;
   status: string;
   joinedAt: string;
   doneDays: number;
@@ -79,9 +81,15 @@ function matches<T extends RosterItem>(item: T, words: string[]): boolean {
 
 const collator = new Intl.Collator("ar");
 
-/** نسبة الإنجاز للفرز — من لا خطة له في الذيل تصاعدياً. */
-function progressOf(item: RosterItem): number {
-  return item.dayCount > 0 ? item.doneDays / item.dayCount : -1;
+/** نسبة الإنجاز للفرز — `null` لمن لا خطة له، فيُفرز في الذيل. */
+function progressOf(item: RosterItem): number | null {
+  return item.dayCount > 0 ? item.doneDays / item.dayCount : null;
+}
+
+/** يقارن قيمتين بالاتجاه المطلوب، و`null` في الذيل في الاتجاهين — «بلا مسار» و«لا خطة» لا تتصدّر. */
+function compareNullable(a: number | null, b: number | null, dir: number): number {
+  if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1;
+  return (a - b) * dir;
 }
 
 /** يصفّي ويرتّب كل القائمة، ويُرجع الصفحة المطلوبة وعدد المطابِق. */
@@ -102,15 +110,14 @@ export function applyRosterQuery<T extends RosterItem>(
   if (query.sort) {
     const { key, ascending } = query.sort;
     const dir = ascending ? 1 : -1;
-    sorted.sort((a, b) => {
-      const c =
-        key === "name"
-          ? collator.compare(a.name, b.name)
-          : key === "track"
-            ? collator.compare(a.trackName, b.trackName)
-            : progressOf(a) - progressOf(b);
-      return c * dir;
-    });
+    // المسار بترتيبه في البرنامج لا بأبجدية اسمه («الأول، الثاني…» لا «الأول، الثالث…»).
+    sorted.sort((a, b) =>
+      key === "name"
+        ? collator.compare(a.name, b.name) * dir
+        : key === "track"
+          ? compareNullable(a.trackOrder, b.trackOrder, dir)
+          : compareNullable(progressOf(a), progressOf(b), dir),
+    );
   }
 
   const from = (query.page - 1) * pageSize;
