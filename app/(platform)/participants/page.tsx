@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { ErrorState } from "@/components/shared/states";
-import { ACCOUNT_STATUS_LABEL, accountsListArgs, NO_PROGRAM, parseAccountsQuery } from "@/lib/accounts/list-query";
+import {
+  ACCOUNT_DUPLICATE_LABEL,
+  ACCOUNT_STATUS_LABEL,
+  accountsListArgs,
+  NO_PROGRAM,
+  parseAccountsQuery,
+} from "@/lib/accounts/list-query";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { formatPhone } from "@/lib/profile/phone";
@@ -27,7 +33,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
   const seesAllEnrolment = (await authorizeRequest({ permission: "participants.read" })).ok;
   const params = await searchParams;
   const query = parseAccountsQuery(params);
-  const { status, page } = query;
+  const { status, duplicate, page } = query;
   const { program, args } = accountsListArgs(query, seesAllEnrolment, {
     limit: DEFAULT_PAGE_SIZE,
     offset: (page - 1) * DEFAULT_PAGE_SIZE,
@@ -59,6 +65,8 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     programs: p.programs,
     // لا مشاركة ظاهرة ⇐ «بلا برنامج» لمن يرى المشاركات كلها، و«لا نعرف» لغيره.
     hasProgram: p.has_program ? true : seesAllEnrolment ? false : null,
+    sameIdentity: p.same_identity,
+    samePhone: p.same_phone,
   }));
 
   // عددٌ ناقص أسوأ من لا عدد — فإن تعذّر سُكت عنه.
@@ -87,6 +95,13 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     ),
   ];
 
+  const duplicateLinks: FilterLink[] = [
+    { label: "دون تصفية التكرار", href: hrefWith("/participants", params, { dup: null }), current: duplicate === null },
+    ...(Object.entries(ACCOUNT_DUPLICATE_LABEL) as [keyof typeof ACCOUNT_DUPLICATE_LABEL, string][]).map(
+      ([key, label]) => ({ label, href: hrefWith("/participants", params, { dup: key }), current: duplicate === key }),
+    ),
+  ];
+
   // وسوم التصفية النشطة في الجدول بأبعادها — تُزال بنقرة، ويقول الفراغ «لا نتيجة» لا «لا حسابات».
   const active = [
     program === NO_PROGRAM
@@ -95,6 +110,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
         ? { key: "program", label: `البرنامج: ${programs.find((g) => g.id === program)?.name ?? "برنامجٌ واحد"}` }
         : null,
     status ? { key: "status", label: `الحالة: ${ACCOUNT_STATUS_LABEL[status]}` } : null,
+    duplicate ? { key: "dup", label: `التكرار: ${ACCOUNT_DUPLICATE_LABEL[duplicate]}` } : null,
   ].filter((f) => f !== null);
 
   return (
@@ -105,6 +121,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       withProgram={withProgram}
       programLinks={programLinks}
       statusLinks={statusLinks}
+      duplicateLinks={duplicateLinks}
       activeFilters={active}
       // التصدير لحامل تعديل الحسابات وحده: الملف يُنسخ ويُرسل، والشاشة لا.
       exportHref={canWrite ? hrefWith("/participants/export", params) : null}

@@ -8,3 +8,20 @@
 .export a {
   color: var(--color-brand);
 }
+
+/* الاسم وعلامتا التكرار تحته — النظراء مكتوبون لا في تلميح، فيُقرؤون على الجوال. */
+.name {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dup,
+.dupStrong {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.dupStrong {
+  color: var(--color-warning);
+  font-weight: var(--weight-bold);
+}

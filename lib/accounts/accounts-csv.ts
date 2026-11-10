@@ -1,5 +1,5 @@
 import { cell, csvPhone } from "@/lib/csv/cell";
-import { accountStatusOf, ACCOUNT_STATUS_LABEL } from "./list-query";
+import { accountStatusOf, ACCOUNT_DUPLICATE_LABEL, ACCOUNT_STATUS_LABEL } from "./list-query";
 
 /**
  * ملف «المشاركون في المنصة» (الدفعة ٢): ما تعرضه القائمة بعد البحث والتصفية، بكل صفحاته.
@@ -17,7 +17,20 @@ export type AccountCsvRow = {
   created_at: string;
   deleted_at: string | null;
   purge_after: string | null;
+  /** له نظيرٌ بالاسم والميلاد · بالجوال (الدفعة ٣). */
+  same_identity: boolean;
+  same_phone: boolean;
 };
+
+/** علامتا التكرار نصاً: «مكرّر محتمل» · «جوال مشترك» · أو فارغ. */
+export function duplicateText(r: { same_identity: boolean; same_phone: boolean }): string {
+  return [
+    r.same_identity ? ACCOUNT_DUPLICATE_LABEL.identity : null,
+    r.same_phone ? ACCOUNT_DUPLICATE_LABEL.phone : null,
+  ]
+    .filter((x) => x !== null)
+    .join(" · ");
+}
 
 /** برامج الحساب كما في الشاشة: أسماؤها · «بلا برنامج» · «—» لمن لا نعرف. */
 export function programsText(programs: string[], hasProgram: boolean | null): string {
@@ -27,7 +40,7 @@ export function programsText(programs: string[], hasProgram: boolean | null): st
 const isoDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh", year: "numeric", month: "2-digit", day: "2-digit" });
 
 export function toAccountsCsv(rows: AccountCsvRow[]): string {
-  const head = ["الاسم", "الجوال", "البرامج", "تاريخ إنشاء الحساب", "الحالة"];
+  const head = ["الاسم", "الجوال", "البرامج", "تاريخ إنشاء الحساب", "الحالة", "التكرار"];
   const lines = rows.map((r) =>
     [
       r.full_name,
@@ -35,6 +48,7 @@ export function toAccountsCsv(rows: AccountCsvRow[]): string {
       programsText(r.programs, r.has_program),
       isoDay.format(new Date(r.created_at)),
       ACCOUNT_STATUS_LABEL[accountStatusOf(r)],
+      duplicateText(r),
     ]
       .map(cell)
       .join(","),

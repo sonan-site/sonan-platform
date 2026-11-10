@@ -30,6 +30,7 @@ export async function GET(req: Request) {
     dir: url.searchParams.get("dir") ?? undefined,
     program: url.searchParams.get("program") ?? undefined,
     status: url.searchParams.get("status") ?? undefined,
+    dup: url.searchParams.get("dup") ?? undefined,
   });
   // معاملات الصفحة نفسها — فلا يختلف ما يُصدَّر عمّا يُعرض. والنافذة لا تعني الدالة: تقرأ الكل.
   const { args } = accountsListArgs(query, seesAllEnrolment, { limit: 0, offset: 0 });
@@ -42,6 +43,7 @@ export async function GET(req: Request) {
     p_status: args.p_status,
     p_sort: args.p_sort,
     p_desc: args.p_desc,
+    p_duplicate: args.p_duplicate,
   });
   if (error) {
     return new Response(error.code === "42501" ? "غير مصرَّح" : "تعذّر التصدير — لم يُسلَّم ملف", {

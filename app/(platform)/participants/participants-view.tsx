@@ -8,6 +8,7 @@ import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { PageHead } from "@/components/shared/steps";
 import { programsText } from "@/lib/accounts/accounts-csv";
+import { ACCOUNT_DUPLICATE_LABEL } from "@/lib/accounts/list-query";
 import { binNotice } from "@/lib/accounts/bin";
 import { formatDateBoth, formatNumber } from "@/lib/format";
 import { deleteAccount, restoreUser, suspendUser } from "../team/actions";
@@ -26,7 +27,21 @@ export type AccountRow = {
   programs: string[];
   /** له مشاركة · لا مشاركة له · `null` لا نعرف (من لا يرى المشاركات كلها). */
   hasProgram: boolean | null;
+  /** نظراؤه بالاسم الكامل والميلاد معاً — «مكرّر محتمل» (الدفعة ٣). */
+  sameIdentity: string[];
+  /** نظراؤه بالجوال نفسه — «جوال مشترك»، وأغلبه إخوة. */
+  samePhone: string[];
 };
+
+/** علامة تكرارٍ بجانب الاسم، ونظراؤه مكتوبون فيها لا في تلميحٍ وحده — فتُقرأ على الجوال أيضاً. */
+function DuplicateMark({ label, names, strong }: { label: string; names: string[]; strong: boolean }) {
+  if (names.length === 0) return null;
+  return (
+    <span className={strong ? styles.dupStrong : styles.dup}>
+      {label}: {names.join("، ")}
+    </span>
+  );
+}
 
 /** صفٌّ في السلّة لا يُوقَف ولا يُحذف ثانيةً — يُستعاد أو يُمحى من شاشتها. */
 const ROW_ACTIONS = {
@@ -42,6 +57,7 @@ export function ParticipantsView({
   withProgram,
   programLinks,
   statusLinks,
+  duplicateLinks,
   activeFilters,
   exportHref,
   canWrite,
@@ -55,6 +71,7 @@ export function ParticipantsView({
   withProgram: number | null;
   programLinks: FilterLink[];
   statusLinks: FilterLink[];
+  duplicateLinks: FilterLink[];
   activeFilters: ActiveFilter[];
   /** رابط ملف ما تعرضه القائمة بكل صفحاته — `null` لمن لا يملك التصدير. */
   exportHref: string | null;
@@ -65,7 +82,19 @@ export function ParticipantsView({
   const [deleting, setDeleting] = useState<AccountRow | null>(null);
 
   const columns: Column<AccountRow>[] = [
-    { key: "fullName", header: "الاسم", sortable: true, primary: true, render: (r) => r.fullName },
+    {
+      key: "fullName",
+      header: "الاسم",
+      sortable: true,
+      primary: true,
+      render: (r) => (
+        <span className={styles.name}>
+          {r.fullName}
+          <DuplicateMark label={ACCOUNT_DUPLICATE_LABEL.identity} names={r.sameIdentity} strong />
+          <DuplicateMark label={ACCOUNT_DUPLICATE_LABEL.phone} names={r.samePhone} strong={false} />
+        </span>
+      ),
+    },
     { key: "phone", header: "الجوال", render: (r) => <span dir="ltr">{r.phone}</span> },
     {
       key: "programs",
@@ -125,6 +154,7 @@ export function ParticipantsView({
 
       <FilterLinks label="البرنامج" links={programLinks} />
       <FilterLinks label="الحالة" links={statusLinks} />
+      <FilterLinks label="التكرار" links={duplicateLinks} />
       {exportHref && total > 0 ? (
         <p className={styles.export}>
           <a href={exportHref} download>

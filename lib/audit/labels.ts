@@ -124,6 +124,7 @@ export function auditTableLabel(table: string): string {
 }
 
 const STATUS_LABEL: Record<string, string> = { active: "نشط", suspended: "موقوف", bin: "في سلّة المحذوفات" };
+const DUPLICATE_LABEL: Record<string, string> = { identity: "مكرّر محتمل", phone: "جوال مشترك" };
 
 /**
  * تفاصيل الفعل من `after` — ما يحتاج المدير معرفته ولا يقوله اسم الفعل. والتصدير أوّلها:
@@ -145,6 +146,7 @@ export function auditDetail(action: string, after: unknown): string {
     text(a["phone_tail"]) ? `الجوال: …${text(a["phone_tail"])}` : null,
     text(a["program"]) ? `البرنامج: ${text(a["program"])}` : null,
     status ? `الحالة: ${STATUS_LABEL[status] ?? status}` : null,
+    text(a["duplicate"]) ? `التكرار: ${DUPLICATE_LABEL[text(a["duplicate"])!] ?? text(a["duplicate"])}` : null,
   ].filter((p) => p !== null);
   return parts.length > 0 ? parts.join(" · ") : "—";
 }

@@ -63,6 +63,12 @@ describe("التصفية", () => {
     expect(parseAccountsQuery({ status: "deleted" }).status).toBeNull();
   });
 
+  it("**والتكرار المحتمل:** بالاسم والميلاد، أو بالجوال — وما سواهما يُتجاهل", () => {
+    expect(parseAccountsQuery({ dup: "identity" }).duplicate).toBe("identity");
+    expect(parseAccountsQuery({ dup: "phone" }).duplicate).toBe("phone");
+    expect(parseAccountsQuery({ dup: "name" }).duplicate).toBeNull();
+  });
+
   it("والحالة: نشط · موقوف · في السلّة", () => {
     expect(parseAccountsQuery({ status: "active" }).status).toBe("active");
     expect(parseAccountsQuery({ status: "suspended" }).status).toBe("suspended");

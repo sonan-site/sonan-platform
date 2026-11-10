@@ -9,6 +9,8 @@ const base: AccountCsvRow = {
   created_at: "2026-11-10T09:00:00Z",
   deleted_at: null,
   purge_after: null,
+  same_identity: false,
+  same_phone: false,
 };
 
 const lines = (csv: string) => csv.replace(/^﻿/, "").trimEnd().split("\r\n");
@@ -17,7 +19,7 @@ describe("ملف الحسابات", () => {
   it("**ببادئة BOM** ليفتحه Excel عربياً، وبرأسٍ بلا رقم هوية", () => {
     const csv = toAccountsCsv([base]);
     expect(csv.startsWith("﻿")).toBe(true);
-    expect(lines(csv)[0]).toBe("الاسم,الجوال,البرامج,تاريخ إنشاء الحساب,الحالة");
+    expect(lines(csv)[0]).toBe("الاسم,الجوال,البرامج,تاريخ إنشاء الحساب,الحالة,التكرار");
   });
 
   it("**الجوال مقروءاً بعلامة الاتجاه** — لا رقماً علمياً في Excel، ولا مقلوباً في الورقة العربية", () => {
@@ -40,9 +42,15 @@ describe("ملف الحسابات", () => {
 
   it("الحالة: نشط · موقوف · في سلّة المحذوفات", () => {
     const at = "2026-11-10T09:00:00Z";
-    expect(lines(toAccountsCsv([base]))[1]!.endsWith(",نشط")).toBe(true);
-    expect(lines(toAccountsCsv([{ ...base, deleted_at: at }]))[1]!.endsWith(",موقوف")).toBe(true);
-    expect(lines(toAccountsCsv([{ ...base, deleted_at: at, purge_after: at }]))[1]!.endsWith(",في سلّة المحذوفات")).toBe(true);
+    expect(lines(toAccountsCsv([base]))[1]!.endsWith(",نشط,")).toBe(true);
+    expect(lines(toAccountsCsv([{ ...base, deleted_at: at }]))[1]!.endsWith(",موقوف,")).toBe(true);
+    expect(lines(toAccountsCsv([{ ...base, deleted_at: at, purge_after: at }]))[1]!.endsWith(",في سلّة المحذوفات,")).toBe(true);
+  });
+
+  it("**والتكرار:** مكرّر محتمل · جوال مشترك · كلاهما", () => {
+    expect(lines(toAccountsCsv([{ ...base, same_identity: true }]))[1]!.endsWith(",مكرّر محتمل")).toBe(true);
+    expect(lines(toAccountsCsv([{ ...base, same_phone: true }]))[1]!.endsWith(",جوال مشترك")).toBe(true);
+    expect(lines(toAccountsCsv([{ ...base, same_identity: true, same_phone: true }]))[1]!.endsWith(",مكرّر محتمل · جوال مشترك")).toBe(true);
   });
 
   it("بلا صفوف ⇐ الرأس وحده", () => {

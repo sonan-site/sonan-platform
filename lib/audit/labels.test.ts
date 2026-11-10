@@ -41,6 +41,7 @@ describe("تفاصيل الفعل في السجل", () => {
       auditDetail("accounts_exported", { count: 12, name_words: 2, phone_tail: null, program: "بلا برنامج", status: "active" }),
     ).toBe("العدد: 12 · بحثٌ بالاسم (2 كلمات) · البرنامج: بلا برنامج · الحالة: نشط");
     expect(auditDetail("accounts_exported", { count: 1, phone_tail: "8688" })).toBe("العدد: 1 · الجوال: …8688");
+    expect(auditDetail("accounts_exported", { count: 22, duplicate: "identity" })).toBe("العدد: 22 · التكرار: مكرّر محتمل");
   });
 
   it("وبلا تصفية ⇐ العدد وحده", () => {

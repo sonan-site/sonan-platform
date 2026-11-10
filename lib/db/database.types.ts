@@ -3209,6 +3209,7 @@ export type Database = {
       fn_accounts_list: {
         Args: {
           p_desc?: boolean
+          p_duplicate?: string
           p_limit?: number
           p_name_words?: string[]
           p_offset?: number
@@ -3226,6 +3227,8 @@ export type Database = {
           phone: string
           programs: string[]
           purge_after: string
+          same_identity: string[]
+          same_phone: string[]
           total: number
           user_id: string
         }[]
@@ -3644,6 +3647,7 @@ export type Database = {
       fn_export_accounts: {
         Args: {
           p_desc?: boolean
+          p_duplicate?: string
           p_name_words?: string[]
           p_phone?: string
           p_program?: string

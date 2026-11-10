@@ -19,6 +19,14 @@ export function accountStatusOf(r: { deleted_at: string | null; purge_after: str
   return r.purge_after ? "bin" : r.deleted_at ? "suspended" : "active";
 }
 
+/** التكرار المحتمل (الدفعة ٣): بالاسم والميلاد معاً، أو بالجوال — منفصلين، فالجوال المشترك أغلبه إخوة. */
+export const ACCOUNT_DUPLICATES = ["identity", "phone"] as const;
+export type AccountDuplicate = (typeof ACCOUNT_DUPLICATES)[number];
+export const ACCOUNT_DUPLICATE_LABEL: Record<AccountDuplicate, string> = {
+  identity: "مكرّر محتمل",
+  phone: "جوال مشترك",
+};
+
 /** `none` بلا برنامج، أو معرّف برنامج. */
 export const NO_PROGRAM = "none";
 
@@ -30,6 +38,7 @@ export type AccountsQuery = {
   /** `none` أو معرّف برنامج، أو `null` للكل. */
   program: string | null;
   status: AccountStatus | null;
+  duplicate: AccountDuplicate | null;
   sort: AccountsSort;
   page: number;
 };
@@ -85,6 +94,7 @@ export function accountsListArgs(
       p_desc: !query.sort.ascending,
       p_limit: window.limit,
       p_offset: window.offset,
+      p_duplicate: query.duplicate ?? undefined,
     },
   };
 }
@@ -96,6 +106,7 @@ export function parseAccountsQuery(params: {
   page?: Param;
   program?: Param;
   status?: Param;
+  dup?: Param;
 }): AccountsQuery {
   const raw = first(params.q).trim().slice(0, MAX_SEARCH);
 
@@ -120,5 +131,8 @@ export function parseAccountsQuery(params: {
   const rawStatus = first(params.status);
   const status = (ACCOUNT_STATUSES as readonly string[]).includes(rawStatus) ? (rawStatus as AccountStatus) : null;
 
-  return { nameWords, phoneDigits, program, status, sort, page };
+  const rawDup = first(params.dup);
+  const duplicate = (ACCOUNT_DUPLICATES as readonly string[]).includes(rawDup) ? (rawDup as AccountDuplicate) : null;
+
+  return { nameWords, phoneDigits, program, status, duplicate, sort, page };
 }
