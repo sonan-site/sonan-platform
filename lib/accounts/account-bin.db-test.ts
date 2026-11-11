@@ -303,6 +303,13 @@ describe("الحذف إلى السلّة", () => {
     expect(blind.rowCount).toBe(0);
   });
 
+  it("**ومن لا يملك تعديل الحسابات لا يمحو** — الفحص بالهوية لا بالدور (الهجرة 20261111110000)", async () => {
+    // كان الفحص بـ`current_user` لا يقع داخل دالة المالك، فيبلغ المشاركُ شرطَ المدّة بعده.
+    await expect(
+      asUser(PLAIN, () => db.query(`select public.fn_purge_account($1)`, [TARGET])),
+    ).rejects.toThrow(/لا صلاحية لمحو الحسابات/);
+  });
+
   it("**والمحو يُرفض قبل انقضاء المدّة** — الوعد بثلاثين يوماً وعد", async () => {
     await expect(
       asUser(ADMIN, () => db.query(`select public.fn_purge_account($1)`, [TARGET])),
