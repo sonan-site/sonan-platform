@@ -1,12 +1,38 @@
-/* رابط التصدير — على نمط «صدّر المعتمد» في النتائج، ومعه أنه يُسجَّل. */
+/* التصدير زرٌّ ثانوي فوق الجدول، ومعه أنه يُسجَّل. */
 .export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-block: 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* تنبيه وضع رقم الوثيقة — سطرٌ واحد فوق شريط البحث. */
+.note {
   margin-block: 0 var(--space-3);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
 
-.export a {
-  color: var(--color-brand);
+/* «تعديل» رابطٌ إلى صفحة الحساب بهيئة الزرّ الثانوي بجانبه — لا زرٌّ يفتح نافذة. */
+.edit {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--touch-target);
+  padding-inline: var(--space-5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.edit:hover {
+  border-color: var(--color-accent);
 }
 
 /* الاسم وعلامتا التكرار تحته — النظراء مكتوبون لا في تلميح، فيُقرؤون على الجوال. */

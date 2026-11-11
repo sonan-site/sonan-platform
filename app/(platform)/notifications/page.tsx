@@ -26,6 +26,7 @@ export default async function NotificationsPage() {
             programName: n.program_name,
             trackName: n.track_name,
             decision: n.decision,
+            fields: n.body,
             createdAt: n.created_at,
             unread: n.unread,
           },

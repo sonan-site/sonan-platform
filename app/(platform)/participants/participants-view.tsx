@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { reportAction } from "@/components/shared/action-notice";
 import { DataTable, type ActiveFilter, type Column } from "@/components/shared/data-table";
-import { FilterLinks, type FilterLink } from "@/components/shared/filter-links";
+import type { FilterLink } from "@/components/shared/filter-links";
+import { FilterBar, FilterSelect } from "@/components/shared/filter-select";
 import { Button, FormActions } from "@/components/shared/form";
 import { Modal } from "@/components/shared/modal";
 import { PageHead } from "@/components/shared/steps";
@@ -135,6 +137,11 @@ export function ParticipantsView({
             align: "end" as const,
             render: (r: AccountRow) => (
               <span style={ROW_ACTIONS}>
+                {r.purgeAfter ? null : (
+                  <Link href={`/participants/${r.userId}`} className={styles.edit}>
+                    تعديل
+                  </Link>
+                )}
                 <Button
                   pending={busy}
                   onClick={() =>
@@ -169,27 +176,32 @@ export function ParticipantsView({
         }
       />
 
-      <FilterLinks label="البرنامج" links={programLinks} />
-      <FilterLinks label="الحالة" links={statusLinks} />
-      <FilterLinks label="التكرار" links={duplicateLinks} />
-      <FilterLinks label="البحث" links={searchModeLinks} />
-      {byDocument ? (
-        <p className={styles.export}>
-          {documentNotFound
-            ? "لا حساب بهذا الرقم."
-            : "يُبحث برقم الوثيقة كاملاً لا بجزئه، ويُسجَّل كل بحثٍ هنا في سجلّ التدقيق دون الرقم."}
-        </p>
-      ) : null}
       {exportHref && total > 0 ? (
         <p className={styles.export}>
-          <a href={exportHref} download>
-            صدّر الحسابات المطابقة ({formatNumber(total)}) — ملف Excel ‏(CSV)
-          </a>{" "}
-          · يُسجَّل التصدير في سجلّ التدقيق.
+          <a href={exportHref} download className={styles.edit}>
+            صدّر المطابقة ({formatNumber(total)}) — Excel
+          </a>
+          <span>يُصدَّر ما تعرضه القائمة بكل صفحاته، ويُسجَّل التصدير في سجلّ التدقيق.</span>
+        </p>
+      ) : null}
+      {byDocument ? (
+        <p className={styles.note}>
+          {documentNotFound
+            ? "لا حساب بهذا الرقم."
+            : "اكتب رقم الوثيقة كاملاً ثم اضغط Enter. لا بحث بجزء الرقم، وكل بحثٍ يُسجَّل في سجلّ التدقيق دون الرقم."}
         </p>
       ) : null}
 
       <DataTable
+        searchOnEnter={byDocument}
+        controls={
+          <FilterBar>
+            <FilterSelect label="البحث بـ" param="by" links={searchModeLinks} clears={["q", "account", "notfound"]} />
+            <FilterSelect label="البرنامج" param="program" links={programLinks} />
+            <FilterSelect label="الحالة" param="status" links={statusLinks} />
+            <FilterSelect label="التكرار" param="dup" links={duplicateLinks} />
+          </FilterBar>
+        }
         columns={columns}
         rows={rows}
         rowKey={(r) => r.id}

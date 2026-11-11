@@ -74,6 +74,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // تصحيح FIXER يُشعر صاحب الهوية ويُسجَّل (adr/0059) — والإشعار يمنع حذف المستخدم.
+  await db.query(`delete from public.notifications where recipient_id = any($1::uuid[])`, [USERS]);
+  await db.query(`delete from public.audit_log where actor_id = any($1::uuid[]) or entity_id = any($1::uuid[])`, [USERS]);
   await db.query(`delete from public.profile_identities where user_id = any($1::uuid[])`, [USERS]);
   await db.query(`delete from public.user_roles where user_id = any($1::uuid[])`, [USERS]);
   await db.query(`delete from public.role_permissions where role_id = any($1::uuid[])`, [roles]);

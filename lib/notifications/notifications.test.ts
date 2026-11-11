@@ -8,6 +8,7 @@ const base: MyNotification = {
   programName: "مسابقة سنن",
   trackName: "الأربعون النووية",
   decision: "approved",
+  fields: null,
   createdAt: "2026-11-04T10:00:00.123456+00:00",
   unread: true,
 };
@@ -33,6 +34,15 @@ describe("نصّ الإشعار", () => {
       href: null,
     });
     expect(notificationMessage({ ...base, kind: "results_published", trackName: null }).text).toBe("نُشرت نتائج مسارك — اطّلع على نتيجتك");
+  });
+});
+
+describe("تعديل الإدارة لبياناته", () => {
+  it("**أسماء الحقول بلا قيمها** بترتيب النموذج، ووجهته «حسابي»", () => {
+    expect(
+      notificationMessage({ ...base, kind: "profile_corrected", participantId: null, fields: "birth_date,first_name,unknown" }),
+    ).toEqual({ text: "عدّلت الإدارة بياناتك: الاسم الأول، تاريخ الميلاد", href: "/account" });
+    expect(notificationMessage({ ...base, kind: "profile_corrected", fields: null }).text).toBe("عدّلت الإدارة بياناتك");
   });
 });
 

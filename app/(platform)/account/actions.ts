@@ -32,14 +32,23 @@ export async function updateMyProfile(_prev: FormState, form: FormData): Promise
   const session = await getSession();
   if (session.status !== "active") return { error: "انتهت جلستك. سجّل الدخول من جديد." };
 
+  // لا يُحفظ فوق ما تغيّر منذ فُتحت الصفحة — تصحيح الإدارة (adr/0059) لا يُلغيه نموذجٌ قديم بصمت.
+  const seen = String(form.get("seen") ?? "");
+  if (!seen) return { error: "أعد تحميل الصفحة ثم احفظ." };
+
   const db = await createClient();
   const { data, error } = await db
     .from("profiles")
     .update(parsed.data)
     .eq("user_id", session.userId)
+    .eq("updated_at", seen)
     .is("deleted_at", null)
     .select("id");
-  if (error || !data?.length) return { error: userMessage(error, "تعذّر حفظ بياناتك.") };
+  if (error) return { error: userMessage(error, "تعذّر حفظ بياناتك.") };
+  if (!data?.length) {
+    revalidatePath("/account");
+    return { error: "تغيّرت بياناتك بعد أن فتحتَ الصفحة — ربما صحّحتها الإدارة. راجعها كما هي الآن ثم عدّل." };
+  }
 
   revalidatePath("/account");
   return { notice: "حُفظت بياناتك." };

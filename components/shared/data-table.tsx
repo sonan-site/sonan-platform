@@ -50,6 +50,13 @@ export type DataTableProps<T> = {
    * فلا يُعرض بحثٌ لا تقرؤه صفحته (`ق-٢٠`). وحينها لا يُعدّ `?q=` تصفيةً له.
    */
   searchable?: boolean;
+  /**
+   * البحث بـEnter لا بالكتابة — لبحثٍ يُسجَّل كلُّ طلبٍ منه (رقم الوثيقة): بالتأخير كان كل جزءٍ من الرقم
+   * يُكتب بحثاً مسجَّلاً.
+   */
+  searchOnEnter?: boolean;
+  /** مرشّحات الشاشة في سطر البحث نفسه (`FilterSelect`) — شريطٌ واحد لا صفوفٌ فوق الجدول. */
+  controls?: ReactNode;
   /** وسوم التصفية النشطة، كلٌّ قابل للإزالة. */
   filters?: ActiveFilter[];
   selection?: {
@@ -90,6 +97,8 @@ function DataTableInner<T>({
   errorMessage,
   searchPlaceholder = "بحث…",
   searchable = true,
+  searchOnEnter = false,
+  controls,
   filters = [],
   selection,
   empty,
@@ -123,17 +132,19 @@ function DataTableInner<T>({
     [params, pathname, router],
   );
 
-  // بحث واحد بتأخير 300ms — لا استعلام على كل حرف.
+  const submitSearch = (value: string) =>
+    push((next) => {
+      if (value) next.set("q", value);
+      else next.delete("q");
+      next.delete("page"); // البحث يُعيد للصفحة الأولى
+    });
+
+  // بحث واحد بتأخير 300ms — لا استعلام على كل حرف. وفي وضع Enter لا يُبحث بالكتابة أصلاً.
   const onSearch = (value: string) => {
     setSearchDraft(value);
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      push((next) => {
-        if (value) next.set("q", value);
-        else next.delete("q");
-        next.delete("page"); // البحث يُعيد للصفحة الأولى
-      });
-    }, SEARCH_DEBOUNCE_MS);
+    if (searchOnEnter) return;
+    timer.current = setTimeout(() => submitSearch(value), SEARCH_DEBOUNCE_MS);
   };
 
   // الفرز الجديد يبدأ من أوله — صفحةٌ رابعة من ترتيبٍ آخر توهم أنها أوله.
@@ -201,11 +212,18 @@ function DataTableInner<T>({
           type="search"
           value={searchDraft}
           onChange={(e) => onSearch(e.target.value)}
+          onKeyDown={
+            searchOnEnter
+              ? (e) => e.key === "Enter" && !e.nativeEvent.isComposing && searchDraft.trim() !== query && submitSearch(searchDraft.trim())
+              : undefined
+          }
+          enterKeyHint={searchOnEnter ? "search" : undefined}
           placeholder={searchPlaceholder}
           aria-label={searchPlaceholder}
           className={styles.search}
         />
       ) : null}
+      {controls}
       {filters.length > 0 ? (
         <div className={styles.chips}>
           {filters.map((f) => (

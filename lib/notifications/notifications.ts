@@ -1,3 +1,4 @@
+import { fieldLabelsFromCsv } from "@/lib/accounts/field-changes";
 import { z } from "@/lib/validation/z";
 
 /**
@@ -5,7 +6,7 @@ import { z } from "@/lib/validation/z";
  * المسار (`fn_my_notifications`)، ولا تحمل نتيجةً — فالنتيجة تُقرأ في «رحلتي» من مصدرها.
  */
 
-export const NOTIFICATION_KINDS = ["track_change_decided", "results_published"] as const;
+export const NOTIFICATION_KINDS = ["track_change_decided", "results_published", "profile_corrected"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export const isNotificationKind = (v: unknown): v is NotificationKind =>
@@ -18,6 +19,8 @@ export type MyNotification = {
   programName: string | null;
   trackName: string | null;
   decision: string | null;
+  /** أسماء الحقول التي عدّلتها الإدارة (`profile_corrected`) — بلا قيمها، كما في `body`. */
+  fields: string | null;
   /** كما جاء من القاعدة بدقّتها — حدّ الوسم (`fn_mark_notifications_seen`). */
   createdAt: string;
   /** لم يُقرأ قبل هذه الزيارة. */
@@ -36,6 +39,11 @@ export function notificationMessage(n: MyNotification): { text: string; href: st
     }
     case "results_published":
       return { text: `نُشرت نتائج ${track(n.trackName, "مسارك")} — اطّلع على نتيجتك`, href };
+    // تعديل الإدارة لبياناته (adr/0059): أسماء الحقول بلا قيمها، ووجهته «حسابي» حيث يراها.
+    case "profile_corrected": {
+      const labels = fieldLabelsFromCsv(n.fields);
+      return { text: labels.length ? `عدّلت الإدارة بياناتك: ${labels.join("، ")}` : "عدّلت الإدارة بياناتك", href: "/account" };
+    }
   }
 }
 

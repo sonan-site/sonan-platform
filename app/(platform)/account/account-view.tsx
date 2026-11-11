@@ -44,6 +44,7 @@ export type AvailableProgram = { id: string; name: string; summary: string; href
 export function AccountView({
   email,
   profile,
+  profileSeenAt,
   identity,
   hasPassword,
   hasGoogle,
@@ -59,6 +60,8 @@ export function AccountView({
 }: {
   email: string;
   profile: ProfileValues;
+  /** لحظة قراءة بياناتي — يُرفض الحفظ إن عدّلتها الإدارة بعدها، فلا يُلغي حفظُه تصحيحها بصمت (adr/0059). */
+  profileSeenAt: string;
   identity: { nationalId: string | null; guardianPhone: string | null };
   hasPassword: boolean;
   hasGoogle: boolean;
@@ -152,6 +155,7 @@ export function AccountView({
         <Muted>طريقة الدخول: {methods || "—"}</Muted>
         {isOpen("profile", profileState) ? (
           <StepForm title="بياناتي" action={profileAction} state={profileState}>
+            <input type="hidden" name="seen" value={profileSeenAt} />
             <ProfileFields values={profile} errors={fresh(profileState).fieldErrors} />
             <FormActions>
               <Button type="submit" variant="primary" pending={profilePending}>

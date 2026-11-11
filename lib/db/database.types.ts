@@ -3210,6 +3210,42 @@ export type Database = {
         Args: { p_national_id: string }
         Returns: string
       }
+      fn_account_fit_change: {
+        Args: {
+          p_new_birth: string
+          p_new_gender: Database["public"]["Enums"]["gender"]
+          p_old_birth: string
+          p_old_gender: Database["public"]["Enums"]["gender"]
+          p_user_id: string
+        }
+        Returns: {
+          kind: string
+          message: string
+        }[]
+      }
+      fn_account_fit_core: {
+        Args: {
+          p_birth: string
+          p_gender: Database["public"]["Enums"]["gender"]
+          p_user_id: string
+        }
+        Returns: {
+          kind: string
+          message: string
+          scope: string
+        }[]
+      }
+      fn_account_fit_issues: {
+        Args: {
+          p_birth: string
+          p_gender: Database["public"]["Enums"]["gender"]
+          p_user_id: string
+        }
+        Returns: {
+          kind: string
+          message: string
+        }[]
+      }
       fn_accounts_list: {
         Args: {
           p_desc?: boolean
@@ -3237,6 +3273,15 @@ export type Database = {
           total: number
           user_id: string
         }[]
+      }
+      fn_admin_update_profile: {
+        Args: {
+          p_confirmed?: string
+          p_data: Json
+          p_seen_updated_at: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       fn_admission_list_answer_ok: {
         Args: { p_answer: string; p_options: string[] }
@@ -3354,6 +3399,19 @@ export type Database = {
           program_id: string
           program_name: string
         }[]
+      }
+      fn_audit_field_change: {
+        Args: {
+          p_action: string
+          p_after: Json
+          p_before: Json
+          p_entity: string
+          p_flags: Json
+          p_hidden: string[]
+          p_owner: string
+          p_table: string
+        }
+        Returns: undefined
       }
       fn_auth_showcase: { Args: never; Returns: Json }
       fn_bank_coverage: {

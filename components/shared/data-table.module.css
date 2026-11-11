@@ -8,7 +8,8 @@
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  /* إلى الأسفل: المرشّحات بجانب البحث لها تسمياتٌ فوقها، فتصطفّ خاناتها مع خانة البحث. */
+  align-items: end;
   gap: var(--space-3);
 }
 
@@ -25,6 +26,8 @@
 }
 
 .chips {
+  /* الوسم أقصر من خانة البحث — يتوسّطها كما كان قبل محاذاة الشريط إلى الأسفل. */
+  align-self: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);

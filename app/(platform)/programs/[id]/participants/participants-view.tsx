@@ -5,7 +5,8 @@ import Link from "next/link";
 import { reportAction } from "@/components/shared/action-notice";
 import { useActionState, useState, useTransition } from "react";
 import { DataTable, type ActiveFilter, type Column } from "@/components/shared/data-table";
-import { FilterLinks, type FilterLink } from "@/components/shared/filter-links";
+import type { FilterLink } from "@/components/shared/filter-links";
+import { FilterBar, FilterSelect } from "@/components/shared/filter-select";
 import { Modal } from "@/components/shared/modal";
 import { ScreenActions } from "@/components/shared/screen-actions";
 import { Messages, Muted, TabHead, Step, StepForm } from "@/components/shared/steps";
@@ -343,9 +344,13 @@ export function ParticipantsView({
         ) : null}
       </Modal>
 
-      <FilterLinks label="المسار" links={trackLinks} />
-      <FilterLinks label="الحالة" links={statusLinks} />
       <DataTable
+        controls={
+          <FilterBar>
+            <FilterSelect label="المسار" param="track" links={trackLinks} />
+            <FilterSelect label="الحالة" param="status" links={statusLinks} />
+          </FilterBar>
+        }
         columns={columns}
         rows={pageRows}
         rowKey={(p) => p.id}

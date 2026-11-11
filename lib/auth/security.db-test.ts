@@ -460,6 +460,8 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
        order by 1`,
     );
     expect(rows.map((r) => r.name)).toEqual([
+      // أهلية الحساب لحامل users.write — تفحص الصلاحية بنفسها (الهجرة 20261111100000).
+      "fn_account_fit_issues",
       "fn_admission_option_counts",
       "fn_admission_other_answers",
       "fn_answer_question",

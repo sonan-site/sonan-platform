@@ -1,3 +1,4 @@
+import { FIELD_CHANGE_ACTIONS, fieldChangeText } from "@/lib/accounts/field-changes";
 import { ACCOUNT_DUPLICATE_LABEL, type AccountDuplicate } from "@/lib/accounts/list-query";
 import { formatNumber } from "@/lib/format";
 
@@ -40,6 +41,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   exam_results_exported: "تصدير نتائج اختبار",
   accounts_exported: "تصدير قائمة الحسابات",
   identity_searched: "بحث برقم وثيقة",
+  profile_changed: "تعديل بيانات حساب",
+  identity_changed: "تعديل هوية حساب",
   role_assigned: "إسناد دور",
   role_revoked: "سحب دور",
   section_created: "إنشاء قسم",
@@ -132,9 +135,12 @@ const STATUS_LABEL: Record<string, string> = { active: "نشط", suspended: "م�
  * تفاصيل الفعل من `after` — ما يحتاج المدير معرفته ولا يقوله اسم الفعل. والتصدير أوّلها:
  * «بأي تصفية» شرطٌ في قرار الراعي، وسجلٌّ لا يُرى توثيقٌ يوهم (`platform.md §٨`).
  * فعلٌ بلا تفاصيل معروفة ⇐ «—».
+ *
+ * وتعديل البيانات (adr/0059) بقيمه لمن يقرأ الحسابات (`withValues`)، وبأسماء حقوله لغيره.
  */
-export function auditDetail(action: string, after: unknown): string {
+export function auditDetail(action: string, after: unknown, before: unknown = null, withValues = false): string {
   if (!after || typeof after !== "object") return "—";
+  if ((FIELD_CHANGE_ACTIONS as readonly string[]).includes(action)) return fieldChangeText(before, after, withValues);
   const a = after as Record<string, unknown>;
   // البحث برقم الوثيقة: أوجد حساباً أم لا — بلا الرقم ولا صاحبه.
   if (action === "identity_searched") return a["found"] === true ? "وُجد حساب" : "لا حساب بهذا الرقم";

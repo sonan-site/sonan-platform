@@ -40,7 +40,7 @@ export default async function AccountPage({
     db
       .from("profiles")
       .select(
-        "first_name, father_name, grandfather_name, family_name, gender, birth_date, nationality, phone, phone_secondary",
+        "first_name, father_name, grandfather_name, family_name, gender, birth_date, nationality, phone, phone_secondary, updated_at",
       )
       .eq("user_id", session.userId)
       .maybeSingle(),
@@ -107,6 +107,7 @@ export default async function AccountPage({
         phone: profileResult.data.phone,
         phoneSecondary: profileResult.data.phone_secondary,
       }}
+      profileSeenAt={profileResult.data.updated_at}
       identity={{
         nationalId: identityResult.data?.national_id ?? null,
         guardianPhone: identityResult.data?.guardian_phone ?? null,
