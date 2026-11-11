@@ -215,6 +215,9 @@ describe("المحو", () => {
     await db.query(`insert into storage.objects (bucket_id, name, metadata) values ('voices', $1, '{"size": 1}')`, [foreign]);
 
     await db.query(`update public.profiles set deleted_at = now(), purge_after = now() - interval '1 day' where user_id = $1`, [STUDENT]);
+    // نداء المجدوِل بلا هوية: `as` يُطلق نقطة الحفظ فتبقى هوية آخر مستخدمٍ في المعاملة، والمحو يفحص
+    // الصلاحية بالهوية (الهجرة 20261111110000) — فتُمسح كما لا تكون عند المجدوِل.
+    await db.query(`select set_config('request.jwt.claims', '', true)`);
     await db.query(`select public.fn_purge_account($1)`, [STUDENT]);
 
     const { rows } = await db.query<{ path: string }>(`select path from public.storage_purge_queue where bucket = 'voices' order by path`);
