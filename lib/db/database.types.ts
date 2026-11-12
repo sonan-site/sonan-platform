@@ -4480,7 +4480,10 @@ export type Database = {
         }
         Returns: string
       }
-      fn_temp_password_allowed: { Args: { p_user_id: string }; Returns: boolean }
+      fn_temp_password_allowed: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       fn_temp_password_issue: {
         Args: { p_expires_at: string; p_user_id: string }
         Returns: string
