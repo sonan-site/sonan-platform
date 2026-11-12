@@ -51,15 +51,6 @@ export const getSession = cache(async (): Promise<SessionState> => {
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { status: "anonymous" };
 
-  // قبل الملف والصلاحيات: من عليه تعيين كلمته لا يُحسب له شيءٌ غيرها. والـ`amr` يُقرأ لصاحب العلامة وحده.
-  if ((auth.user.app_metadata?.[TEMP_PASSWORD_KEY] ?? null) !== null) {
-    const { data: claims } = await db.auth.getClaims();
-    const temp = tempPasswordState(auth.user.app_metadata, claims?.claims?.amr, now().getTime());
-    if (temp !== "none") {
-      return { status: "password_change", userId: auth.user.id, email: auth.user.email ?? "", expired: temp === "expired" };
-    }
-  }
-
   const [{ data: profile }, { data: rows }, { data: participations }] = await Promise.all([
     // الملف نفسه لا `fn_is_active`: غيابه أو نقصه «ناقص»، وحذفه الليّن «موقوف» —
     // والدالة تُرجع «لا» للحالتين فلا تفرّق بينهما.
@@ -76,6 +67,20 @@ export const getSession = cache(async (): Promise<SessionState> => {
   ]);
 
   const state = accountState(profile);
+  if (state === "suspended") return { status: "suspended", userId: auth.user.id };
+
+  // من عليه تعيين كلمته لا يُفتح له غيرها (`adr/0060`) — بعد الإيقاف وقبل «أكمل حسابك»، فلا يملأ
+  // بياناته من يحمل المؤقتة. والـ`amr` يُقرأ لصاحب العلامة وحده، وتعذّر قراءته خطأٌ يُعاد فيه
+  // الطلب لا حكمٌ بانقضاء الأجل (مراجعة ٦).
+  if ((auth.user.app_metadata?.[TEMP_PASSWORD_KEY] ?? null) !== null) {
+    const { data: claims, error: claimsError } = await db.auth.getClaims();
+    if (claimsError || !claims) throw new Error("تعذّر التحقق من جلستك. أعد المحاولة.");
+    const temp = tempPasswordState(auth.user.app_metadata, claims.claims.amr, now().getTime());
+    if (temp !== "none") {
+      return { status: "password_change", userId: auth.user.id, email: auth.user.email ?? "", expired: temp === "expired" };
+    }
+  }
+
   if (state === "incomplete") {
     return {
       status: "incomplete",
@@ -84,7 +89,6 @@ export const getSession = cache(async (): Promise<SessionState> => {
       suggested: suggestedName(auth.user.user_metadata),
     };
   }
-  if (state === "suspended") return { status: "suspended", userId: auth.user.id };
 
   const permissions = new Map<string, Set<string | null>>();
   for (const row of rows ?? []) {

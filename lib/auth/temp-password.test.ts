@@ -24,8 +24,12 @@ describe("الكلمة المؤقتة", () => {
     expect(tempPasswordState(meta, signedAt(expiresMs + 1000), expiresMs + 2000)).toBe("expired");
   });
 
-  it("ومن دخل بـ Google يعيّن كلمته أياً كان الأجل", () => {
-    expect(tempPasswordState(meta, signedAt(expiresMs + 60_000, "oauth"), expiresMs + 120_000)).toBe("pending");
+  it("**ومن أثبت نفسه بغيرها — Google أو رابط الاسترجاع أو الدعوة — يعيّن كلمته أياً كان الأجل**", () => {
+    for (const method of ["oauth", "recovery", "invite", "otp", "magiclink"]) {
+      expect(tempPasswordState(meta, signedAt(expiresMs + 60_000, method), expiresMs + 120_000)).toBe("pending");
+    }
+    // والعامل الثاني لا يُثبت شيئاً: يضيفه من وجد الجلسة مفتوحة.
+    expect(tempPasswordState(meta, signedAt(expiresMs + 60_000, "totp"), expiresMs + 120_000)).toBe("expired");
   });
 
   it("بلا amr يُحكم بالآن — والعلامة التالفة منتهية", () => {

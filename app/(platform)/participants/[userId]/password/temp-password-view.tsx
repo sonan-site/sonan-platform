@@ -35,11 +35,13 @@ export function TempPasswordView({
   const [result, setResult] = useState<IssueResult | null>(null);
   const [copied, setCopied] = useState<"password" | "message" | null>(null);
   const [pending, start] = useTransition();
+  // الإصدار يُبطل كلمته القائمة ويُخرجه من جلساته — فلا يقع بنقرةٍ واحدة (مراجعة ٥).
+  const [confirming, setConfirming] = useState(false);
   const issued = result?.ok ? result : null;
 
   const message = issued
     ? `كلمة المرور المؤقتة لحسابك في منصة سنن: ${issued.password}\n` +
-      `ادخل بها من www.sonan.site/sign-in قبل ${formatDateTime(issued.expiresAt)}، وستُطلب منك بعدها كلمةٌ جديدة تختارها.`
+      `ادخل بها من ${window.location.host}/sign-in قبل ${formatDateTime(issued.expiresAt)}، وستُطلب منك بعدها كلمةٌ جديدة تختارها.`
     : "";
 
   async function copy(kind: "password" | "message", text: string) {
@@ -117,23 +119,38 @@ export function TempPasswordView({
               </div>
             ) : null}
             {result && !result.ok ? <p className={styles.error}>{result.error}</p> : null}
-            <FormActions>
-              <Button
-                type="button"
-                variant={issued ? undefined : "primary"}
-                pending={pending}
-                onClick={() =>
-                  start(async () => {
-                    setCopied(null);
-                    setResult(
-                      await issueTempPassword(userId).catch(() => ({ ok: false as const, error: "تعذّر الإصدار. أعد المحاولة." })),
-                    );
-                  })
-                }
-              >
-                {issued ? "أصدر كلمةً أخرى بدلها" : "أصدر كلمة مؤقتة"}
-              </Button>
-            </FormActions>
+            {confirming ? (
+              <div className={styles.note} role="alert">
+                <p>بالإصدار تتوقف كلمته الحالية{issued ? " والمؤقتة السابقة" : ""} فوراً، ويخرج من كل جلساته المفتوحة.</p>
+                <FormActions>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    pending={pending}
+                    onClick={() =>
+                      start(async () => {
+                        setCopied(null);
+                        setResult(
+                          await issueTempPassword(userId).catch(() => ({ ok: false as const, error: "تعذّر الإصدار. أعد المحاولة." })),
+                        );
+                        setConfirming(false);
+                      })
+                    }
+                  >
+                    نعم، أصدرها
+                  </Button>
+                  <Button type="button" disabled={pending} onClick={() => setConfirming(false)}>
+                    إلغاء
+                  </Button>
+                </FormActions>
+              </div>
+            ) : (
+              <FormActions>
+                <Button type="button" variant={issued ? undefined : "primary"} onClick={() => setConfirming(true)}>
+                  {issued ? "أصدر كلمةً أخرى بدلها" : "أصدر كلمة مؤقتة"}
+                </Button>
+              </FormActions>
+            )}
           </>
         )}
       </Step>

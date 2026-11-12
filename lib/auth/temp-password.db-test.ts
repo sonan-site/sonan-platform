@@ -176,6 +176,13 @@ describe("الإصدار", () => {
     expect(Object.keys(log.after).sort()).toEqual(["expires_at", "user_id"]);
   });
 
+  it("**ويُغلق جلساته القائمة — فلا تعيّن جلسةٌ قديمة كلمته بلا سرّ**", async () => {
+    await db.query(`insert into auth.sessions (id, user_id) values (gen_random_uuid(), $1)`, [STUDENT_B]);
+    expect((await one(`select count(*)::int n from auth.sessions where user_id = $1`, [STUDENT_B])).n).toBe(1);
+    expect((await as(GLOBAL, `select public.fn_temp_password_issue($1, ${inTwoDays})`, [STUDENT_B])).error).toBeNull();
+    expect((await one(`select count(*)::int n from auth.sessions where user_id = $1`, [STUDENT_B])).n).toBe(0);
+  });
+
   it("**لا لغير المأذون — ولا يُسجَّل شيء**", async () => {
     const before = (await one(`select count(*)::int n from public.audit_log where action = 'temp_password_issued'`)).n;
     const r = await as(SCOPED, `select public.fn_temp_password_issue($1, ${inTwoDays})`, [STUDENT_B]);
@@ -192,5 +199,40 @@ describe("الإصدار", () => {
     expect((await as(GLOBAL, `select public.fn_temp_password_issue($1, now() - interval '1 minute')`, [STUDENT_A])).code).toBe("23514");
     expect((await as(GLOBAL, `select public.fn_temp_password_issue($1, now() + interval '10 days')`, [STUDENT_A])).code).toBe("23514");
     expect((await as(GLOBAL, `select public.fn_temp_password_issue($1, null)`, [STUDENT_A])).code).toBe("23514");
+  });
+});
+
+describe("انقضاء الأجل عند خدمة المصادقة", () => {
+  it("**تُبطَل الكلمة المنتهية وحدها، مرّة، وتبقى العلامة**", async () => {
+    // الأجل من ساعة القاعدة — لا وقتٌ محيط في الاختبار.
+    const setTemp = (uid: string, password: string, offset: string) =>
+      db.query(
+        `update auth.users set encrypted_password = $2,
+           raw_app_meta_data = jsonb_build_object('providers', jsonb_build_array('email'),
+                                                  'temp_password_expires_at', now() + $3::interval)
+         where id = $1`,
+        [uid, password, offset],
+      );
+    await setTemp(STUDENT_A, "old-a", "-1 minute");
+    await setTemp(STUDENT_B, "old-b", "1 hour");
+
+    const first = await one(`select public.fn_temp_password_void_expired() n`);
+    expect(first.n).toBeGreaterThanOrEqual(1);
+    const a = await one(`select encrypted_password p, raw_app_meta_data m from auth.users where id = $1`, [STUDENT_A]);
+    expect(a.p).not.toBe("old-a");
+    expect(a.p).toMatch(/^\$2[aby]\$/);
+    expect(a.m).toMatchObject({ temp_password_voided: true, providers: ["email"] });
+    expect(a.m.temp_password_expires_at).toBeDefined();
+    const b = await one(`select encrypted_password p from auth.users where id = $1`, [STUDENT_B]);
+    expect(b.p).toBe("old-b");
+
+    // المُبطَلة لا تُعاد تجزئتها كل ساعة.
+    const again = await one(`select encrypted_password p from auth.users where id = $1`, [STUDENT_A]);
+    await db.query(`select public.fn_temp_password_void_expired()`);
+    expect((await one(`select encrypted_password p from auth.users where id = $1`, [STUDENT_A])).p).toBe(again.p);
+  });
+
+  it("ولا يناديها المستخدم", async () => {
+    expect((await as(SUPER, `select public.fn_temp_password_void_expired()`)).code).toBe("42501");
   });
 });

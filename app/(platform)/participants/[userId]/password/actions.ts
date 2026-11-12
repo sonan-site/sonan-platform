@@ -1,12 +1,12 @@
 "use server";
 
+import { setTempPassword } from "@/lib/auth/admin";
 import { withinRateLimit } from "@/lib/auth/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { generateTempPassword, TEMP_PASSWORD_HOURS } from "@/lib/auth/temp-password";
 import { userMessage } from "@/lib/db/messages";
 import { createClient } from "@/lib/db/server";
 import { now } from "@/lib/format";
-import { setTempPassword } from "@/lib/mail";
 import { z } from "@/lib/validation/z";
 
 /**

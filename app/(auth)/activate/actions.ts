@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { NEXT_COOKIE } from "@/lib/auth/next-cookie";
 import { safeNext } from "@/lib/auth/safe-next";
+import { TEMP_PASSWORD_KEY } from "@/lib/auth/temp-password";
+import { finishTempPassword } from "@/lib/auth/temp-password-server";
 import { createClient } from "@/lib/db/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
 
@@ -25,6 +27,11 @@ export async function setPassword(_prev: FormState, form: FormData): Promise<For
 
   const { error } = await db.auth.updateUser({ password: parsed.data.password });
   if (error) return { error: "تعذّر حفظ كلمة المرور. حاول مرة أخرى." };
+
+  // من كانت عليه كلمة مؤقتة ثم استرجع ببريده: كلمته الجديدة تختمها، فلا يُسأل عنها ثانيةً (adr/0060).
+  if ((auth.user.app_metadata?.[TEMP_PASSWORD_KEY] ?? null) !== null && !(await finishTempPassword(db, auth.user.id))) {
+    return { error: "حُفظت كلمة المرور، لكن تعذّر إكمال الخطوة. اكتب كلمةً أخرى ثم احفظ." };
+  }
 
   // ملف المستخدم يُنشأ عند أول تفعيل إن لم يكن موجوداً.
   const { data: profile } = await db

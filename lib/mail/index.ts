@@ -1,5 +1,4 @@
 import "server-only";
-import { TEMP_PASSWORD_KEY } from "@/lib/auth/temp-password";
 import { createServiceRoleClient } from "@/lib/db/service-role";
 
 /**
@@ -46,28 +45,6 @@ export async function setSignInBlocked(userId: string, blocked: boolean): Promis
   const admin = createServiceRoleClient();
   const { error } = await admin.auth.admin.updateUserById(userId, {
     ban_duration: blocked ? "876000h" : "none",
-  });
-  return error ? { ok: false, reason: error.message } : { ok: true };
-}
-
-/**
- * كلمة مرور مؤقتة (adr/0060): تُعيَّن مع علامة «يجب التغيير» وأجلها في طلبٍ واحد — فلا تقوم كلمةٌ
- * بلا علامة. و`app_metadata` يُدمَج عند الخدمة لا يُستبدَل، فتبقى مفاتيحها (`providers`) كما هي.
- */
-export async function setTempPassword(userId: string, password: string, expiresAt: string): Promise<MailResult> {
-  const admin = createServiceRoleClient();
-  const { error } = await admin.auth.admin.updateUserById(userId, {
-    password,
-    app_metadata: { [TEMP_PASSWORD_KEY]: expiresAt },
-  });
-  return error ? { ok: false, reason: error.message } : { ok: true };
-}
-
-/** رفع العلامة بعد أن يعيّن صاحب الحساب كلمته — والقيمة الفارغة تمحو المفتاح عند الخدمة. */
-export async function clearTempPassword(userId: string): Promise<MailResult> {
-  const admin = createServiceRoleClient();
-  const { error } = await admin.auth.admin.updateUserById(userId, {
-    app_metadata: { [TEMP_PASSWORD_KEY]: null },
   });
   return error ? { ok: false, reason: error.message } : { ok: true };
 }

@@ -13,6 +13,15 @@ export const TEMP_PASSWORD_HOURS = 48;
 /** مفتاح العلامة: وجوده = «يجب التغيير»، وقيمته آخر لحظةٍ يُقبل فيها الدخول بالكلمة. */
 export const TEMP_PASSWORD_KEY = "temp_password_expires_at";
 
+/** أبطل المجدوِلُ الكلمة بعد أجلها (`fn_temp_password_void_expired`) — يُمحى مع العلامة. */
+export const TEMP_PASSWORD_VOIDED_KEY = "temp_password_voided";
+
+/**
+ * طرق دخولٍ تُثبت صاحب الحساب بغير الكلمة المؤقتة: Google، ورابط الاسترجاع أو الدعوة إلى بريده، والرمز.
+ * فمن دخل بإحداها يعيّن كلمته أياً كان الأجل (مراجعة ١: كان المسترجِع بعد الأجل يُقفَل خارج حسابه).
+ */
+const PROVING_METHODS: ReadonlySet<string> = new Set(["oauth", "recovery", "invite", "otp", "magiclink"]);
+
 // بلا المتشابهات (l/1 · o/0 · i) — تُملى في واتساب وتُكتب في جوال.
 const LETTERS = "abcdefghjkmnpqrstuvwxyz";
 const DIGITS = "23456789";
@@ -30,7 +39,7 @@ export type TempPasswordState = "none" | "pending" | "expired";
  *
  * **الأجل بلحظة الدخول لا بالآن:** خدمة المصادقة تقبل الكلمة المنتهية — لا أجل عندها — فالحاجز هنا.
  * من دخل قبل انقضائها يُتمّ تعيين كلمته ولو تأخّر، ومن دخل بها بعده لا يُعيّن شيئاً.
- * **ومن دخل بـ Google** أثبت نفسه بغيرها، فيعيّن كلمته أياً كان الأجل.
+ * **ومن أثبت نفسه بغيرها** (`PROVING_METHODS`) يعيّن كلمته أياً كان الأجل.
  * والعلامة التالفة منتهية: الافتراض الآمن يُفحَص لا يُفترَض.
  */
 export function tempPasswordState(appMetadata: unknown, amr: unknown, nowMs: number): TempPasswordState {
@@ -40,7 +49,10 @@ export function tempPasswordState(appMetadata: unknown, amr: unknown, nowMs: num
   if (!Number.isFinite(expires)) return "expired";
 
   const entries = Array.isArray(amr) ? (amr as { method?: unknown }[]) : [];
-  if (entries.some((e) => typeof e === "object" && e !== null && e.method === "oauth")) return "pending";
+  const proven = entries.some(
+    (e) => typeof e === "object" && e !== null && typeof e.method === "string" && PROVING_METHODS.has(e.method),
+  );
+  if (proven) return "pending";
 
   const at = lastSignInAt(amr);
   return (at === null ? nowMs : at * 1000) <= expires ? "pending" : "expired";

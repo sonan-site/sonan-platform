@@ -131,6 +131,11 @@ begin
     raise exception 'مدة الكلمة المؤقتة غير صالحة.' using errcode = '23514';
   end if;
 
+  -- جلساته القائمة تُغلق (مراجعة ٢): جلسةٌ قديمة على جهازٍ مشترك — أو بيد من استولى على الحساب —
+  -- كانت تُحوَّل إلى «اكتب كلمتك» فتعيّنها بلا سرّ. فلا يبقى داخلاً إلا من يدخل بالكلمة الجديدة.
+  delete from auth.sessions where user_id = p_user_id;
+  delete from auth.refresh_tokens where user_id = p_user_id::text;
+
   perform public.fn_write_audit(
     'temp_password_issued', 'profiles', v_profile.id, null,
     jsonb_build_object('user_id', p_user_id, 'expires_at', p_expires_at)
@@ -145,3 +150,43 @@ comment on function public.fn_temp_password_issue(uuid, timestamptz) is
 
 revoke all on function public.fn_temp_password_issue(uuid, timestamptz) from public, anon;
 grant execute on function public.fn_temp_password_issue(uuid, timestamptz) to authenticated;
+
+-- ══ انقضاء الأجل عند خدمة المصادقة نفسها ══ (مراجعة ٣)
+-- الخدمة لا أجل عندها: الكلمة المنتهية تفتح جلسةً لمن نادى الدخول مباشرة. فتُستبدل كل ساعة كلمةُ
+-- كل علامةٍ انقضى أجلها بكلمةٍ عشوائية لا يعرفها أحد — والعلامة تبقى، فمن يدخل بعدها بـ Google أو
+-- برابط الاسترجاع يعيّن كلمته. وعلامة `temp_password_voided` تمنع إعادة التجزئة كل ساعة.
+create or replace function public.fn_temp_password_void_expired()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  update auth.users
+     set encrypted_password = extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
+         raw_app_meta_data = raw_app_meta_data || '{"temp_password_voided": true}'::jsonb
+   where raw_app_meta_data ? 'temp_password_expires_at'
+     and not raw_app_meta_data ? 'temp_password_voided'
+     and (raw_app_meta_data ->> 'temp_password_expires_at')::timestamptz < now();
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+comment on function public.fn_temp_password_void_expired() is
+  'يُبطل كل كلمة مرور مؤقتة انقضى أجلها عند خدمة المصادقة — للمجدوِل وحده (adr/0060).';
+
+revoke all on function public.fn_temp_password_void_expired() from public, anon, authenticated;
+
+-- المجدوِل: pg_cron حيث يتاح (الحيّ وCI) — كل ساعة في دقيقتها السابعة. وحيث لا يتاح (قاعدة اختبار
+-- محلّية بلا الامتداد) تبقى الدالّة وتُختبر وحدها.
+do $$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron with schema pg_catalog;
+    perform cron.schedule('temp-password-void-expired', '7 * * * *', 'select public.fn_temp_password_void_expired()');
+  end if;
+end;
+$$;

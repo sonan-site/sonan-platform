@@ -4497,6 +4497,7 @@ export type Database = {
           phone: string
         }[]
       }
+      fn_temp_password_void_expired: { Args: never; Returns: number }
       fn_track_change_carry_preview: {
         Args: { p_request_id: string }
         Returns: {
