@@ -3210,6 +3210,7 @@ export type Database = {
         Args: { p_national_id: string }
         Returns: string
       }
+      fn_account_email: { Args: { p_user_id: string }; Returns: string }
       fn_account_fit_change: {
         Args: {
           p_new_birth: string
@@ -3246,7 +3247,6 @@ export type Database = {
           message: string
         }[]
       }
-      fn_account_email: { Args: { p_user_id: string }; Returns: string }
       fn_accounts_list: {
         Args: {
           p_desc?: boolean
