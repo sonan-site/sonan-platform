@@ -30,6 +30,7 @@ const STATUS: Record<"active" | "suspended" | "bin", string> = {
 export function AccountEditView({
   userId,
   fullName,
+  email,
   status,
   seenUpdatedAt,
   profile,
@@ -41,6 +42,8 @@ export function AccountEditView({
 }: {
   userId: string;
   fullName: string;
+  /** بريد الدخول للقراءة — تعديله يغيّر باب الدخول، فليس هنا. `null`: تعذّر جلبه. */
+  email: string | null;
   status: "active" | "suspended" | "bin";
   /** لحظة قراءة الملف — يُرفض الحفظ إن تغيّر بعدها (تعديلٌ متزامن من صاحبه). */
   seenUpdatedAt: string;
@@ -70,6 +73,9 @@ export function AccountEditView({
         title={fullName || "حسابٌ بلا اسم"}
         lede="تعديل الإدارة لبيانات هذا الحساب. كل تعديلٍ يُسجَّل، ويصل صاحبَه إشعارٌ بأسماء ما عُدِّل."
       />
+      <p>
+        بريد الدخول: <span dir="ltr">{email ?? "تعذّر جلبه"}</span>
+      </p>
       {canIssueTempPassword && !binned ? (
         <p>
           <Link href={`/participants/${userId}/password`}>لا يصل حسابه؟ أصدر له كلمة مرور مؤقتة ←</Link>

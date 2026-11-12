@@ -3246,6 +3246,7 @@ export type Database = {
           message: string
         }[]
       }
+      fn_account_email: { Args: { p_user_id: string }; Returns: string }
       fn_accounts_list: {
         Args: {
           p_desc?: boolean
@@ -4492,6 +4493,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           account_state: string
+          email: string
           full_name: string
           guardian_phone: string
           has_google: boolean

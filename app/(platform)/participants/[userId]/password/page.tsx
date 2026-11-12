@@ -36,6 +36,7 @@ export default async function TempPasswordPage({
     <TempPasswordView
       userId={userId}
       fullName={target.full_name || "حسابٌ بلا اسم"}
+      email={target.email ?? ""}
       phones={[
         { label: "جواله", phone: target.phone },
         { label: "جوال وليّ أمره", phone: target.guardian_phone },

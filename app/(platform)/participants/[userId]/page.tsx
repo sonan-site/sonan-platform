@@ -36,7 +36,7 @@ export default async function AccountEditPage({ params }: { params: Promise<{ us
   if (error) return <ErrorState body="تعذّر جلب الحساب. أعد المحاولة." />;
   if (!profile) notFound();
 
-  const [identityResult, historyResult, tempResult] = await Promise.all([
+  const [identityResult, historyResult, tempResult, emailResult] = await Promise.all([
     // مقنّعاً لحامل users.read، وكاملاً لحامل identities.read — كما في كل شاشةٍ إدارية (adr/0047).
     db.rpc("fn_identity_masked", { p_user_id: userId }),
     canReadAudit
@@ -50,6 +50,8 @@ export default async function AccountEditPage({ params }: { params: Promise<{ us
       : null,
     // كلمة المرور المؤقتة (adr/0060) — بإذن القاعدة: حساب الفريق لمدير المنصة وحده.
     db.rpc("fn_temp_password_allowed", { p_user_id: userId }),
+    // بريد الدخول للقراءة — في خدمة المصادقة لا في الملف (قرار ١٢ نوفمبر · أ).
+    db.rpc("fn_account_email", { p_user_id: userId }),
   ]);
   // تعذّر جلبها لا يُقال «بلا رقم وثيقة» — يُقال تعذّر.
   if (identityResult.error) return <ErrorState body="تعذّر جلب هوية الحساب. أعد المحاولة." />;
@@ -75,6 +77,7 @@ export default async function AccountEditPage({ params }: { params: Promise<{ us
     <AccountEditView
       userId={userId}
       fullName={profile.full_name}
+      email={emailResult.data ?? null}
       status={profile.purge_after ? "bin" : profile.deleted_at ? "suspended" : "active"}
       seenUpdatedAt={profile.updated_at}
       profile={{

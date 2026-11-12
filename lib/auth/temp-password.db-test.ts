@@ -145,6 +145,7 @@ describe("شاشة الإصدار", () => {
     );
     expect(r.error).toBeNull();
     expect(r.rows[0]).toMatchObject({
+      email: "temp-pw-4@test.local",
       phone: "+966500000714",
       guardian_phone: "+966500000799",
       has_google: false,
@@ -153,6 +154,13 @@ describe("شاشة الإصدار", () => {
     });
     const google = await as<{ has_google: boolean }>(GLOBAL, `select has_google from public.fn_temp_password_target($1)`, [STUDENT_B]);
     expect(google.rows[0]?.has_google).toBe(true);
+  });
+
+  it("**وبريد الحساب في شاشته لحامل users.read العام وحده**", async () => {
+    const ok = await as<{ e: string }>(SUPER, `select public.fn_account_email($1) e`, [STUDENT_A]);
+    expect(ok.rows[0]?.e).toBe("temp-pw-4@test.local");
+    expect((await as(GLOBAL, `select public.fn_account_email($1)`, [STUDENT_A])).code).toBe("42501");
+    expect((await as(null, `select public.fn_account_email($1)`, [STUDENT_A])).error).not.toBeNull();
   });
 
   it("**ولا شيء لغيره — بخطأ الصلاحية**", async () => {

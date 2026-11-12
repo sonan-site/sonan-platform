@@ -15,6 +15,7 @@ import styles from "./temp-password.module.css";
 export function TempPasswordView({
   userId,
   fullName,
+  email,
   phones,
   hasGoogle,
   hasPassword,
@@ -24,6 +25,8 @@ export function TempPasswordView({
 }: {
   userId: string;
   fullName: string;
+  /** بريد الدخول — يدخل به مع الكلمة، وكثيراً ما ينساه من نسي كلمته. */
+  email: string;
   /** الجوالان المسجّلان — إليهما وحدهما تُرسَل. */
   phones: { label: string; phone: string }[];
   hasGoogle: boolean;
@@ -40,7 +43,7 @@ export function TempPasswordView({
   const issued = result?.ok ? result : null;
 
   const message = issued
-    ? `كلمة المرور المؤقتة لحسابك في منصة سنن: ${issued.password}\n` +
+    ? `بيانات دخولك إلى منصة سنن:\nالبريد: ${email}\nكلمة المرور المؤقتة: ${issued.password}\n` +
       `ادخل بها من ${window.location.host}/sign-in قبل ${formatDateTime(issued.expiresAt)}، وستُطلب منك بعدها كلمةٌ جديدة تختارها.`
     : "";
 
@@ -71,6 +74,9 @@ export function TempPasswordView({
         done={phones.length > 0}
         state={<span>{phones.length > 0 ? "أرسلها إلى أحد هذه الأرقام وحدها" : "لا جوال مسجّل"}</span>}
       >
+        <p className={styles.email}>
+          بريد الدخول: <span dir="ltr">{email || "—"}</span>
+        </p>
         {phones.length > 0 ? (
           <ul className={styles.phones}>
             {phones.map((p) => (
