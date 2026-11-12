@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { toFieldErrors, type FormState } from "@/lib/auth/form-state";
 import { NEXT_COOKIE } from "@/lib/auth/next-cookie";
 import { safeNext } from "@/lib/auth/safe-next";
+import { getSession } from "@/lib/auth/session";
 import { TEMP_PASSWORD_KEY } from "@/lib/auth/temp-password";
 import { finishTempPassword } from "@/lib/auth/temp-password-server";
 import { createClient } from "@/lib/db/server";
@@ -24,6 +25,13 @@ export async function setPassword(_prev: FormState, form: FormData): Promise<For
   const db = await createClient();
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { error: "انتهت صلاحية الرابط. اطلب رابطاً جديداً." };
+
+  // حكم الأجل هنا كما في «اكتب كلمتك» (المراجعة الثانية): من دخل بكلمةٍ مؤقتة بعد أجلها لا يعيّن
+  // شيئاً من هذا الباب أيضاً. والمسترجِع برابط بريده أثبت نفسه، فلا يُعدّ منتهياً.
+  const session = await getSession();
+  if (session.status === "password_change" && session.expired) {
+    return { error: "انتهت صلاحية الكلمة المؤقتة. اطلب كلمةً جديدة من مشرفك." };
+  }
 
   const { error } = await db.auth.updateUser({ password: parsed.data.password });
   if (error) return { error: "تعذّر حفظ كلمة المرور. حاول مرة أخرى." };

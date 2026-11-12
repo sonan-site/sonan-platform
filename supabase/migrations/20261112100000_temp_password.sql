@@ -169,7 +169,9 @@ begin
          raw_app_meta_data = raw_app_meta_data || '{"temp_password_voided": true}'::jsonb
    where raw_app_meta_data ? 'temp_password_expires_at'
      and not raw_app_meta_data ? 'temp_password_voided'
-     and (raw_app_meta_data ->> 'temp_password_expires_at')::timestamptz < now();
+     -- قيمةٌ تالفة لا تُسقط المهمة كل ساعة: تُحوَّل المطابِقة لصيغة ISO وحدها، والتالفة تُبطَل فوراً.
+     and (raw_app_meta_data ->> 'temp_password_expires_at' !~ '^\d{4}-\d{2}-\d{2}T'
+          or (raw_app_meta_data ->> 'temp_password_expires_at')::timestamptz < now());
   get diagnostics v_count = row_count;
   return v_count;
 end;
