@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Button, Field, FormActions, Input } from "@/components/shared/form";
 import { PhoneField, ProfileFields, type ProfileValues } from "@/components/shared/profile-fields";
@@ -34,6 +35,7 @@ export function AccountEditView({
   profile,
   identity,
   canEditIdentity,
+  canIssueTempPassword,
   history,
   historyError,
 }: {
@@ -46,6 +48,7 @@ export function AccountEditView({
   /** الرقم مقنّعاً أو كاملاً بحسب `identities.read` (`fn_identity_masked`). */
   identity: { nationalId: string | null; isFull: boolean; guardianPhone: string | null };
   canEditIdentity: boolean;
+  canIssueTempPassword: boolean;
   /** `null` لمن لا يقرأ السجلّ. */
   history: HistoryRow[] | null;
   historyError: boolean;
@@ -67,6 +70,11 @@ export function AccountEditView({
         title={fullName || "حسابٌ بلا اسم"}
         lede="تعديل الإدارة لبيانات هذا الحساب. كل تعديلٍ يُسجَّل، ويصل صاحبَه إشعارٌ بأسماء ما عُدِّل."
       />
+      {canIssueTempPassword && !binned ? (
+        <p>
+          <Link href={`/participants/${userId}/password`}>لا يصل حسابه؟ أصدر له كلمة مرور مؤقتة ←</Link>
+        </p>
+      ) : null}
 
       <Step n={1} title="البيانات" why="الاسم والجنس والميلاد والجنسية والجوالان — كما يراها في «حسابي»." done={!binned} state={<span>{STATUS[status]}</span>}>
         {binned ? (

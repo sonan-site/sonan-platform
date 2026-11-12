@@ -14,7 +14,7 @@ import { createServiceRoleClient } from "@/lib/db/service-role";
  * لدائرة من يرى بيانات شخصية بلا موجب.
  */
 
-type Action = "auth.login" | "auth.recovery" | "auth.invite" | "auth.register";
+type Action = "auth.login" | "auth.recovery" | "auth.invite" | "auth.register" | "auth.temp_password";
 
 function digest(value: string): string {
   return createHash("sha256").update(value.toLowerCase()).digest("hex").slice(0, 32);

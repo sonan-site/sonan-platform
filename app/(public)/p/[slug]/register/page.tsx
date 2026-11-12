@@ -29,6 +29,7 @@ export default async function RegisterPage({
   const session = await getSession();
   const back = encodeURIComponent(`/p/${slug}/register${wantedTrack ? `?track=${wantedTrack}` : ""}`);
   // الناقص (دخل بـ Google ولم يكتب جواله) يُستكمل ثم يعود — لا يُعاد إلى إنشاء حساب له.
+  if (session.status === "password_change") redirect(`/change-password?next=${back}`);
   if (session.status === "incomplete") redirect(`/complete-profile?next=${back}`);
   if (session.status !== "active") redirect(`/sign-up?next=${back}`);
 

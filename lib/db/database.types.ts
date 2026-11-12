@@ -4480,6 +4480,23 @@ export type Database = {
         }
         Returns: string
       }
+      fn_temp_password_allowed: { Args: { p_user_id: string }; Returns: boolean }
+      fn_temp_password_issue: {
+        Args: { p_expires_at: string; p_user_id: string }
+        Returns: string
+      }
+      fn_temp_password_target: {
+        Args: { p_user_id: string }
+        Returns: {
+          account_state: string
+          full_name: string
+          guardian_phone: string
+          has_google: boolean
+          has_password: boolean
+          is_staff: boolean
+          phone: string
+        }[]
+      }
       fn_track_change_carry_preview: {
         Args: { p_request_id: string }
         Returns: {

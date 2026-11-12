@@ -96,6 +96,7 @@ export function ParticipantsView({
   requests,
   tracks,
   canWrite,
+  accountOf,
 }: {
   programId: string;
   kind: ProgramKind;
@@ -111,6 +112,8 @@ export function ParticipantsView({
   requests: ChangeRow[];
   tracks: { id: string; name: string }[];
   canWrite: boolean;
+  /** حساب كل مشاركٍ في الصفحة — لحامل `users.password` وحده (adr/0060)، وإلا فارغ. */
+  accountOf: Record<string, string>;
 }) {
   const [state, action, pending] = useActionState(requestTrackChange, EMPTY_FORM_STATE);
   const [busy, startTransition] = useTransition();
@@ -118,7 +121,25 @@ export function ParticipantsView({
   const [confirming, setConfirming] = useState<ChangeRow | null>(null);
 
   const columns: Column<ParticipantRow>[] = [
-    { key: "name", header: "المشارك", sortable: true, primary: true, render: (p) => p.name },
+    {
+      key: "name",
+      header: "المشارك",
+      sortable: true,
+      primary: true,
+      render: (p) =>
+        accountOf[p.id] ? (
+          <>
+            {p.name}{" "}
+            <Link
+              href={`/participants/${accountOf[p.id]}/password?back=${encodeURIComponent(`/programs/${programId}/participants`)}`}
+            >
+              كلمة مؤقتة
+            </Link>
+          </>
+        ) : (
+          p.name
+        ),
+    },
     {
       key: "registrationNo",
       header: "رقم التسجيل",

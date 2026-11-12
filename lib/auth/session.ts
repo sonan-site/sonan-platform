@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/db/server";
+import { now } from "@/lib/format";
 import { accountState, COMPLETENESS_COLUMNS, suggestedName } from "./account-state";
+import { TEMP_PASSWORD_KEY, tempPasswordState } from "./temp-password";
 
 /**
  * حالة الجلسة الحالية.
@@ -18,6 +20,11 @@ import { accountState, COMPLETENESS_COLUMNS, suggestedName } from "./account-sta
 export type SessionState =
   | { status: "anonymous" }
   | { status: "suspended"; userId: string }
+  /**
+   * دخل بكلمة مرور مؤقتة ولم يعيّن كلمته (`adr/0060`) — لا تُفتح له شاشة قبل ذلك.
+   * و`expired`: دخل بها بعد انقضاء أجلها، فلا يعيّن شيئاً ويطلب غيرها.
+   */
+  | { status: "password_change"; userId: string; email: string; expired: boolean }
   /** دخل ولم يستكمل اسمه وجواله — لا تُفتح له شاشة قبل ذلك (`adr/0025`). */
   | {
       status: "incomplete";
@@ -43,6 +50,15 @@ export const getSession = cache(async (): Promise<SessionState> => {
 
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return { status: "anonymous" };
+
+  // قبل الملف والصلاحيات: من عليه تعيين كلمته لا يُحسب له شيءٌ غيرها. والـ`amr` يُقرأ لصاحب العلامة وحده.
+  if ((auth.user.app_metadata?.[TEMP_PASSWORD_KEY] ?? null) !== null) {
+    const { data: claims } = await db.auth.getClaims();
+    const temp = tempPasswordState(auth.user.app_metadata, claims?.claims?.amr, now().getTime());
+    if (temp !== "none") {
+      return { status: "password_change", userId: auth.user.id, email: auth.user.email ?? "", expired: temp === "expired" };
+    }
+  }
 
   const [{ data: profile }, { data: rows }, { data: participations }] = await Promise.all([
     // الملف نفسه لا `fn_is_active`: غيابه أو نقصه «ناقص»، وحذفه الليّن «موقوف» —

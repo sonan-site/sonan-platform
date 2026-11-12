@@ -3,6 +3,7 @@ import { accountState, COMPLETENESS_COLUMNS } from "@/lib/auth/account-state";
 import { isSessionMode } from "@/lib/auth/mode";
 import { writeMode } from "@/lib/auth/mode-cookie";
 import { DEFAULT_LANDING, safeNext } from "@/lib/auth/safe-next";
+import { TEMP_PASSWORD_KEY } from "@/lib/auth/temp-password";
 import { createClient } from "@/lib/db/server";
 
 /**
@@ -58,6 +59,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // من لا ملف له أو ملفه ناقص يُستكمل قبل وجهته (`adr/0025`) — بالقاعدة نفسها التي تحكم بها الجلسة.
   const { data: auth } = await db.auth.getUser();
+  // كلمةٌ مؤقتة قائمة: يعيّن كلمته قبل وجهته (`adr/0060`) — ودخوله بـ Google يُثبته فلا أجل عليه.
+  if ((auth.user?.app_metadata?.[TEMP_PASSWORD_KEY] ?? null) !== null) {
+    const change = new URL("/change-password", request.nextUrl.origin);
+    change.searchParams.set("next", next);
+    return NextResponse.redirect(change);
+  }
   if (auth.user) {
     const { data: profile } = await db
       .from("profiles")

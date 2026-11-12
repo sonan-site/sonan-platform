@@ -22,6 +22,12 @@ export default async function PlatformLayout({ children }: { children: ReactNode
   // الحساب الناقص لا تُفتح له شاشة قبل اسمه وجواله (`adr/0025`).
   // وبوجهته: يعود بعد الإكمال إلى الصفحة التي قصدها (رحلة التسجيل ت٥) — والترويسة
   // من الوسيط تمرّ بحارس الوجهة كأي مُدخَل.
+  // ومن دخل بكلمة مؤقتة يعيّن كلمته قبل أي شاشة (`adr/0060`) — ثم يعود إلى وجهته.
+  if (session.status === "password_change") {
+    const here = safeNext((await headers()).get("x-pathname"));
+    redirect(`/change-password?next=${encodeURIComponent(here)}`);
+  }
+
   if (session.status === "incomplete") {
     const here = safeNext((await headers()).get("x-pathname"));
     redirect(`/complete-profile?next=${encodeURIComponent(here)}`);

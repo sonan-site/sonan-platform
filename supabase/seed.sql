@@ -22,7 +22,8 @@ cross join (values
   ('programs.read'), ('programs.write'),
   ('participants.read'), ('participants.write'),
   ('exams.manage'), ('exams.judge'), ('exams.publish'),
-  ('voices.manage')
+  ('voices.manage'),
+  ('users.password')
 ) as codes(code)
 where r.is_system = true and r.deleted_at is null
 on conflict do nothing;

@@ -27,6 +27,8 @@ type Entry = { section: PermissionSection; label: string };
 export const PERMISSIONS = {
   "users.read": { section: "users", label: "عرض المستخدمين" },
   "users.write": { section: "users", label: "تعديل المستخدمين وإيقافهم وحذفهم" },
+  // لمن لا يصل حسابه (adr/0060): حساب الطالب في نطاقه، وحساب الفريق لمدير المنصة وحده.
+  "users.password": { section: "users", label: "إصدار كلمة مرور مؤقتة" },
   // رقم الهوية بيانٌ حسّاس (adr/0047): `users.read` يراه مقنّعاً، وهذان كاملاً وتصحيحاً.
   "identities.read": { section: "identities", label: "عرض أرقام الهويات كاملة" },
   "identities.write": { section: "identities", label: "تصحيح أرقام الهويات" },

@@ -202,6 +202,23 @@ export default async function ParticipantsPage({
   const statuses = statusesOf(programResult.data.kind);
   const query = parseRosterQuery(sp, statuses);
   const { rows, total } = applyRosterQuery(participants, query, DEFAULT_PAGE_SIZE);
+
+  // كلمة المرور المؤقتة (adr/0060): لحامل `users.password` في البرنامج — وحسابات صفحته وحدها،
+  // فلا تُجلب حسابات البرنامج كله لروابط لا تُرى. والإذن الأخير لشاشتها نفسها.
+  const canIssueTemp = (
+    await authorizeRequest({ permission: "users.password", programId: id, resourceProgramId: id })
+  ).ok;
+  const accountOf: Record<string, string> = {};
+  if (canIssueTemp && rows.length > 0) {
+    const { data: owners } = await db
+      .from("participants")
+      .select("id, user_id")
+      .in(
+        "id",
+        rows.map((r) => r.id),
+      );
+    for (const o of owners ?? []) if (o.user_id) accountOf[o.id] = o.user_id;
+  }
   // صفحةٌ بعد آخر النتائج (رابطٌ محفوظ ثم تغيّرت القائمة) ⇐ أولى الصفحات ببحثها وتصفيتها.
   if (query.page > 1 && rows.length === 0) redirect(hrefWith(path, sp));
 
@@ -246,6 +263,7 @@ export default async function ParticipantsPage({
       requests={requests}
       tracks={liveTracks}
       canWrite={canWrite}
+      accountOf={accountOf}
     />
   );
 }
