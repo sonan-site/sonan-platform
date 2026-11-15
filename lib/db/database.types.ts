@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_counts: {
+        Row: {
+          active: number
+          audience: string
+          bucket: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          level: string
+          period_start: string
+          program_id: string | null
+          signed_in: number
+          track_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active: number
+          audience: string
+          bucket: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          level: string
+          period_start: string
+          program_id?: string | null
+          signed_in: number
+          track_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: number
+          audience?: string
+          bucket?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          level?: string
+          period_start?: string
+          program_id?: string | null
+          signed_in?: number
+          track_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_counts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_counts_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_hours: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          hour: string
+          id: string
+          signed_in: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          hour: string
+          id?: string
+          signed_in?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          hour?: string
+          id?: string
+          signed_in?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       admission_answers: {
         Row: {
           answer: string
@@ -3275,14 +3365,9 @@ export type Database = {
           user_id: string
         }[]
       }
-      fn_admin_update_profile: {
-        Args: {
-          p_confirmed?: string
-          p_data: Json
-          p_seen_updated_at: string
-          p_user_id: string
-        }
-        Returns: undefined
+      fn_activity_bucket: {
+        Args: { p_at: string; p_bucket: string }
+        Returns: string
       }
       fn_activity_heatmap: {
         Args: {
@@ -3315,6 +3400,15 @@ export type Database = {
         }[]
       }
       fn_activity_touch: { Args: never; Returns: undefined }
+      fn_admin_update_profile: {
+        Args: {
+          p_confirmed?: string
+          p_data: Json
+          p_seen_updated_at: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       fn_admission_list_answer_ok: {
         Args: { p_answer: string; p_options: string[] }
         Returns: boolean
