@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   UserRound,
   Bell,
+  ChartColumn,
   Gavel,
   MessageSquare,
   Users,
@@ -39,6 +40,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   Gavel,
   MessageSquare,
   Bell,
+  ChartColumn,
 };
 
 const ICON_SIZE = 20;
@@ -56,6 +58,8 @@ function entryMeta(key: string, counts: DashboardCounts): string {
       return "شرائح واجهة الدخول وبيانات المنصة";
     case "audit":
       return "كل فعل إداري بفاعله ووقته";
+    case "stats":
+      return "كم يستخدم المنصة في كل ساعة ويوم";
     default:
       return "";
   }

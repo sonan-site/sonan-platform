@@ -20,7 +20,8 @@ export type IconName =
   | "UserRound"
   | "Gavel"
   | "MessageSquare"
-  | "Bell";
+  | "Bell"
+  | "ChartColumn";
 
 export type NavItem = {
   /** مفتاح ثابت — لا يتغيّر بتغيّر العنوان، فيصلح للاختبار وحفظ الحالة. */
@@ -147,6 +148,16 @@ export const NAVIGATION: readonly NavItem[] = [
     primary: false,
     headerOnly: true,
     mode: "participant",
+  },
+  {
+    key: "stats",
+    title: "الإحصاءات",
+    href: "/stats",
+    icon: "ChartColumn",
+    // أعداد النشاط والدخول (adr/0061) — بنطاق الصلاحية: المحصور يرى طلاب برنامجه.
+    permission: "stats.read",
+    primary: false,
+    mode: "staff",
   },
   {
     key: "settings",

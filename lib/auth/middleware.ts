@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import { claimActivityTouch, sendActivityTouch } from "@/lib/auth/activity";
 import { gateRedirect } from "@/lib/auth/gate";
 
 /**
@@ -16,7 +17,7 @@ const PUBLIC_PREFIXES = ["/sign-in", "/sign-up", "/recover", "/activate", "/auth
  */
 const PUBLIC_EXACT = new Set(["/", "/terms", "/privacy", "/admin"]);
 
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export async function updateSession(request: NextRequest, event?: NextFetchEvent): Promise<NextResponse> {
   /**
    * المسار في ترويسة الطلب — **التخطيطات لا تعرف مسارها** في Next، وبوابة
    * الإدارة تحتاجه لتُخفي شرائح المشاركين عن شاشة العمل (`adr/0032`).
@@ -49,6 +50,19 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // الخادم والقاعدة، لا هنا.
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims?.sub ?? null;
+
+  // ساعة النشاط (adr/0061) — للداخل، بعد إرسال الرد، مرّةً للجلسة في الساعة، وفشلها صامت.
+  // ورمز الوصول من الكوكي بعد أن تحقّق `getClaims` من توقيعه وجدّده إن لزم.
+  const sessionId = data?.claims?.session_id;
+  const touchHour = user && event ? claimActivityTouch(sessionId) : null;
+  if (event && sessionId && touchHour !== null) {
+    // فشل القراءة يفكّ الحجز (رمزٌ غائب) ولا يعطّل الطلب.
+    const token = await supabase.auth
+      .getSession()
+      .then((r) => r.data.session?.access_token)
+      .catch(() => undefined);
+    event.waitUntil(sendActivityTouch(sessionId, touchHour, token));
+  }
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_EXACT.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));

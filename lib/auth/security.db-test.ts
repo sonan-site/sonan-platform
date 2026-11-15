@@ -463,6 +463,10 @@ describe("الدوال المكشوفة للزائر — قائمة مغلقة",
       // أهلية الحساب لحامل users.write — تفحص الصلاحية بنفسها (الهجرة 20261111100000).
       "fn_account_email",
       "fn_account_fit_issues",
+      // إحصاءات النشاط (adr/0061): القراءة بنطاق stats.read، والتسجيل عن صاحبه وحده — والتجميع للمجدوِل.
+      "fn_activity_heatmap",
+      "fn_activity_stats",
+      "fn_activity_touch",
       "fn_admission_option_counts",
       "fn_admission_other_answers",
       "fn_answer_question",

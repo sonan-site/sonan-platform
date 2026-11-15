@@ -1,9 +1,9 @@
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 import { updateSession } from "@/lib/auth/middleware";
 
 /** بوّابة المصادقة. `proxy` هو اسم `middleware` في Next 16 — والقديم مهجور. */
-export async function proxy(request: NextRequest) {
-  return updateSession(request);
+export async function proxy(request: NextRequest, event: NextFetchEvent) {
+  return updateSession(request, event);
 }
 
 export const config = {

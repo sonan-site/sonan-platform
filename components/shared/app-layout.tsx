@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpen,
   CalendarCheck,
+  ChartColumn,
   ChartNoAxesColumn,
   CalendarDays,
   Gavel,
@@ -63,6 +64,7 @@ const ICONS: Record<IconName, LucideIcon> = {
   Gavel,
   MessageSquare,
   Bell,
+  ChartColumn,
 };
 
 const ICON_SIZE = 20;

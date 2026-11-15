@@ -20,7 +20,7 @@ describe("وضع الجلسة", () => {
 
 describe("باب الوجهة", () => {
   it("**الوجهة الإدارية تُردّ إلى بوابة الإدارة**", () => {
-    for (const path of ["/programs", "/team/roles", "/participants", "/settings", "/audit"]) {
+    for (const path of ["/programs", "/team/roles", "/participants", "/settings", "/audit", "/stats"]) {
       expect(gateFor(path), path).toBe("/admin");
     }
   });

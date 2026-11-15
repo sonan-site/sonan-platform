@@ -18,6 +18,7 @@ export const PERMISSION_SECTIONS = {
   participants: "المشاركون",
   exams: "الاختبارات",
   voices: "صوتك",
+  stats: "الإحصاءات",
 } as const;
 
 export type PermissionSection = keyof typeof PERMISSION_SECTIONS;
@@ -65,6 +66,9 @@ export const PERMISSIONS = {
 
   // «صوتك» (adr/0054): رسائل الطلاب والرد عليها — على المنصة كلها أو على برنامج.
   "voices.manage": { section: "voices", label: "قراءة رسائل «صوتك» والرد عليها" },
+
+  // أعداد النشاط والدخول (adr/0061): على المنصة كلها، أو طلاب برنامجٍ بعينه.
+  "stats.read": { section: "stats", label: "قراءة إحصاءات النشاط" },
 } as const satisfies Record<string, Entry>;
 
 export type PermissionCode = keyof typeof PERMISSIONS;

@@ -3284,6 +3284,37 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_activity_heatmap: {
+        Args: {
+          p_audience: string
+          p_from: string
+          p_program?: string
+          p_to: string
+          p_track?: string
+        }
+        Returns: {
+          average: number
+          hour: number
+          weekday: number
+        }[]
+      }
+      fn_activity_rollup: { Args: never; Returns: number }
+      fn_activity_stats: {
+        Args: {
+          p_audience: string
+          p_bucket: string
+          p_from: string
+          p_program?: string
+          p_to: string
+          p_track?: string
+        }
+        Returns: {
+          active: number
+          period_start: string
+          signed_in: number
+        }[]
+      }
+      fn_activity_touch: { Args: never; Returns: undefined }
       fn_admission_list_answer_ok: {
         Args: { p_answer: string; p_options: string[] }
         Returns: boolean

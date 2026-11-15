@@ -1,0 +1,257 @@
+/* الإحصاءات (adr/0061) — مؤشرات · أعمدة · خريطة الذروة · جدول الأرقام. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+.h2 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.hint,
+.span {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ══ المدى المخصّص ══ */
+.custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.custom label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.custom input {
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-control);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+/* ══ المؤشرات ══ */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.kpi > span {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.kpi b {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi small {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ══ الصناديق ══ */
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  min-inline-size: 0;
+}
+
+/* ══ الأعمدة ══ — الزمن من اليمين، كسطر الصفحة. */
+.chartWrap {
+  position: relative;
+  overflow-x: auto;
+  direction: rtl;
+  padding-block: var(--space-5);
+}
+
+.axisMax {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bars {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  block-size: 12rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-end: 1px solid var(--color-border-strong);
+}
+
+.barCol {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.barTrack {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+}
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  inline-size: 100%;
+  min-block-size: 1px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--color-accent);
+}
+
+.barSigned {
+  display: block;
+  inline-size: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--color-accent) 55%, var(--color-text));
+}
+
+.tick {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+  padding-block-start: var(--space-1);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.legend i {
+  display: inline-block;
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  min-block-size: 0;
+  border-radius: var(--radius-sm);
+}
+
+/* ══ خريطة الذروة ══ — يومٌ في كل صف، وساعةٌ في كل عمود. */
+.peak {
+  display: grid;
+  grid-template-columns: 4.5rem repeat(24, minmax(0.875rem, 1fr));
+  gap: 2px;
+  align-items: center;
+  min-inline-size: 24rem;
+}
+
+.peakRow {
+  display: contents;
+}
+
+.peakDay,
+.peakHour {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.peakHour {
+  text-align: start;
+}
+
+.peakCell {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+}
+
+.level1 {
+  background: color-mix(in srgb, var(--color-accent) 25%, var(--color-surface));
+}
+
+.level2 {
+  background: color-mix(in srgb, var(--color-accent) 50%, var(--color-surface));
+}
+
+.level3 {
+  background: color-mix(in srgb, var(--color-accent) 75%, var(--color-surface));
+}
+
+.level4 {
+  background: var(--color-accent);
+}
