@@ -1,32 +1,18 @@
 import Link from "next/link";
-import { DataTable, type Column } from "@/components/shared/data-table";
 import { PageHead } from "@/components/shared/steps";
 import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
-import { formatDateTime } from "@/lib/format";
 import { formatRegistrationNo } from "@/lib/programs/registration";
 import { currentViewer } from "@/lib/permissions/granted";
 import styles from "./inbox.module.css";
 import { isVoiceKind, isVoiceStatus, VOICE_KIND_LABEL, VOICE_STATUS_STAFF, VOICE_KINDS, VOICE_STATUSES } from "@/lib/voices/voices";
+import { InboxTable, type InboxRow } from "./inbox-table";
 
 /**
  * صندوق «صوتك» للإدارة (adr/0054): رسائل الطلاب بنطاق الصلاحية — الجديدة أولاً — بمرشّحات الحال
  * والنوع، والبرنامج حين يأتي من «ما يحتاج انتباهك». وهوية المرسِل من `fn_inbox_list` وإن لم يملك
  * القارئ `participants.read` (مراجعة الخطة ح٢).
  */
-
-type Row = {
-  id: string;
-  kind: string;
-  title: string;
-  status: string;
-  createdAt: string;
-  hasReply: boolean;
-  programName: string | null;
-  sender: string;
-  registrationNo: string | null;
-  track: string | null;
-};
 
 export default async function InboxPage({
   searchParams,
@@ -49,7 +35,7 @@ export default async function InboxPage({
   });
   if (error) return <ErrorState body="تعذّر جلب الرسائل." />;
 
-  const rows: Row[] = (data ?? []).map((r) => ({
+  const rows: InboxRow[] = (data ?? []).map((r) => ({
     id: r.id,
     kind: r.kind,
     title: r.title,
@@ -69,28 +55,6 @@ export default async function InboxPage({
     const s = q.toString();
     return s ? `/inbox?${s}` : "/inbox";
   };
-
-  const columns: Column<Row>[] = [
-    {
-      key: "title",
-      header: "الرسالة",
-      primary: true,
-      render: (r) => <Link href={`/inbox/${r.id}`}>{r.title}</Link>,
-    },
-    { key: "kind", header: "النوع", render: (r) => (isVoiceKind(r.kind) ? VOICE_KIND_LABEL[r.kind] : r.kind) },
-    {
-      key: "sender",
-      header: "المرسِل",
-      render: (r) => [r.sender, r.registrationNo, r.track].filter(Boolean).join(" · "),
-    },
-    { key: "program", header: "البرنامج", render: (r) => r.programName ?? "—" },
-    {
-      key: "status",
-      header: "الحال",
-      render: (r) => `${isVoiceStatus(r.status) ? VOICE_STATUS_STAFF[r.status] : r.status}${r.hasReply ? " · رُدّ عليها" : ""}`,
-    },
-    { key: "at", header: "الوقت", render: (r) => formatDateTime(r.createdAt) },
-  ];
 
   return (
     <>
@@ -118,14 +82,7 @@ export default async function InboxPage({
         {program ? <Link href={href({ program: null })}>{rows[0]?.programName ?? "برنامجٌ واحد"} · اعرض كل البرامج</Link> : null}
       </div>
       {rows.length >= 300 ? <p className={styles.note}>تُعرض أحدث ٣٠٠ رسالة — ضيّق بالمرشّحات لترى ما قبلها.</p> : null}
-      <DataTable
-        columns={columns}
-        rows={rows}
-        rowKey={(r) => r.id}
-        total={rows.length}
-        page={1}
-        empty={{ title: "لا رسائل", body: "لا رسالة بهذه المرشّحات." }}
-      />
+      <InboxTable rows={rows} />
     </>
   );
 }

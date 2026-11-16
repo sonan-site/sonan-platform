@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { FilterBar, FilterSelect } from "@/components/shared/filter-select";
 import { hrefWith, type SearchParams } from "@/components/shared/filter-links";
 import { Button } from "@/components/shared/form";
-import { DataTable, DEFAULT_PAGE_SIZE, type Column } from "@/components/shared/data-table";
+import { DEFAULT_PAGE_SIZE } from "@/components/shared/data-table";
 import { PageHead } from "@/components/shared/steps";
 import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
@@ -24,6 +24,7 @@ import {
   spanDays,
 } from "@/lib/stats/activity";
 import { ActivityBars, PeakMap, type Point } from "./charts";
+import { StatsTable } from "./stats-table";
 import styles from "./stats.module.css";
 
 /**
@@ -95,11 +96,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const lastPage = Math.max(1, Math.ceil(points.length / DEFAULT_PAGE_SIZE));
   const page = Number.isInteger(pageParam) && pageParam >= 1 ? Math.min(pageParam, lastPage) : 1;
   const tableRows = [...points].reverse().slice((page - 1) * DEFAULT_PAGE_SIZE, page * DEFAULT_PAGE_SIZE);
-  const columns: Column<Point>[] = [
-    { key: "period", header: "الفترة", primary: true, render: (p) => p.label },
-    { key: "active", header: "النشطون", align: "end", render: (p) => formatNumber(p.active) },
-    { key: "signedIn", header: "الداخلون", align: "end", render: (p) => formatNumber(p.signedIn) },
-  ];
 
   // ── المرشّحات: روابطٌ تحسبها الصفحة، والقائمة المنسدلة تقرأ قيمتها ──
   const link = (patch: Record<string, string | null>) => hrefWith("/stats", sp, patch);
@@ -238,15 +234,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
 
           <section className={styles.box} aria-label="الأرقام">
             <h2 className={styles.h2}>الأرقام — الأحدث أولاً</h2>
-            <DataTable
-              columns={columns}
-              rows={tableRows}
-              rowKey={(p) => p.start}
-              total={points.length}
-              page={page}
-              searchable={false}
-              empty={{ title: "لا فترات", body: "لا فترات في هذا المدى." }}
-            />
+            <StatsTable rows={tableRows} total={points.length} page={page} />
           </section>
         </>
       )}

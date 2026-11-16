@@ -42,7 +42,7 @@ function stripComments(text: string): string {
 export const guardStructure: Guard = {
   name: "guard-structure",
   claim:
-    "يكشف: <table> خام · تخطيط موضعي · <nav> خارج مصدره · تصدير غير دالّة من " +
+    "يكشف: <table> خام · DataTable في مكوّن خادم · تخطيط موضعي · <nav> خارج مصدره · تصدير غير دالّة من " +
     "ملف \"use server\" · قراءة الرصد صفوفاً خاماً · شرحٌ برمجي أو وعدٌ في نصّ الواجهة · Zod بلا مدخله العربي. لا يكشف: جودة الصياغة ولا صحّة استخدام الجامع.",
 
   run(files) {
@@ -54,6 +54,16 @@ export const guardStructure: Guard = {
           "جدول خام. استخدم DataTable من components/shared — الحالة في الرابط والبطاقات على الجوال مبنيّة فيه.",
         ),
       );
+      // الجدول الجامع مكوّن متصفح وأعمدته دوالّ: من مكوّن خادم لا تُمرَّر، فتسقط الصفحة وقت العرض
+      // ولا يكشفها فحص الأنواع (بلاغ ١٦ نوفمبر: «صوتك» و«الإحصاءات»).
+      if (!/^\s*["']use client["']/.test(f.text)) {
+        findings.push(
+          // `\b` لا `[\s>]`: الفحص سطراً سطراً، و`<DataTable` في آخر سطره لا يليه شيء.
+          ...scan(f, /<DataTable\b/, "data-table-in-server", () =>
+            "DataTable من مكوّن خادم — أعمدته دوالّ لا تعبر إلى المتصفح فتسقط الصفحة. ارسمه من مكوّن \"use client\" يستلم البيانات وحدها.",
+          ),
+        );
+      }
       findings.push(
         ...scan(f, /<nav[\s>]/, "nav-outside-source", () =>
           "عنصر تنقّل خارج التخطيط الجامع. مصدر التنقّل الوحيد config/navigation.ts.",
