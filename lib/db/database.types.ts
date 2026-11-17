@@ -3543,6 +3543,13 @@ export type Database = {
         Args: { p_answer: string; p_question: string; p_report_id: string }
         Returns: string
       }
+      fn_ask_sources: {
+        Args: { p_program_id: string }
+        Returns: {
+          answer: string
+          question: string
+        }[]
+      }
       fn_ask_usage: {
         Args: { p_program_id: string }
         Returns: {
@@ -3552,13 +3559,6 @@ export type Database = {
           student_total: number
           today: number
           total: number
-        }[]
-      }
-      fn_ask_sources: {
-        Args: { p_program_id: string }
-        Returns: {
-          answer: string
-          question: string
         }[]
       }
       fn_attach_voice_image: {
