@@ -2,6 +2,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { cache } from "react";
 import { getSession } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/db/service-role";
@@ -9,7 +10,7 @@ import { createClient } from "@/lib/db/server";
 import { env } from "@/lib/env.server";
 import { now } from "@/lib/format";
 import { loadPublicProgram } from "@/lib/programs/public-page-server";
-import { ask, type Reply, type Turn } from "./answer";
+import { ask, outcomeOf, type AskOutcome, type Reply, type Turn } from "./answer";
 import type { AskSources, Today } from "./prompt";
 import { buildSources } from "./sources";
 
@@ -128,6 +129,25 @@ async function report(programId: string, kind: "unanswered" | "flagged" | "block
   });
 }
 
+/**
+ * يعدّ السؤال **بعد الرد** (`after`): السائل لا ينتظر قاعدةً بطيئة، وفشل العدّ لا يبلغه —
+ * العدّاد إحصاءٌ لا شرط.
+ */
+function count(programId: string, audience: Audience, outcome: AskOutcome) {
+  after(async () => {
+    try {
+      const { error } = await createServiceRoleClient().rpc("fn_ask_count", {
+        p_program_id: programId,
+        p_audience: audience,
+        p_outcome: outcome,
+      });
+      if (error) console.error("ask: تعذّر العدّ", error.message);
+    } catch (e) {
+      console.error("ask: تعذّر العدّ", (e as Error).message);
+    }
+  });
+}
+
 /** الإحالة إلى «صوتك» للطالب الداخل وحده (ق٣-أ) — والزائر لا يدخلها، فيُحال إلى شؤون الطلاب. */
 function referFor(refer: "none" | "student_affairs" | "voices", audience: Audience) {
   return refer === "voices" && audience === "visitor" ? "student_affairs" : refer;
@@ -141,11 +161,15 @@ export async function askQuestion(slug: string, question: string, history: Turn[
   if (!cfg.enabled) return { kind: "unavailable" };
   const loaded = await loadSources(slug);
   if (!loaded) return { kind: "unavailable" };
-  if (!(await withinLimits(loaded.program.id, "ask"))) return { kind: "limited" };
-
   const audience = await audienceOf(slug);
+  if (!(await withinLimits(loaded.program.id, "ask"))) {
+    count(loaded.program.id, audience, "limited");
+    return { kind: "limited" };
+  }
+
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const reply: Reply = await ask(client.messages, cfg.model, loaded.sources, loaded.today, q, history);
+  count(loaded.program.id, audience, outcomeOf(reply));
 
   switch (reply.kind) {
     case "answer":

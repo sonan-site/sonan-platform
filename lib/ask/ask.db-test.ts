@@ -218,3 +218,88 @@ describe("الحلّ والعدّاد", () => {
     expect(r.rows[0]!.open_unanswered).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("عدّاد الاستخدام", () => {
+  const count = (program: string, audience: string, outcome: string) =>
+    as("service_role", null, `select public.fn_ask_count($1, $2, $3)`, [program, audience, outcome]);
+  type Usage = { outcome: string; today: number; last_7: number; total: number; student_total: number; first_day: string | null };
+  const usage = (uid: string, program: string) =>
+    as<Usage>("authenticated", uid, `select * from public.fn_ask_usage($1)`, [program]);
+
+  it("**الخادم وحده يعدّ — لا الزائر ولا المستخدم، ولا قراءة مباشرة للجدول**", async () => {
+    expect((await as("anon", null, `select public.fn_ask_count($1, 'visitor', 'answer')`, [programA])).error).not.toBeNull();
+    expect(
+      (await as("authenticated", WRITER, `select public.fn_ask_count($1, 'visitor', 'answer')`, [programA])).error,
+    ).not.toBeNull();
+    expect((await count(programA, "visitor", "answer")).error).toBeNull();
+    expect((await as("authenticated", WRITER, `select * from public.ask_counts`)).rows).toEqual([]);
+  });
+
+  it("**يجمع في سطرٍ واحد لليوم والسائل والنتيجة، ويردّ المجهول**", async () => {
+    await count(programA, "visitor", "answer");
+    await count(programA, "student", "voices");
+    const r = await one(
+      `select asked from public.ask_counts where program_id = $1 and audience = 'visitor' and outcome = 'answer'`,
+      [programA],
+    );
+    expect(r.asked).toBe(2);
+    expect((await count(programA, "visitor", "nonsense")).error).not.toBeNull();
+    expect((await count(programA, "admin", "answer")).error).not.toBeNull();
+  });
+
+  it("**يعرض النتائج السبع بأصفارها، والطلاب منها، وأول يوم**", async () => {
+    const r = await usage(WRITER, programA);
+    expect(r.error).toBeNull();
+    expect(r.rows.map((x) => x.outcome)).toEqual([
+      "answer",
+      "student_affairs",
+      "voices",
+      "off_topic",
+      "blocked",
+      "limited",
+      "error",
+    ]);
+    const by = Object.fromEntries(r.rows.map((x) => [x.outcome, x]));
+    expect(by["answer"]).toMatchObject({ today: 2, last_7: 2, total: 2, student_total: 0 });
+    expect(by["voices"]).toMatchObject({ today: 1, total: 1, student_total: 1 });
+    expect(by["error"]).toMatchObject({ today: 0, total: 0 });
+    expect(r.rows[0]!.first_day).not.toBeNull();
+  });
+
+  it("**اليوم يومُ الرياض لا يومُ الجلسة**: منطقتان تغطّيان الساعات كلها", async () => {
+    // UTC-12 يخالف يومَ الرياض قبل ١٥:٠٠ بتوقيتها، وUTC+14 بعد ١٣:٠٠ — فلو حُسب اليوم بـ`current_date`
+    // لاختلف في إحداهما على الأقل أيّاً كانت ساعة التشغيل.
+    for (const zone of ["Etc/GMT+12", "Pacific/Kiritimati"]) {
+      await db.query(`set local timezone = '${zone}'`);
+      await db.query(`delete from public.ask_counts where program_id = $1 and outcome = 'error'`, [programB]);
+      expect((await count(programB, "visitor", "error")).error).toBeNull();
+      const r = await one(
+        `select day = (now() at time zone 'Asia/Riyadh')::date as riyadh from public.ask_counts
+          where program_id = $1 and outcome = 'error'`,
+        [programB],
+      );
+      expect(r.riyadh).toBe(true);
+    }
+    await db.query(`set local timezone = 'UTC'`);
+    await db.query(`delete from public.ask_counts where program_id = $1`, [programB]);
+  });
+
+  it("**آخر ٧ أيام: اليوم والستة قبله — والسابع قبله في المجموع وحده**", async () => {
+    await db.query(
+      `insert into public.ask_counts (program_id, day, audience, outcome, asked) values
+         ($1, (now() at time zone 'Asia/Riyadh')::date - 6, 'visitor', 'limited', 3),
+         ($1, (now() at time zone 'Asia/Riyadh')::date - 7, 'visitor', 'limited', 5)`,
+      [programA],
+    );
+    const limited = (await usage(WRITER, programA)).rows.find((x) => x.outcome === "limited")!;
+    expect(limited).toMatchObject({ today: 0, last_7: 3, total: 8 });
+  });
+
+  it("**حامل programs.write في نطاقه وحده**", async () => {
+    expect((await usage(OTHER_WRITER, programA)).error).not.toBeNull();
+    expect((await usage(NOBODY, programA)).error).not.toBeNull();
+    const other = await usage(OTHER_WRITER, programB);
+    expect(other.error).toBeNull();
+    expect(other.rows.every((x) => x.total === 0)).toBe(true);
+  });
+});

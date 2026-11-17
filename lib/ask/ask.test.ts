@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
-import { ask, trimHistory } from "./answer";
+import { ask, outcomeOf, trimHistory } from "./answer";
 import { numbersIn, unsupportedNumbers } from "./guard";
 import { bothCalendars, days, registrationLine, sourcesText, systemPrompt, years, type AskSources, type Today } from "./prompt";
 
@@ -130,5 +130,16 @@ describe("الإجابة", () => {
     ]);
     expect(h[0]!.role).toBe("user");
     expect(h.length).toBeLessThanOrEqual(6);
+  });
+});
+
+describe("العدّاد", () => {
+  it("**يعدّ تصنيف النموذج لا ما عُرض**: الإحالة التقنية «صوتك» ولو صارت للزائر شؤون الطلاب", () => {
+    expect(outcomeOf({ kind: "answer", text: "ج" })).toBe("answer");
+    expect(outcomeOf({ kind: "refer", refer: "student_affairs" })).toBe("student_affairs");
+    expect(outcomeOf({ kind: "refer", refer: "voices" })).toBe("voices");
+    expect(outcomeOf({ kind: "refer", refer: "none" })).toBe("off_topic");
+    expect(outcomeOf({ kind: "blocked", refer: "student_affairs", draft: "ج" })).toBe("blocked");
+    expect(outcomeOf({ kind: "error" })).toBe("error");
   });
 });

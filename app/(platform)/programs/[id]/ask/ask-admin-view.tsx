@@ -8,7 +8,8 @@ import { Button, Field, FormActions, Input, Textarea } from "@/components/shared
 import { Modal } from "@/components/shared/modal";
 import { TabHead } from "@/components/shared/steps";
 import { EMPTY_FORM_STATE, type FormState } from "@/lib/auth/form-state";
-import { formatNumber, formatRelative } from "@/lib/format";
+import { formatDate, formatNumber, formatRelative } from "@/lib/format";
+import { UsageTable, type UsageRow } from "./usage-table";
 import { addAnswer, editAnswer, removeAnswer, resolveReport, setAnswerStatus, setReportStatus } from "./actions";
 
 export type ReportRow = {
@@ -81,12 +82,22 @@ function AnswerFields({ prefix, question, answer, state }: { prefix: string; que
 
 export function AskAdminView({
   programId,
+  usage,
   askedToday,
+  students,
+  since,
   reports,
   answers,
 }: {
   programId: string;
+  /** صفوف العدّاد بنتائجها ثم المجموع — فارغٌ قبل أول سؤال، و`null` إن تعذّر جلبه. */
+  usage: UsageRow[] | null;
+  /** ما وصل النموذج اليوم — بلا المردود بالحدّ. */
   askedToday: number;
+  /** منها من طلابٍ داخلين، منذ البدء. */
+  students: number;
+  /** أول يومٍ عُدّ فيه سؤال. */
+  since: string | null;
   reports: ReportRow[];
   answers: AnswerRow[];
 }) {
@@ -108,8 +119,18 @@ export function AskAdminView({
     <>
       <TabHead
         title="المساعد"
-        lede={`«اسأل عن المسابقة» يجيب من المنشور ومن الإجابات المعتمدة هنا. أسئلة آخر 24 ساعة: ${formatNumber(askedToday)} · بانتظارك: ${formatNumber(reports.length)}.`}
+        lede={`«اسأل عن المسابقة» يجيب من المنشور ومن الإجابات المعتمدة هنا. أسئلة اليوم: ${usage === null ? "—" : formatNumber(askedToday)} · بانتظارك: ${formatNumber(reports.length)}.`}
       />
+
+      <h2 style={H2}>الاستخدام</h2>
+      <div style={LIST}>
+        {since ? (
+          <p style={META}>
+            يُعدّ منذ {formatDate(`${since}T12:00:00+03:00`)} · منها من الطلاب: {formatNumber(students)} · ولا يُحفظ فيه نصّ السؤال ولا السائل.
+          </p>
+        ) : null}
+        {usage === null ? <p style={ERR}>تعذّر جلب أعداد الاستخدام.</p> : <UsageTable rows={usage} />}
+      </div>
 
       <h2 style={H2}>بانتظار جوابك</h2>
       <div style={LIST}>

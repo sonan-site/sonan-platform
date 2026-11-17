@@ -44,6 +44,23 @@ function isOutput(v: unknown): v is Output {
   );
 }
 
+/** نتيجة السؤال في العدّاد — تصنيف النموذج لا ما عُرض: التقني يبقى «صوتك» ولو أُحيل الزائر إلى شؤون الطلاب. */
+export type AskOutcome = "answer" | "student_affairs" | "voices" | "off_topic" | "blocked" | "limited" | "error";
+
+/** ما يُعدّ من ردّ النموذج. */
+export function outcomeOf(reply: Reply): AskOutcome {
+  switch (reply.kind) {
+    case "answer":
+      return "answer";
+    case "blocked":
+      return "blocked";
+    case "error":
+      return "error";
+    case "refer":
+      return reply.refer === "none" ? "off_topic" : reply.refer;
+  }
+}
+
 /** السجلّ يُقصّ من أوله ويبدأ بسؤال لا بجواب. */
 export function trimHistory(history: Turn[]): Turn[] {
   const recent = history.filter((t) => t.text.trim()).slice(-MAX_TURNS);

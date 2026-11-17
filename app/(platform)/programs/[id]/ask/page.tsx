@@ -2,6 +2,7 @@ import { ErrorState } from "@/components/shared/states";
 import { createClient } from "@/lib/db/server";
 import { authorizeRequest } from "@/lib/permissions/server";
 import { AskAdminView, type AnswerRow, type ReportRow } from "./ask-admin-view";
+import type { UsageRow } from "./usage-table";
 
 /**
  * تبويب المساعد (adr/0057) — تغذيته وتحسينه بلا عمل برمجي: أسئلةٌ بلا جواب، وإجاباتٌ أُبلغ عنها أو
@@ -14,8 +15,8 @@ export default async function AskTab({ params }: { params: Promise<{ id: string 
   if (!authz.ok) return <ErrorState title="غير مصرَّح" body={authz.message} />;
 
   const db = await createClient();
-  const [overview, reports, answers] = await Promise.all([
-    db.rpc("fn_ask_overview", { p_program_id: id }),
+  const [usage, reports, answers] = await Promise.all([
+    db.rpc("fn_ask_usage", { p_program_id: id }),
     db
       .from("ask_reports")
       .select("id, kind, audience, question, answer, status, created_at")
@@ -31,9 +32,17 @@ export default async function AskTab({ params }: { params: Promise<{ id: string 
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
   ]);
-  if (overview.error || reports.error || answers.error) return <ErrorState body="تعذّر جلب بيانات المساعد." />;
+  if (reports.error || answers.error) return <ErrorState body="تعذّر جلب بيانات المساعد." />;
 
-  const o = overview.data?.[0];
+  // العدّاد إحصاء: تعذّره يُخفي قسمه وحده، ويبقى ما بانتظار الجواب والإجابات المعتمدة.
+  if (usage.error) console.error("ask: تعذّر جلب العدّاد", usage.error.message);
+  const counts = usage.error ? null : (usage.data ?? []);
+  const usageRows: UsageRow[] = (counts ?? []).map((c) => ({ outcome: c.outcome, today: c.today, last7: c.last_7, total: c.total }));
+  const sum = (k: "today" | "last7" | "total") => usageRows.reduce((n, r) => n + r[k], 0);
+  const totals: UsageRow = { outcome: "total", today: sum("today"), last7: sum("last7"), total: sum("total") };
+  // «أسئلة اليوم» ما وصل النموذج: المردود بالحدّ يُعدّ في جدوله لا في الرأس، فمُغرِقٌ واحد لا يضخّمه.
+  const reachedToday = usageRows.filter((r) => r.outcome !== "limited").reduce((n, r) => n + r.today, 0);
+
   const reportRows: ReportRow[] = (reports.data ?? []).map((r) => ({
     id: r.id,
     kind: r.kind === "flagged" || r.kind === "blocked" ? r.kind : "unanswered",
@@ -52,7 +61,10 @@ export default async function AskTab({ params }: { params: Promise<{ id: string 
   return (
     <AskAdminView
       programId={id}
-      askedToday={o?.asked_24h ?? 0}
+      usage={counts === null ? null : totals.total === 0 ? [] : [...usageRows, totals]}
+      askedToday={reachedToday}
+      students={(counts ?? []).reduce((n, c) => n + c.student_total, 0)}
+      since={counts?.[0]?.first_day ?? null}
       reports={reportRows}
       answers={answerRows}
     />

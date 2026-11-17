@@ -250,6 +250,50 @@ export type Database = {
           },
         ]
       }
+      ask_counts: {
+        Row: {
+          asked: number
+          audience: string
+          created_at: string
+          day: string
+          deleted_at: string | null
+          id: string
+          outcome: string
+          program_id: string
+          updated_at: string
+        }
+        Insert: {
+          asked?: number
+          audience: string
+          created_at?: string
+          day: string
+          deleted_at?: string | null
+          id?: string
+          outcome: string
+          program_id: string
+          updated_at?: string
+        }
+        Update: {
+          asked?: number
+          audience?: string
+          created_at?: string
+          day?: string
+          deleted_at?: string | null
+          id?: string
+          outcome?: string
+          program_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ask_counts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ask_reports: {
         Row: {
           answer: string | null
@@ -3472,6 +3516,10 @@ export type Database = {
           model: string
         }[]
       }
+      fn_ask_count: {
+        Args: { p_audience: string; p_outcome: string; p_program_id: string }
+        Returns: undefined
+      }
       fn_ask_overview: {
         Args: { p_program_id: string }
         Returns: {
@@ -3494,6 +3542,17 @@ export type Database = {
       fn_ask_resolve: {
         Args: { p_answer: string; p_question: string; p_report_id: string }
         Returns: string
+      }
+      fn_ask_usage: {
+        Args: { p_program_id: string }
+        Returns: {
+          first_day: string
+          last_7: number
+          outcome: string
+          student_total: number
+          today: number
+          total: number
+        }[]
       }
       fn_ask_sources: {
         Args: { p_program_id: string }
