@@ -83,6 +83,74 @@ describe("الأسابيع والمحطات", () => {
     expect(names).toEqual([1, 2, 3, "أ", "ب", 4]);
   });
 
+  it("**المتأخر في أسبوع موعده** لا في أسبوعٍ لم يبدأ (صوتك ١٢ نوفمبر)", () => {
+    // بدأ السبت ٧ نوفمبر، والجمعة ليست يوم برنامج. ليلة الخميس ١٢ بعد ١١ م: أتمّ ٥ والمستحق ٦،
+    // فتاريخ اليوم السادس المتوقَّع السبت ١٤ — وموعده الخميس ١٢.
+    const plan = [
+      ...[1, 2, 3, 4, 5].map((n) => day(n, { completedOn: `2026-11-${String(6 + n + (n > 1 ? 1 : 0)).padStart(2, "0")}` })),
+      day(6, { scheduled: "2026-11-12", expected: "2026-11-14" }),
+      day(7, { scheduled: "2026-11-14", expected: "2026-11-15" }),
+    ];
+    const st = (d: PlanDay) => dayStatus(d, { stage: "done_today", currentDay: 6, doneDays: 5, dueDays: 6 });
+    expect(st(plan[5]!)).toBe("overdue");
+    const weeks = planWeeks(plan, st, "all", [], { today: "2026-11-12", dueDays: 6 });
+    expect(weeks.map((w) => [w.index, w.items.map((i) => (i.kind === "day" ? i.day.day : "م"))])).toEqual([
+      [1, [1, 2, 3, 4, 5, 6]],
+      [2, [7]],
+    ]);
+    expect(weeks[0]!.to).toBe("2026-11-12");
+    // و«المتأخرة» تعرضه في أسبوعه نفسه.
+    expect(planWeeks(plan, st, "late", [], { today: "2026-11-12", dueDays: 6 }).map((w) => w.index)).toEqual([1]);
+    // ومحطةٌ يوم الجمعة ١٣ بعده لا قبله.
+    const m = { examId: "x", name: "م", at: "2026-11-13T16:00:00+03:00", location: "", oral: false };
+    const order = planWeeks(plan, st, "all", [m], { today: "2026-11-12", dueDays: 6 }).flatMap((w) =>
+      w.items.map((i) => (i.kind === "day" ? i.day.day : "م")),
+    );
+    expect(order).toEqual([1, 2, 3, 4, 5, 6, "م", 7]);
+  });
+
+  // أيامٌ مرتّبةٌ عبر الأسابيع كلها — لا يتقدّم يومٌ على أصغر منه رقماً (المراجعة م٢).
+  const ordered = (weeks: ReturnType<typeof planWeeks>) => {
+    const seq = weeks.flatMap((w) => w.items.flatMap((i) => (i.kind === "day" ? [i.day.day] : [])));
+    return seq.every((n, i) => i === 0 || seq[i - 1]! < n);
+  };
+
+  it("**«اليوم» المتأخر كذلك** — الجمعة ولم يرصد شيئاً (المراجعة م١)", () => {
+    const plan = [
+      ...[1, 2, 3, 4, 5].map((n) => day(n, { completedOn: ["2026-11-07", "2026-11-09", "2026-11-10", "2026-11-11", "2026-11-11"][n - 1]! })),
+      day(6, { scheduled: "2026-11-12", expected: "2026-11-14" }),
+      day(7, { scheduled: "2026-11-14", expected: "2026-11-15" }),
+    ];
+    const st = (d: PlanDay) => dayStatus(d, { stage: "tasks", currentDay: 6, doneDays: 5, dueDays: 6 });
+    expect(st(plan[5]!)).toBe("now");
+    const weeks = planWeeks(plan, st, "all", [], { today: "2026-11-13", dueDays: 6 });
+    expect(weeks.map((w) => [w.index, w.items.map((i) => (i.kind === "day" ? i.day.day : "م"))])).toEqual([
+      [1, [1, 2, 3, 4, 5, 6]],
+      [2, [7]],
+    ]);
+    expect(planWeeks(plan, st, "late", [], { today: "2026-11-13", dueDays: 6 }).map((w) => w.index)).toEqual([1]);
+  });
+
+  it("**من يعوّض يبقى مرتّباً** — أتمّ الخامس اليوم والمستحق سبعة", () => {
+    // الإثنين ١٦ نوفمبر: أتمّ ١–٤ في الأسبوع الأول والخامس اليوم، والسادس والسابع فات موعدهما.
+    const plan = [
+      ...[1, 2, 3, 4].map((n) => day(n, { completedOn: `2026-11-${String(6 + n).padStart(2, "0")}` })),
+      day(5, { completedOn: "2026-11-16" }),
+      day(6, { scheduled: "2026-11-12", expected: "2026-11-17" }),
+      day(7, { scheduled: "2026-11-14", expected: "2026-11-18" }),
+      day(8, { scheduled: "2026-11-15", expected: "2026-11-19" }),
+    ];
+    for (const stage of ["done_today", "tasks"] as const) {
+      const st = (d: PlanDay) => dayStatus(d, { stage, currentDay: 6, doneDays: 5, dueDays: 7 });
+      const weeks = planWeeks(plan, st, "all", [], { today: "2026-11-16", dueDays: 7 });
+      expect(ordered(weeks), stage).toBe(true);
+      expect(weeks.map((w) => w.items.map((i) => (i.kind === "day" ? i.day.day : "م"))), stage).toEqual([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+      ]);
+    }
+  });
+
   it("التاريخ القصير بلا انزلاق منطقة", () => {
     expect(shortDate("2026-11-03")).toMatch(/3/);
   });

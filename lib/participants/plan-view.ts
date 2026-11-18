@@ -143,10 +143,14 @@ export type Milestone = { examId: string; name: string; at: string; location: st
 
 export type PlanItem = { kind: "day"; day: PlanDay; status: DayStatus } | { kind: "milestone"; milestone: Milestone };
 
+/** أحوال اليوم المُتمّ — وما سواها لم يُتمّ بعد. */
+const FINISHED: ReadonlySet<DayStatus> = new Set(["done", "credited", "slipped", "recovered"]);
+
 export type PlanWeek = { index: number; from: string | null; to: string | null; done: number; total: number; items: PlanItem[] };
 
 /**
- * الأسابيع: يُجمَع كل يومٍ بأسبوع تاريخه المعروض (السبت أوله)، ورقمُ الأسبوع من أول أيام الخطة —
+ * الأسابيع: يُجمَع كل يومٍ بأسبوع تاريخه المعروض (السبت أوله) — وما فات موعده ولم يُتمّ بأسبوع اليوم —
+ * ورقمُ الأسبوع من أول أيام الخطة —
  * ثابتٌ مهما كان المرشّح. والمحطة بعد آخر يومٍ تاريخه قبلها أو فيه.
  */
 export function planWeeks(
@@ -156,19 +160,24 @@ export function planWeeks(
   milestones: Milestone[],
   opts: { today: string; dueDays: number },
 ): PlanWeek[] {
-  const first = days.map(shownDate).find((x): x is string => x !== null);
+  // موضع اليوم: تاريخه المعروض — إلا ما فات موعده ولم يُتمّ («متأخر»، أو «اليوم» وهو متأخر) فاليومُ
+  // نفسه (صوتك ١٢ نوفمبر): تاريخه المتوقَّع يومُ البرنامج القادم، فكان يقع في أسبوعٍ لم يبدأ موسوماً
+  // «متأخر». واليومُ لا الموعدُ المقرَّر: المُتمّ قبله والقادم بعده، فلا يتقدّم يومٌ على أصغر منه رقماً.
+  const placed = days.map((d) => {
+    const status = statusOf(d);
+    const pending = !FINISHED.has(status) && d.day <= opts.dueDays;
+    return { d, status, date: pending ? opts.today : shownDate(d) };
+  });
+  const first = placed.map((p) => p.date).find((x): x is string => x !== null);
   const origin = first ? weekStart(first) : 0;
   const weeks = new Map<number, PlanWeek>();
-  const weekOf = (d: PlanDay) => {
-    const date = shownDate(d);
-    return date && first ? Math.floor((weekStart(date) - origin) / (7 * DAY_MS)) + 1 : 1;
-  };
+  const weekOf = (date: string | null) =>
+    date && first ? Math.floor((weekStart(date) - origin) / (7 * DAY_MS)) + 1 : 1;
+  const dateOf = new Map(placed.map((p) => [p.d.day, p.date]));
 
-  for (const d of days) {
-    const index = weekOf(d);
+  for (const { d, status, date } of placed) {
+    const index = weekOf(date);
     const week = weeks.get(index) ?? { index, from: null, to: null, done: 0, total: 0, items: [] };
-    const status = statusOf(d);
-    const date = shownDate(d);
     week.total += 1;
     if (status === "done" || status === "slipped" || status === "recovered") week.done += 1;
     if (date) {
@@ -191,7 +200,7 @@ export function planWeeks(
       let after = -1;
       for (const w of ordered) {
         w.items.forEach((it, i) => {
-          const date = it.kind === "day" ? shownDate(it.day) : toDateInput(it.milestone.at);
+          const date = it.kind === "day" ? (dateOf.get(it.day.day) ?? null) : toDateInput(it.milestone.at);
           if (date && date <= on) {
             target = w;
             after = i;
