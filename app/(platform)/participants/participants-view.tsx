@@ -65,6 +65,7 @@ export function ParticipantsView({
   total,
   page,
   withProgram,
+  nonArabicNames,
   programLinks,
   statusLinks,
   duplicateLinks,
@@ -82,6 +83,8 @@ export function ParticipantsView({
   page: number;
   /** من سجّل في برنامجٍ عبر كل الحسابات — `null` إن تعذّر عدّه. */
   withProgram: number | null;
+  /** حساباتٌ في اسمها حرفٌ بغير العربية (`adr/0062`) — `null` إن تعذّر عدّها. */
+  nonArabicNames: number | null;
   programLinks: FilterLink[];
   statusLinks: FilterLink[];
   duplicateLinks: FilterLink[];
@@ -176,6 +179,12 @@ export function ParticipantsView({
         }
       />
 
+      {nonArabicNames ? (
+        <p className={styles.note}>
+          {accountsText(nonArabicNames)} في أسمائها حروفٌ بغير العربية. تظهر لأصحابها عند الدخول نافذةٌ تطلب
+          تحديثها، وتعود كل يوم حتى تُحدَّث.
+        </p>
+      ) : null}
       {exportHref && total > 0 ? (
         <p className={styles.export}>
           <a href={exportHref} download className={styles.edit}>
@@ -262,4 +271,14 @@ export function ParticipantsView({
       </Modal>
     </>
   );
+}
+
+/** «حسابٌ واحد · حسابان · ٣ حسابات · ١١ حساباً · ١٠٠ حساب» — كـ`daysText`. */
+function accountsText(count: number): string {
+  if (count === 1) return "حسابٌ واحد";
+  if (count === 2) return "حسابان";
+  const rest = count % 100;
+  if (rest >= 3 && rest <= 10) return `${formatNumber(count)} حسابات`;
+  if (rest >= 11 || count < 100) return `${formatNumber(count)} حساباً`;
+  return `${formatNumber(count)} حساب`;
 }

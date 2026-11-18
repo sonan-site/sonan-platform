@@ -10,6 +10,7 @@ import { createClient } from "@/lib/db/server";
 import { userMessage } from "@/lib/db/messages";
 import { normalizePhone } from "@/lib/profile/phone";
 import { isNationalId, NATIONAL_ID_MESSAGE, normalizeNationalId } from "@/lib/validation/identity";
+import { namePart } from "@/lib/validation/profile";
 
 /**
  * التسجيل في برنامج.
@@ -123,9 +124,10 @@ export async function completeForRegistration(_prev: FormState, form: FormData):
   const identity: { national_id?: string; guardian_phone?: string } = {};
 
   if (form.has("grandfatherName")) {
-    const v = get("grandfatherName");
-    if (v.length < 2 || v.length > 40) fieldErrors["grandfatherName"] = "اكتب اسم جدّك";
-    else profile.grandfather_name = v;
+    // بقاعدة أجزاء الاسم نفسها — بالحروف العربية (adr/0062).
+    const v = namePart("اسم الجد").safeParse(get("grandfatherName"));
+    if (!v.success) fieldErrors["grandfatherName"] = v.error.issues[0]?.message ?? "اكتب اسم جدّك";
+    else profile.grandfather_name = v.data;
   }
   if (form.has("phone")) {
     const v = normalizePhone(get("phone"), "SA");
@@ -157,7 +159,7 @@ export async function completeForRegistration(_prev: FormState, form: FormData):
       .eq("user_id", session.userId)
       .is("deleted_at", null)
       .select("id");
-    if (error || !data?.length) return { error: "تعذّر حفظ بياناتك. أعد المحاولة." };
+    if (error || !data?.length) return { error: userMessage(error, "تعذّر حفظ بياناتك. أعد المحاولة.") };
   }
   if (Object.keys(identity).length > 0) {
     // صفٌّ أُرشف (حذفٌ ليّن) لا يُحدَّث صامتاً — الدالة تتجاهله فيعود الطالب إلى النموذج بلا خبر.

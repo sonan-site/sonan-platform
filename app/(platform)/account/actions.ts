@@ -15,7 +15,7 @@ import { setSignInBlocked } from "@/lib/mail";
 import { setPasswordSchema } from "@/lib/validation/auth";
 import { z } from "@/lib/validation/z";
 import { identityInput, identitySchema } from "@/lib/validation/identity";
-import { profileInput, profileSchema } from "@/lib/validation/profile";
+import { nameSchema, profileInput, profileSchema } from "@/lib/validation/profile";
 
 /**
  * «حسابي» — ما يفعله المستخدم بحسابه هو.
@@ -52,6 +52,37 @@ export async function updateMyProfile(_prev: FormState, form: FormData): Promise
 
   revalidatePath("/account");
   return { notice: "حُفظت بياناتك." };
+}
+
+/**
+ * تحديث الاسم بالحروف العربية من النافذة (`adr/0062`) — أجزاؤه الأربعة وحدها، على صاحبه.
+ * والتغيير يُسجَّل في سجلّ تعديلات البيانات بمشغّله (`adr/0059`).
+ */
+export async function updateMyName(_prev: FormState, form: FormData): Promise<FormState> {
+  const parsed = nameSchema.safeParse({
+    firstName: String(form.get("firstName") ?? ""),
+    fatherName: String(form.get("fatherName") ?? ""),
+    grandfatherName: String(form.get("grandfatherName") ?? ""),
+    familyName: String(form.get("familyName") ?? ""),
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error.issues) };
+
+  const session = await getSession();
+  if (session.status !== "active") return { error: "انتهت جلستك. سجّل الدخول من جديد." };
+
+  const db = await createClient();
+  const { data, error } = await db
+    .from("profiles")
+    .update(parsed.data)
+    .eq("user_id", session.userId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) return { error: userMessage(error, "تعذّر حفظ اسمك.") };
+  if (!data?.length) return { error: "تعذّر حفظ اسمك. أعد تحميل الصفحة ثم حاول." };
+
+  // الإطار كله يقرأ الجلسة — فتختفي النافذة ويظهر الاسم الجديد حيث كان.
+  revalidatePath("/", "layout");
+  return { notice: "حُفظ اسمك." };
 }
 
 /**

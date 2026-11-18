@@ -61,11 +61,13 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
     offset: (page - 1) * DEFAULT_PAGE_SIZE,
   });
 
-  const [listResult, enrolledResult, programsResult] = await Promise.all([
+  const [listResult, enrolledResult, programsResult, nonArabicResult] = await Promise.all([
     db.rpc("fn_accounts_list", args),
     // رأس الشاشة: من في برنامجٍ على الأقل عبر كل الحسابات — العدد الكلّي لصفٍّ واحد يكفي.
     seesAllEnrolment ? db.rpc("fn_accounts_list", { p_program: "any", p_limit: 1 }) : null,
     db.from("programs").select("id, name").is("deleted_at", null).order("created_at"),
+    // من بقي في اسمه حرفٌ بغير العربية (adr/0062) — والصفحة لحامل users.read فالعدد كامل.
+    db.rpc("fn_non_arabic_names"),
   ]);
   if (listResult.error) return <ErrorState body="تعذّر جلب الحسابات. أعد المحاولة." />;
 
@@ -142,6 +144,7 @@ export default async function ParticipantsPage({ searchParams }: { searchParams:
       total={Number(data[0]?.total ?? 0)}
       page={page}
       withProgram={withProgram}
+      nonArabicNames={nonArabicResult.error ? null : (nonArabicResult.data ?? null)}
       programLinks={programLinks}
       statusLinks={statusLinks}
       duplicateLinks={duplicateLinks}

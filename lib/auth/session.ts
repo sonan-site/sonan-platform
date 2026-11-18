@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/db/server";
 import { now } from "@/lib/format";
+import { isArabicName, type NameParts } from "@/lib/validation/profile";
 import { accountState, COMPLETENESS_COLUMNS, suggestedName } from "./account-state";
 import { TEMP_PASSWORD_KEY, tempPasswordState } from "./temp-password";
 
@@ -43,6 +44,11 @@ export type SessionState =
       isParticipant: boolean;
       /** روابط برامج مشاركاته — يُعرف بها إطار الطالب بلون الحملة (ملحق `adr/0045`). */
       programSlugs: string[];
+      /**
+       * في اسمه جزءٌ بغير الحروف العربية (`adr/0062`) — أجزاؤه كما هي لنافذة التحديث، وإلا `null`.
+       * لا يُوقف شيئاً: النافذة تُؤجَّل، والرصد يمضي.
+       */
+      nameToUpdate: NameParts | null;
     };
 
 export const getSession = cache(async (): Promise<SessionState> => {
@@ -108,5 +114,15 @@ export const getSession = cache(async (): Promise<SessionState> => {
       const slug = (p.programs as unknown as { slug: string } | null)?.slug;
       return slug ? [slug] : [];
     }),
+    // المكتمل له ملف — والفحص على المحفوظ نفسه الذي تعدّه `fn_non_arabic_names`.
+    nameToUpdate:
+      profile && !isArabicName(profile)
+        ? {
+            firstName: profile.first_name ?? "",
+            fatherName: profile.father_name ?? "",
+            grandfatherName: profile.grandfather_name ?? "",
+            familyName: profile.family_name ?? "",
+          }
+        : null,
   };
 });

@@ -98,7 +98,15 @@ describe("الحاوية", () => {
        where n.nspname = 'private' order by 1`,
     );
     expect(rows.filter((r) => r.anon)).toEqual([]);
-    expect(rows.filter((r) => r.auth).map((r) => r.name)).toEqual(["voice_image_readable", "voice_path", "voice_staff_scope", "voice_upload_ok"]);
+    // ومعها صيغة الاسم العربي (adr/0062): يستدعيها مشغّل الملف وعدّاد الإدارة بصلاحية من يكتب ويقرأ.
+    expect(rows.filter((r) => r.auth).map((r) => r.name)).toEqual([
+      "is_arabic_name",
+      "name_part_ok",
+      "voice_image_readable",
+      "voice_path",
+      "voice_staff_scope",
+      "voice_upload_ok",
+    ]);
   });
 
   it("**الحساب الموقوف لا يرفع ولا يسجّل**", async () => {

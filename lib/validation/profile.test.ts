@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { profileSchema } from "./profile";
+import { cleanNamePart, isArabicName, nameSchema, profileSchema } from "./profile";
 
 const valid = {
   firstName: "إبراهيم",
@@ -34,6 +34,38 @@ describe("بيانات الحساب", () => {
     expect(errorsOf({ ...valid, grandfatherName: "   " })).toHaveProperty("grandfatherName");
     expect(errorsOf({ ...valid, fatherName: "" })).toHaveProperty("fatherName");
     expect(errorsOf({ ...valid, familyName: "1234" })).toHaveProperty("familyName");
+  });
+
+  it("**الاسم بالحروف العربية** (adr/0062) — بتشكيله وشَرطته وحروف الأردية", () => {
+    for (const bad of ["Ali", "عليA", "علي1", "1علي", "-علي", "علي.", "ـعلي"]) {
+      expect(errorsOf({ ...valid, firstName: bad }).firstName, bad).toMatch(/بالحروف العربية/);
+    }
+    for (const ok of ["عبد الله", "عبدالرحمن", "مُحَمَّد", "آل-سعود", "ابن ٱلقيم", "پرویز", "عائشہ", "ئيلاف", "يحيى", "الشيخة"]) {
+      expect(errorsOf({ ...valid, firstName: ok }), ok).toEqual({});
+    }
+  });
+
+  it("**ما لا يُرى يُنظَّف قبل الفحص** — علامات الاتجاه والوصل وأشكال العرض والمسافات المتتابعة", () => {
+    const c = String.fromCharCode;
+    expect(cleanNamePart(`${c(0x200f)}سالم${c(0x200c)}`)).toBe("سالم");
+    expect(cleanNamePart("عبد   الله ")).toBe("عبد الله");
+    // «ﻋﻠﻲ» بأشكال العرض (U+FECB U+FEE0 U+FEF2) ← «علي».
+    expect(cleanNamePart(`${c(0xfecb)}${c(0xfee0)}${c(0xfef2)}`)).toBe("علي");
+    expect(errorsOf({ ...valid, firstName: `${c(0x200f)}سالم` })).toEqual({});
+    expect(errorsOf({ ...valid, firstName: "سالم-" }).firstName).toMatch(/بالحروف العربية/);
+  });
+
+  it("**أجزاء الاسم وحدها** لنافذة التحديث، و`isArabicName` يحكم على المحفوظ", () => {
+    expect(nameSchema.parse({ firstName: " سالم ", fatherName: "محمد", grandfatherName: "علي", familyName: "التجربة" })).toEqual({
+      first_name: "سالم",
+      father_name: "محمد",
+      grandfather_name: "علي",
+      family_name: "التجربة",
+    });
+    expect(nameSchema.safeParse({ firstName: "Salem", fatherName: "محمد", grandfatherName: "علي", familyName: "التجربة" }).success).toBe(false);
+    const parts = { first_name: "سالم", father_name: "محمد", grandfather_name: null, family_name: "التجربة" };
+    expect(isArabicName(parts)).toBe(true);
+    expect(isArabicName({ ...parts, family_name: "Altajriba" })).toBe(false);
   });
 
   it("الجنس والميلاد والجنسية إلزامية", () => {

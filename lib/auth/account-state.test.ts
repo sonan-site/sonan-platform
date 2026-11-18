@@ -49,10 +49,15 @@ describe("حالة الحساب", () => {
 
 describe("الاسم المقترح من Google", () => {
   it("من `given_name` و`family_name` إن وُجدا", () => {
-    expect(suggestedName({ given_name: "Ibrahim", family_name: "Alhussain" })).toEqual({
-      first: "Ibrahim",
-      family: "Alhussain",
+    expect(suggestedName({ given_name: "إبراهيم", family_name: "الحسين" })).toEqual({
+      first: "إبراهيم",
+      family: "الحسين",
     });
+  });
+
+  it("**الاسم بغير العربية لا يُقترح** (adr/0062) — يكتبه صاحبه", () => {
+    expect(suggestedName({ given_name: "Ibrahim", family_name: "الحسين" })).toEqual({ first: "", family: "الحسين" });
+    expect(suggestedName({ full_name: "Ibrahim Alhussain" })).toEqual({ first: "", family: "" });
   });
 
   it("وإلا من الاسم الكامل: أوله وآخره", () => {

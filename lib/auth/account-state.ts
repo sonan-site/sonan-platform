@@ -10,6 +10,7 @@
  */
 
 import { TERMS_VERSION } from "@/lib/legal/terms";
+import { ARABIC_NAME } from "@/lib/validation/profile";
 
 export type AccountState = "active" | "suspended" | "incomplete";
 
@@ -65,8 +66,10 @@ export function suggestedName(metadata: Record<string, unknown> | undefined): {
     return typeof value === "string" ? value.trim() : "";
   };
   const full = text("full_name") || text("name");
+  // الاسم بالعربية (adr/0062): المقترح بغيرها لا يُعبّأ — يكتبه صاحبه بنفسه.
+  const arabic = (v: string) => (ARABIC_NAME.test(v) ? v : "");
   return {
-    first: text("given_name") || full.split(/\s+/)[0] || "",
-    family: text("family_name") || (full.includes(" ") ? full.split(/\s+/).slice(-1)[0]! : ""),
+    first: arabic(text("given_name") || full.split(/\s+/)[0] || ""),
+    family: arabic(text("family_name") || (full.includes(" ") ? full.split(/\s+/).slice(-1)[0]! : "")),
   };
 }

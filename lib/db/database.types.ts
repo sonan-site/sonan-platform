@@ -4252,6 +4252,7 @@ export type Database = {
         }[]
       }
       fn_my_voices_unseen: { Args: never; Returns: number }
+      fn_non_arabic_names: { Args: never; Returns: number }
       fn_open_next_day: { Args: { p_participant_id: string }; Returns: Json }
       fn_open_next_day_at: {
         Args: { p_at: string; p_participant_id: string }

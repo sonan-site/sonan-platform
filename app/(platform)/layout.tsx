@@ -14,6 +14,7 @@ import { createClient } from "@/lib/db/server";
 import { switchMode } from "@/lib/auth/switch-mode";
 import { currentViewer } from "@/lib/permissions/granted";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
+import { ArabicNamePrompt } from "./arabic-name-prompt";
 
 /** كل ما تحت (platform) يمرّ بالتخطيط الجامع. لا تخطيط موضعي في صفحة. */
 export default async function PlatformLayout({ children }: { children: ReactNode }) {
@@ -96,6 +97,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
       }
     >
       {children}
+      {/* الاسم بالحروف العربية (adr/0062): نافذةٌ تُؤجَّل لا تُوقف. */}
+      {session.status === "active" && session.nameToUpdate ? <ArabicNamePrompt name={session.nameToUpdate} /> : null}
     </AppLayout>
   );
 }

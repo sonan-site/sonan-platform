@@ -48,7 +48,8 @@ async function signedInUser(tag: string): Promise<{ id: string; db: Db }> {
     user_metadata: {
       first_name: "حساب",
       father_name: "اختبار",
-      family_name: tag,
+      // الاسم بالعربية (adr/0062) — والوسم في البريد يميّز الحسابات.
+      family_name: "التجربة",
       gender: "male",
       birth_date: "2010-01-01",
       nationality: "SA",
