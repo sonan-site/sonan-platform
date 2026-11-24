@@ -62,20 +62,24 @@ export default async function PlatformLayout({ children }: { children: ReactNode
 
   // إطار الطالب بلون الحملة (ملحق `adr/0045`): لمن يشارك في برنامجها، في وضع الطالب وحده — والفريق
   // بهوية المنصة. ومشاركاته من الجلسة نفسها، فالسؤال الوحيد الزائد عن المفتاح وفي وضع الطالب فقط.
-  const featured = mode === "participant" && session.status === "active" ? await getHomeFeatured() : null;
-  const skin = featured && session.status === "active" && session.programSlugs.includes(featured) ? "campaign-tint" : null;
-  // مساعد المسابقة لطالبها (adr/0057) — بالشرط نفسه الذي يلوّن إطاره.
-  const ask = skin && featured ? await askSetup(featured) : undefined;
-  // نقطتا «صوتك» والجرس في وضع الطالب وحده — سؤالان صغيران معاً (adr/0054 · adr/0055).
-  const [voicesUnseen, notificationsUnseen] =
+  // ومساعد المسابقة لطالبها (adr/0057) — بالشرط نفسه الذي يلوّن إطاره.
+  // ونقطتا «صوتك» والجرس في وضع الطالب وحده (adr/0054 · adr/0055) — لا تنتظران البرنامج المميَّز،
+  // فتُسألان معه (خطة الأداء ٢٤ نوفمبر · ب٢).
+  const [[skin, ask], [voicesUnseen, notificationsUnseen]] = await Promise.all([
+    (async () => {
+      const featured = mode === "participant" && session.status === "active" ? await getHomeFeatured() : null;
+      const tint = featured && session.status === "active" && session.programSlugs.includes(featured) ? "campaign-tint" : null;
+      return [tint, tint && featured ? await askSetup(featured) : undefined] as const;
+    })(),
     mode === "participant"
-      ? await createClient().then((db) =>
+      ? createClient().then((db) =>
           Promise.all([
             db.rpc("fn_my_voices_unseen").then((r) => r.data ?? 0),
             db.rpc("fn_my_notifications_unseen").then((r) => r.data ?? false),
           ]),
         )
-      : [0, false];
+      : Promise.resolve([0, false] as const),
+  ]);
 
   return (
     <AppLayout

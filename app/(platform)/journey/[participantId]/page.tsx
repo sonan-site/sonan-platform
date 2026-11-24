@@ -70,12 +70,9 @@ export default async function JourneyDayPage({
   };
   const track = participant.tracks as unknown as { id: string; name: string; material_url: string | null } | null;
   // «رحلتي» تُدخل صاحب المشاركة الواحدة إلى هنا مباشرة — فرابطها في المخرج يدور به (ر١).
-  const { count: participations } = await db
-    .from("participants")
-    // بالربط نفسه الذي تعدّ به «رحلتي» — فلا يختلف العددان فيدور الرابط (المراجعة ١).
-    .select("id, programs!inner(id)", { count: "exact", head: true })
-    .eq("user_id", session.userId)
-    .is("deleted_at", null);
+  // والعدد من الجلسة: مشاركاته ببرامجها، والبرنامج المحجوب يُسقط منها كما يُسقطه ربط «رحلتي»
+  // الداخلي — فلا يختلف العددان فيدور الرابط (المراجعة ١)، ولا سؤال زائد في كل فتح.
+  const participations = session.programSlugs.length;
   const bail = (title: string, body: string) => (
     <JourneyBail
       title={title}
@@ -84,23 +81,30 @@ export default async function JourneyDayPage({
       programSlug={program.slug}
       contact={program.contact}
       registrationNo={formatRegistrationNo(program.registration_prefix, participant.registration_no)}
-      listLink={(participations ?? 0) > 1}
+      listLink={participations > 1}
     />
   );
 
   if (!participant.track_id || !track) {
     return bail("لم يُحدَّد مسارك", "تواصل مع إدارة البرنامج ليُحدَّد مسارك، وبعدها يظهر واجبك هنا.");
   }
-  // من انتهت رحلته لا يُرصد له شيء، فيُقال له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
-  // النهائي: تأهّله وجلسته، ونتيجته بعد نشرها (الدفعة د). تعذّره يُخفي بطاقته ولا يُسقط الصفحة.
-  const finalResult = await db.rpc("fn_my_final", { p_participant_id: participantId });
+  // الأسئلة الثلاثة معاً — لا يقرأ أحدها ما يكتبه غيره (خطة الأداء ٢٤ نوفمبر · ب١):
+  // - النهائي: تأهّله وجلسته، ونتيجته بعد نشرها (الدفعة د). تعذّره يُخفي بطاقته ولا يُسقط الصفحة.
+  // - حالة التأهل بين لحظة الأهلية وحسم الفرز (خطة دليل المشارك · هـ) — تعذّرها يُخفيها كذلك.
+  // - الحال، لمن يتبع الخطة وحده — وقراءتها تسوّي ما مضى أولاً، فالأرشيف بعدها كاملٌ إلى الآن
+  //   (adr/0041). والدالتان قبلها لا تقرآن الأرشيف ولا الإتمامات، فلا تنتظرانها.
+  const plan = followsPlan(participant.status);
+  const [finalResult, eligibilityResult, stateResult] = await Promise.all([
+    db.rpc("fn_my_final", { p_participant_id: participantId }),
+    db.rpc("fn_my_eligibility", { p_participant_id: participantId }),
+    plan ? db.rpc("fn_journey_state", { p_participant_id: participantId }) : null,
+  ]);
   const finals = toFinals(finalResult.data ?? []);
-  // حالة التأهل بين لحظة الأهلية وحسم الفرز (خطة دليل المشارك · هـ) — تعذّرها يُخفيها كذلك.
-  const eligibilityResult = await db.rpc("fn_my_eligibility", { p_participant_id: participantId });
   const eligibility = toEligibility(eligibilityResult.data ?? []);
 
-  // من انتهت رحلته يرى نتيجته أولاً — ثم المخرج.
-  if (!followsPlan(participant.status)) {
+  // من انتهت رحلته لا يُرصد له شيء، فيُقال له ذلك — لا «تواصل مع الإدارة» لمن أنهى البرنامج.
+  // ويرى نتيجته أولاً — ثم المخرج.
+  if (!plan || !stateResult) {
     return (
       <>
         {eligibility.map((e) => (
@@ -114,8 +118,7 @@ export default async function JourneyDayPage({
     );
   }
 
-  // ══ الحال — وقراءتها تسوّي ما مضى أولاً، فالأرشيف بعدها كاملٌ إلى الآن (adr/0041) ══
-  const stateResult = await db.rpc("fn_journey_state", { p_participant_id: participantId });
+  // ══ الحال ══
   if (stateResult.error) return <ErrorState body="تعذّر جلب حالك في الخطة." />;
   let state: JourneyState | null;
   try {

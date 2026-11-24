@@ -135,6 +135,8 @@ const hasDetails = (t: TaskRow) => t.repetition !== null || t.lines.some((l) => 
 const AUTO_MS = 1000;
 /** «ابدأ اليوم التالي» لا يقع تحت إصبع آخر ضغطة: فتح التالي يُغلق التراجع عن السابق. */
 const NEXT_GUARD_MS = 1500;
+/** غيابٌ عن الشاشة يُعاد بعده جلب الحال كله — لما رُصد من جهازٍ آخر. وما دونه لا يُعاد إلا لعبور الوقت. */
+const AWAY_REFRESH_MS = 10 * 60_000;
 
 /**
  * شاشة اليوم (`docs/reviews/2026-10-14-خطة-واجهة-الطالب.md`، المرحلة أ):
@@ -241,26 +243,37 @@ export function JourneyView({
   // ── الساعة: العدّ التنازلي، وتحديث الحال عند انقضاء وقت الرصد ──
   const [clock, setClock] = useState(serverClock);
   const lastClock = useRef(serverClock);
+  // لحظة الغياب خارج الأثر: تحديثٌ يقع والتبويب خلفيٌّ يعيد الأثر، فلا يُصفَّر بها غيابٌ بدأ قبله (المراجعة ٤أ).
+  const hiddenAt = useRef<number | null>(null);
   useEffect(() => {
     const toMin = (c: string) => Number(c.slice(0, 2)) * 60 + Number(c.slice(3, 5));
     // فرق ساعة الجهاز عن الخادم يُحسب مرةً، فجوالٌ ساعته مخطئة لا يعدّ وقتاً أغلقته القاعدة.
     const skew = toMin(serverClock) - toMin(toTimeInput(now()));
-    const tick = () => {
+    const tick = (force = false) => {
       const m = (((toMin(toTimeInput(now())) + skew) % 1440) + 1440) % 1440;
       const c = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
       // عند انقضاء وقت الرصد — أو عبور منتصف الليل — تتغيّر نافذتا الرصد والتراجع، فتُقرأ الحال من جديد.
-      if ((lastClock.current < state.deadline && c >= state.deadline) || c < lastClock.current) router.refresh();
+      if (force || (lastClock.current < state.deadline && c >= state.deadline) || c < lastClock.current) router.refresh();
       lastClock.current = c;
       setClock(c);
     };
-    const id = setInterval(tick, 30_000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") router.refresh();
+    const id = setInterval(() => tick(), 30_000);
+    // العودة إلى الشاشة (من واتساب أو تطبيق الصوت) لا تُعيد الصفحة كلها (خطة الأداء ٢٤ نوفمبر · ب٣):
+    // الساعة تُضبط فوراً — والمؤقّت يتوقّف في الخلفية فيُفحص عبور الوقت عندها — والجلب كله لمن غاب طويلاً.
+    if (document.visibilityState === "hidden") hiddenAt.current ??= now().getTime();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt.current ??= now().getTime();
+        return;
+      }
+      const away = hiddenAt.current === null ? 0 : now().getTime() - hiddenAt.current;
+      hiddenAt.current = null;
+      tick(away >= AWAY_REFRESH_MS);
     };
-    document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [router, serverClock, state.deadline]);
 

@@ -60,13 +60,14 @@ export type AskSetup = { slug: string; programName: string; contact: string };
  * يُقرأ الاسم والتواصل بعميل القارئ كما تقرؤهما الصفحة.
  */
 export const askSetup = cache(async (slug: string): Promise<AskSetup | undefined> => {
-  if (!(await config()).enabled) return undefined;
-  const { data } = await (await createClient())
-    .from("programs")
-    .select("name, contact, status")
-    .eq("slug", slug)
-    .is("deleted_at", null)
-    .maybeSingle();
+  // السؤالان معاً — يُقرأ البرنامج ولو كان المساعد موقوفاً، فلا ينتظر أحدهما الآخر في كل صفحة.
+  const [{ enabled }, { data }] = await Promise.all([
+    config(),
+    createClient().then((db) =>
+      db.from("programs").select("name, contact, status").eq("slug", slug).is("deleted_at", null).maybeSingle(),
+    ),
+  ]);
+  if (!enabled) return undefined;
   if (!data || data.status !== "published") return undefined;
   return { slug, programName: data.name, contact: data.contact || "شؤون الطلاب" };
 });
