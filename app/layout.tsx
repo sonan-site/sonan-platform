@@ -13,6 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: name, template: `%s · ${name}` },
     description: "منصة إدارة رحلة المشارك في برامج جمعية سنن التعليمية",
+    // اسم الأيقونة في الشاشة الرئيسية بالآيفون، وفتحها بلا شريط المتصفح (`adr/0063`).
+    appleWebApp: { capable: true, title: "سنن", statusBarStyle: "default" },
   };
 }
 
@@ -22,11 +24,18 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 const APPLY_THEME = `try{var t=localStorage.getItem("sonan.theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}`;
 
+/**
+ * عرض التثبيت في Chrome وEdge يُطلق **مرةً مع التحميل**، قبل أن تُحمَّل دعوة التثبيت
+ * (`adr/0063`). فيُمسك هنا ويُحفظ لها، ولا يُعرض شريط المتصفح الخاص.
+ */
+const CAPTURE_INSTALL = `addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__sonanInstall=e});addEventListener("appinstalled",function(){window.__sonanInstall=null})`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
       <head>
         <script dangerouslySetInnerHTML={{ __html: APPLY_THEME }} />
+        <script dangerouslySetInnerHTML={{ __html: CAPTURE_INSTALL }} />
       </head>
       <body>{children}</body>
     </html>

@@ -1,7 +1,8 @@
 .notice {
   position: fixed;
   inset-inline: var(--space-4);
-  inset-block-end: calc(var(--chrome-block-end, 0px) + var(--space-4) + env(safe-area-inset-bottom));
+  /* ويعلو شريط دعوة التثبيت إن ظهر (adr/0063). */
+  inset-block-end: calc(var(--chrome-block-end, 0px) + var(--install-bar, 0px) + var(--space-4) + env(safe-area-inset-bottom));
   z-index: 30;
   display: flex;
   align-items: center;

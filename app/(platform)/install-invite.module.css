@@ -1,0 +1,47 @@
+/*
+ * دعوة التثبيت (adr/0063): شريطٌ عائمٌ أسفل الشاشة فوق المحتوى — يظهر متأخراً بعد تحميل
+ * المكتبة، فلو كان في مجرى الصفحة لدفع المحتوى تحته وقد يقع الضغط على غير المقصود
+ * (المراجعة م٣). يرتفع فوق شريط التنقّل السفلي (`--chrome-block-end`)، ويتوسّط الشاشة
+ * بعرضٍ لا يبلغ الشريط الجانبي ولا زرّ المساعد في زاويتها.
+ */
+.invite {
+  position: fixed;
+  inset-inline: var(--space-4);
+  inset-block-end: calc(var(--chrome-block-end, 0px) + var(--space-3) + env(safe-area-inset-bottom, 0px));
+  /* تحت التنبيه وشريط تبويبات الطالب (٣٠)، وفوق الشريط السفلي والجانبي (٢٠). */
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  max-inline-size: 28rem;
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.icon {
+  flex: none;
+  border-radius: var(--radius-md);
+}
+
+.text {
+  display: grid;
+  gap: var(--space-1);
+  flex: 1 1 12rem;
+  min-width: 0;
+  line-height: 1.6;
+}
+
+.text span {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}

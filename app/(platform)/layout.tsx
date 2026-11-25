@@ -15,6 +15,7 @@ import { switchMode } from "@/lib/auth/switch-mode";
 import { currentViewer } from "@/lib/permissions/granted";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { ArabicNamePrompt } from "./arabic-name-prompt";
+import { InstallInvite } from "./install-invite";
 
 /** كل ما تحت (platform) يمرّ بالتخطيط الجامع. لا تخطيط موضعي في صفحة. */
 export default async function PlatformLayout({ children }: { children: ReactNode }) {
@@ -100,6 +101,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
           : undefined
       }
     >
+      {/* دعوة تثبيت المنصة على الجهاز (adr/0063) — لكل من دخل، حتى يثبّتها أو يؤجّلها. */}
+      <InstallInvite />
       {children}
       {/* الاسم بالحروف العربية (adr/0062): نافذةٌ تُؤجَّل لا تُوقف. */}
       {session.status === "active" && session.nameToUpdate ? <ArabicNamePrompt name={session.nameToUpdate} /> : null}
