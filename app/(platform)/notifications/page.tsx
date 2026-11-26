@@ -2,6 +2,7 @@ import { ErrorState } from "@/components/shared/states";
 import { getSession } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { isNotificationKind, type MyNotification } from "@/lib/notifications/notifications";
+import { pushReady } from "@/lib/push/config";
 import { NotificationsView } from "./notifications-view";
 
 /**
@@ -33,5 +34,5 @@ export default async function NotificationsPage() {
         ]
       : [],
   );
-  return <NotificationsView notes={notes} />;
+  return <NotificationsView notes={notes} push={pushReady()} />;
 }

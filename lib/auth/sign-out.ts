@@ -12,6 +12,7 @@ export async function signOut(): Promise<void> {
   const gate = isSessionMode(mode) && mode === "staff" ? "/admin" : "/sign-in";
 
   const db = await createClient();
+  // إشعارات الجهاز تبقى بعد الخروج حتى «أوقفها» — وليّ أمرٍ يتنقّل بين حسابات أبنائه (adr/0064 · ت١).
   await db.auth.signOut();
   jar.delete(MODE_COOKIE);
 

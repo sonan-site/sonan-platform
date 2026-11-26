@@ -7,10 +7,11 @@ import { EmptyState } from "@/components/shared/states";
 import { formatDateTime } from "@/lib/format";
 import { notificationMessage, type MyNotification } from "@/lib/notifications/notifications";
 import { markNotificationsSeen } from "./actions";
+import { PushPanel } from "./push-panel";
 import styles from "./notifications.module.css";
 
 /** «تنبيهاتي»: الأحدث أولاً، والجديد معلَّم، وكلٌّ برابطٍ إلى رحلته في البرنامج الذي يخصّه. */
-export function NotificationsView({ notes }: { notes: MyNotification[] }) {
+export function NotificationsView({ notes, push }: { notes: MyNotification[]; push: boolean }) {
   const router = useRouter();
   // «جديد» من القراءة الأولى: التحديث بعد الوسم يعيدها كلها مقروءة، والمكوّن باقٍ فيبقى الوسم ظاهراً
   // في هذه الزيارة (مراجعة البناء م١).
@@ -29,6 +30,9 @@ export function NotificationsView({ notes }: { notes: MyNotification[] }) {
         <h1 className={styles.title}>تنبيهاتي</h1>
         <p className={styles.lede}>ما يخصّك من الإدارة: قرار طلب انتقالك، ونشر النتائج.</p>
       </header>
+
+      {/* لا يُدعى إلى تفعيل ما لا يُرسَل (adr/0064 · مراجعة البناء م١). */}
+      {push ? <PushPanel /> : null}
 
       {notes.length === 0 ? (
         <EmptyState kind="no-data" title="لا تنبيهات بعد" body="حين تقرّر الإدارة في طلبك أو تنشر النتائج، تجد ذلك هنا." />

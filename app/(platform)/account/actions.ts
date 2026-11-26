@@ -13,6 +13,7 @@ import { createClient } from "@/lib/db/server";
 import { env } from "@/lib/env.server";
 import { setSignInBlocked } from "@/lib/mail";
 import { setPasswordSchema } from "@/lib/validation/auth";
+import { forgetAllDevices } from "@/lib/push/forget";
 import { z } from "@/lib/validation/z";
 import { identityInput, identitySchema } from "@/lib/validation/identity";
 import { nameSchema, profileInput, profileSchema } from "@/lib/validation/profile";
@@ -189,6 +190,8 @@ export async function closeMyAccount(_prev: FormState, form: FormData): Promise<
   if (error) return { error: userMessage(error, "تعذّر إغلاق الحساب. أعد المحاولة.") };
 
   // الملف موقوف فلا يملك شيئاً؛ والمنع يمنع الجلسة من التجدّد، والخروج يُنهي الحالية.
+  // وأجهزته كلها لا تُشعَر بعده (adr/0064) — قبل الخروج، فالدالة تأخذ الحساب من الجلسة.
+  await forgetAllDevices(db);
   await setSignInBlocked(session.userId, true);
   await db.auth.signOut();
 

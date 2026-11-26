@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/db/server";
+import { forgetAllDevices } from "@/lib/push/forget";
 import { clearTempPassword } from "./admin";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
@@ -16,6 +17,8 @@ export async function finishTempPassword(db: Db, userId: string): Promise<boolea
   // من عرف المؤقتة ودخل بها لا يبقى داخلاً — وفشل الإغلاق يُدوَّن في السجلّ لا يُبتلع (مراجعة ٧).
   const { error: outError } = await db.auth.signOut({ scope: "others" });
   if (outError) console.error("temp password: تعذّر إغلاق الجلسات الأخرى", outError.message);
+  // وإشعارات أجهزته الأخرى معها (adr/0064) — ويبقى الجهاز الذي عيّن منه كلمته.
+  await forgetAllDevices(db, true);
 
   const { data: profile } = await db.from("profiles").select("id").eq("user_id", userId).maybeSingle();
   const { error: auditError } = await db.rpc("fn_write_audit", {

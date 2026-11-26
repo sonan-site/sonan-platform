@@ -1797,6 +1797,7 @@ export type Database = {
           id: string
           kind: string
           payload: Json
+          pushed_at: string | null
           read_at: string | null
           recipient_id: string
           ref_key: string | null
@@ -1810,6 +1811,7 @@ export type Database = {
           id?: string
           kind: string
           payload?: Json
+          pushed_at?: string | null
           read_at?: string | null
           recipient_id: string
           ref_key?: string | null
@@ -1823,6 +1825,7 @@ export type Database = {
           id?: string
           kind?: string
           payload?: Json
+          pushed_at?: string | null
           read_at?: string | null
           recipient_id?: string
           ref_key?: string | null
@@ -2401,6 +2404,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          deleted_at: string | null
+          device: string
+          endpoint: string
+          failing_since: string | null
+          id: string
+          last_success_at: string | null
+          p256dh: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          deleted_at?: string | null
+          device: string
+          endpoint: string
+          failing_since?: string | null
+          id?: string
+          last_success_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          deleted_at?: string | null
+          device?: string
+          endpoint?: string
+          failing_since?: string | null
+          id?: string
+          last_success_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       question_options: {
         Row: {
@@ -4441,6 +4486,40 @@ export type Database = {
         Returns: number
       }
       fn_purge_account: { Args: { p_user_id: string }; Returns: undefined }
+      fn_push_claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          created_at: string
+          decision: string
+          deliver: boolean
+          id: string
+          kind: string
+          recipient_id: string
+          track_name: string
+        }[]
+      }
+      fn_push_endpoint_allowed: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
+      fn_push_is_mine: { Args: { p_endpoint: string }; Returns: boolean }
+      fn_push_kick: { Args: never; Returns: undefined }
+      fn_push_subscribe: {
+        Args: {
+          p_auth: string
+          p_device: string
+          p_endpoint: string
+          p_p256dh: string
+        }
+        Returns: undefined
+      }
+      fn_push_sweep: { Args: never; Returns: undefined }
+      fn_push_unsubscribe: { Args: { p_endpoint: string }; Returns: number }
+      fn_push_unsubscribe_all: {
+        Args: { p_keep_endpoint?: string }
+        Returns: undefined
+      }
       fn_quick_setup: {
         Args: {
           p_day_count: number

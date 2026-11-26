@@ -16,6 +16,8 @@ import { currentViewer } from "@/lib/permissions/granted";
 import { getHomeFeatured } from "@/lib/settings/home-featured-server";
 import { ArabicNamePrompt } from "./arabic-name-prompt";
 import { InstallInvite } from "./install-invite";
+import { PushInvite } from "./push-invite";
+import { pushReady } from "@/lib/push/config";
 
 /** كل ما تحت (platform) يمرّ بالتخطيط الجامع. لا تخطيط موضعي في صفحة. */
 export default async function PlatformLayout({ children }: { children: ReactNode }) {
@@ -103,6 +105,8 @@ export default async function PlatformLayout({ children }: { children: ReactNode
     >
       {/* دعوة تثبيت المنصة على الجهاز (adr/0063) — لكل من دخل، حتى يثبّتها أو يؤجّلها. */}
       <InstallInvite />
+      {/* دعوة تفعيل الإشعارات (adr/0064) — للطالب حيث جرسه، ولمن فتحها من أيقونتها. */}
+      {mode === "participant" && pushReady() ? <PushInvite /> : null}
       {children}
       {/* الاسم بالحروف العربية (adr/0062): نافذةٌ تُؤجَّل لا تُوقف. */}
       {session.status === "active" && session.nameToUpdate ? <ArabicNamePrompt name={session.nameToUpdate} /> : null}
