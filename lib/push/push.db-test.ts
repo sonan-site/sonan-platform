@@ -235,3 +235,67 @@ describe("الحجز", () => {
     }
   });
 });
+
+describe("دوال المُرسِل (الهجرة 20261128100000)", () => {
+  /** مفتاح الخادم كما يتصل به المُرسِل — بلا منحة جدول، فكل شيءٍ بالدوال. */
+  const asService = async <T>(work: () => Promise<T>): Promise<T> => {
+    await db.query("begin");
+    try {
+      await db.query("set local role service_role");
+      const out = await work();
+      await db.query("commit");
+      return out;
+    } catch (error) {
+      await db.query("rollback");
+      throw error;
+    }
+  };
+
+  it("مفتاح الخادم لا يقرأ جدول الأجهزة مباشرة، ولا يبلغ الدوال غيرُه", async () => {
+    await expect(asService(() => db.query(`select 1 from public.push_subscriptions limit 1`))).rejects.toThrow(/permission denied/);
+    await expect(asUser(A, () => db.query(`select * from public.fn_push_targets($1)`, [[A]]))).rejects.toThrow(/permission denied/);
+    await expect(asUser(A, () => db.query(`select public.fn_push_report($1, 'gone')`, [A]))).rejects.toThrow(/permission denied/);
+    await expect(asUser(A, () => db.query(`select public.fn_push_requeue($1)`, [[A]]))).rejects.toThrow(/permission denied/);
+    await expect(asUser(A, () => db.query(`select public.fn_push_prune()`))).rejects.toThrow(/permission denied/);
+  });
+
+  it("الأجهزة والنتيجة وإعادة الطابور والتنظيف — كلها بمفتاح الخادم", async () => {
+    await subscribe(A, `${EP}-svc`);
+    const targets = await asService(() =>
+      db.query<{ id: string; endpoint: string }>(`select id, endpoint from public.fn_push_targets($1)`, [[A]]),
+    );
+    const mine = targets.rows.find((r) => r.endpoint === `${EP}-svc`)!;
+    expect(mine).toBeTruthy();
+
+    const state = async () =>
+      (
+        await db.query<{ failing: boolean; ok: boolean }>(
+          `select failing_since is not null as failing, last_success_at is not null as ok from public.push_subscriptions where id = $1`,
+          [mine.id],
+        )
+      ).rows[0];
+    await asService(() => db.query(`select public.fn_push_report($1, 'transient')`, [mine.id]));
+    expect(await state()).toEqual({ failing: true, ok: false });
+    await asService(() => db.query(`select public.fn_push_report($1, 'sent')`, [mine.id]));
+    expect(await state()).toEqual({ failing: false, ok: true });
+    await expect(asService(() => db.query(`select public.fn_push_report($1, 'other')`, [mine.id]))).rejects.toThrow(/غير معروفة/);
+
+    // التعثّر القديم يُنظَّف، والحديث يبقى.
+    await db.query(`update public.push_subscriptions set failing_since = now() - interval '8 days' where id = $1`, [mine.id]);
+    const pruned = await asService(() => db.query<{ n: number }>(`select public.fn_push_prune(7) as n`));
+    expect(pruned.rows[0]!.n).toBeGreaterThanOrEqual(1);
+    expect(await state()).toBeUndefined();
+
+    await subscribe(A, `${EP}-gone`);
+    const gone = (await rowsOf(A)).length;
+    const id = (await db.query<{ id: string }>(`select id from public.push_subscriptions where endpoint = $1`, [`${EP}-gone`])).rows[0]!.id;
+    await asService(() => db.query(`select public.fn_push_report($1, 'gone')`, [id]));
+    expect((await rowsOf(A)).length).toBe(gone - 1);
+
+    const note = await notify(A);
+    await claim();
+    const back = await asService(() => db.query<{ n: number }>(`select public.fn_push_requeue($1) as n`, [[note]]));
+    expect(back.rows[0]!.n).toBe(1);
+    expect((await claim()).map((r) => r.id)).toContain(note);
+  });
+});

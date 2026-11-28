@@ -10,6 +10,7 @@ import { classifyPushFailure, isAllowedEndpoint, pushPayload, type ClaimedNotifi
 /**
  * المُرسِل (`adr/0064`): يحجز ما لم يُرسَل من الإشعارات ويرسله إلى أجهزة أصحابها، في حلقةٍ بميزانية
  * وقت (م٨). يُستدعى من `app/api/push/dispatch` وحده — بتنبيهٍ من القاعدة عند الإدراج، أو بكنسة الساعة.
+ * ولا يمسّ جدولاً مباشرة: كل ما يقرؤه ويكتبه بدوال `fn_push_*` — فمفتاح الخادم بلا منحة جدول (الهجرة 20261128100000).
  */
 
 const BATCH = 25;
@@ -49,11 +50,10 @@ export async function dispatchPending(): Promise<DispatchResult> {
     if (!enabled) continue;
 
     const recipients = [...new Set(claimed.map((n) => n.recipient_id))];
-    const { data: subs, error: subsError } = await db
-      .from("push_subscriptions")
-      .select("id, user_id, endpoint, p256dh, auth")
-      .in("user_id", recipients);
-    if (subsError) throw new Error(`push_subscriptions: ${subsError.message}`);
+    const { data: subs, error: subsError } = recipients.length
+      ? await db.rpc("fn_push_targets", { p_users: recipients })
+      : { data: [], error: null };
+    if (subsError) throw new Error(`fn_push_targets: ${subsError.message}`);
 
     const jobs: Array<{ sub: Subscription; body: string; note: string }> = [];
     for (const n of claimed) {
@@ -68,7 +68,7 @@ export async function dispatchPending(): Promise<DispatchResult> {
       const begun = new Set(jobs.filter((j) => !unstarted.includes(j)).map((j) => j.note));
       const back = [...new Set(unstarted.map((j) => j.note))].filter((id) => !begun.has(id));
       if (back.length > 0) {
-        const { error: backError } = await db.from("notifications").update({ pushed_at: null }).in("id", back);
+        const { error: backError } = await db.rpc("fn_push_requeue", { p_ids: back });
         if (backError) console.error("push: تعذّر إعادة ما لم يُرسل إلى الطابور", backError.message);
       }
       result.more = true;
@@ -83,10 +83,16 @@ export async function dispatchPending(): Promise<DispatchResult> {
 
 type Db = ReturnType<typeof createServiceRoleClient>;
 
+/** نتيجة الإرسال إلى القاعدة — وفشل تسجيلها لا يوقف الدفعة. */
+async function report(db: Db, id: string, outcome: "sent" | "gone" | "transient"): Promise<void> {
+  const { error } = await db.rpc("fn_push_report", { p_id: id, p_outcome: outcome });
+  if (error) console.error("push: تعذّر تسجيل نتيجة الإرسال", outcome, error.message);
+}
+
 async function sendOne(db: Db, sub: Subscription, body: string, result: DispatchResult): Promise<void> {
   // صنو قيد القاعدة — لا يُطلب عنوانٌ خارج خدمات الإشعار ولو وُجد صفّه (م٢).
   if (!isAllowedEndpoint(sub.endpoint)) {
-    await db.from("push_subscriptions").delete().eq("id", sub.id);
+    await report(db, sub.id, "gone");
     result.gone += 1;
     return;
   }
@@ -97,13 +103,13 @@ async function sendOne(db: Db, sub: Subscription, body: string, result: Dispatch
       timeout: SEND_TIMEOUT_MS,
     });
     result.sent += 1;
-    await db.from("push_subscriptions").update({ last_success_at: now().toISOString(), failing_since: null }).eq("id", sub.id);
+    await report(db, sub.id, "sent");
   } catch (e) {
     const status = e instanceof WebPushError ? e.statusCode : undefined;
     const kind = classifyPushFailure(status);
     if (kind === "gone") {
       result.gone += 1;
-      await db.from("push_subscriptions").delete().eq("id", sub.id);
+      await report(db, sub.id, "gone");
       return;
     }
     result.failed += 1;
@@ -112,18 +118,13 @@ async function sendOne(db: Db, sub: Subscription, body: string, result: Dispatch
       console.error("push: ردٌّ يدلّ على خطأ إعداد", status, e instanceof WebPushError ? e.body : String(e));
       return;
     }
-    await db
-      .from("push_subscriptions")
-      .update({ failing_since: now().toISOString() })
-      .eq("id", sub.id)
-      .is("failing_since", null);
+    await report(db, sub.id, "transient");
   }
 }
 
 /** ما فشل عابراً سبعة أيام متصلة يُحذف — بالمدة لا بالعدد (م١). */
 async function dropStaleFailures(db: Db): Promise<void> {
-  const cutoff = new Date(now().getTime() - STALE_FAILURE_DAYS * 86_400_000).toISOString();
-  const { error } = await db.from("push_subscriptions").delete().lt("failing_since", cutoff);
+  const { error } = await db.rpc("fn_push_prune", { p_days: STALE_FAILURE_DAYS });
   if (error) console.error("push: تعذّر حذف الاشتراكات المتعثّرة", error.message);
 }
 

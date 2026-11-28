@@ -4505,6 +4505,12 @@ export type Database = {
       }
       fn_push_is_mine: { Args: { p_endpoint: string }; Returns: boolean }
       fn_push_kick: { Args: never; Returns: undefined }
+      fn_push_prune: { Args: { p_days?: number }; Returns: number }
+      fn_push_report: {
+        Args: { p_id: string; p_outcome: string }
+        Returns: undefined
+      }
+      fn_push_requeue: { Args: { p_ids: string[] }; Returns: number }
       fn_push_subscribe: {
         Args: {
           p_auth: string
@@ -4515,6 +4521,16 @@ export type Database = {
         Returns: undefined
       }
       fn_push_sweep: { Args: never; Returns: undefined }
+      fn_push_targets: {
+        Args: { p_users: string[] }
+        Returns: {
+          auth: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }[]
+      }
       fn_push_unsubscribe: { Args: { p_endpoint: string }; Returns: number }
       fn_push_unsubscribe_all: {
         Args: { p_keep_endpoint?: string }
